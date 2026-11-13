@@ -1,9 +1,15 @@
 name: CI
 
+# Runs on pull requests and on main. Pushes to dev and production are checked
+# by publish-and-update-gitops.yml, which calls this workflow before building.
 on:
   pull_request:
   push:
-    branches: [main, dev, production]
+    branches: [main]
+  workflow_call:
+
+permissions:
+  contents: read
 
 jobs:
   web:
