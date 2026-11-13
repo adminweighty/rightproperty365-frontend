@@ -44,7 +44,7 @@ export function ListingFacts({ listing }: { listing: Listing }) {
   );
 }
 
-export function ListingCard({ listing }: { listing: Listing }) {
+export function ListingCard({ listing, isNew }: { listing: Listing; isNew?: boolean }) {
   return (
     <article className="group relative flex flex-col overflow-hidden rounded-lg border border-line bg-surface shadow-xs transition-shadow duration-200 hover:shadow-md focus-within:shadow-md">
       <div className="relative">
@@ -58,6 +58,7 @@ export function ListingCard({ listing }: { listing: Listing }) {
           <Badge tone="primary" className="bg-surface text-ink shadow-xs">
             {dealLabels[listing.deal]}
           </Badge>
+          {isNew && <Badge tone="success">New</Badge>}
           {listing.featured && <Badge tone="accent">Featured</Badge>}
         </div>
       </div>
