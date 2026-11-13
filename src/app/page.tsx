@@ -18,8 +18,9 @@ import agentsPhoto from "@/assets/images/agents.jpg";
 import bulawayoPhoto from "@/assets/images/city-bulawayo.jpg";
 import hararePhoto from "@/assets/images/city-harare.jpg";
 import victoriaFallsPhoto from "@/assets/images/city-victoria-falls.jpg";
-import { HeroSpotlight } from "@/components/landing/hero-spotlight";
+import { HeroBackdrop } from "@/components/landing/hero-backdrop";
 import { ListingTicker } from "@/components/landing/listing-ticker";
+import { ShowcaseScroll } from "@/components/landing/showcase-scroll";
 import { StatCounter } from "@/components/landing/stat-counter";
 import { HeroSearch } from "@/components/listings/hero-search";
 import { ListingRail } from "@/components/listings/listing-rail";
@@ -29,8 +30,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { cn } from "@/lib/cn";
 import { directories, directoryKinds, profilesOfKind } from "@/lib/data/directory";
-import { dealLabels, listings, type Listing } from "@/lib/data/listings";
-import { formatMoney } from "@/lib/format";
+import { listings } from "@/lib/data/listings";
 import { organizationJsonLd, websiteJsonLd } from "@/lib/seo";
 
 const homeTitle = "RightProperty365 | Property for sale and to rent in Zimbabwe";
@@ -133,45 +133,6 @@ function SectionHeading({
   );
 }
 
-/** A photo tile with the price and place over it, for the featured mosaic. */
-function MosaicTile({ listing, large }: { listing: Listing; large?: boolean }) {
-  return (
-    <Link
-      href={`/listings/${listing.slug}`}
-      className={cn(
-        "group relative flex min-h-56 items-end overflow-hidden rounded-lg bg-brand-deep text-on-brand shadow-xs transition-shadow hover:shadow-lg",
-        large && "sm:col-span-2 sm:row-span-2 sm:min-h-[30rem]",
-      )}
-    >
-      <Image
-        src={listing.image.src}
-        alt={listing.image.alt}
-        fill
-        sizes={large ? "(min-width: 1024px) 600px, 100vw" : "(min-width: 1024px) 300px, (min-width: 640px) 50vw, 100vw"}
-        placeholder="blur"
-        className="object-cover transition-transform duration-700 ease-standard group-hover:scale-105"
-      />
-      <span aria-hidden="true" className="absolute inset-0 bg-linear-to-t from-brand-deep via-brand-deep/30 to-transparent" />
-      <span className="relative block w-full p-5">
-        <span className="inline-block rounded-full bg-brand-accent px-2.5 py-0.5 text-xs font-bold text-brand-deep">
-          {dealLabels[listing.deal]}
-        </span>
-        <span className={cn("mt-2 block font-bold tabular-nums", large ? "text-3xl md:text-4xl" : "text-xl")}>
-          {formatMoney(listing.price)}
-          {listing.pricePeriod && <span className="text-sm font-medium"> per month</span>}
-        </span>
-        <span className={cn("mt-1 block font-medium group-hover:underline", large && "text-lg")}>
-          {listing.title}
-        </span>
-        <span className="mt-1 flex items-center gap-1.5 text-sm opacity-90">
-          <MapPin className="size-4" aria-hidden="true" />
-          {listing.suburb}, {listing.city}
-        </span>
-      </span>
-    </Link>
-  );
-}
-
 export default function HomePage() {
   const newest = [...listings].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
   const newIds = newest.slice(0, 6).map((listing) => listing.id);
@@ -200,66 +161,46 @@ export default function HomePage() {
       <JsonLd data={organizationJsonLd()} />
       <JsonLd data={websiteJsonLd()} />
 
-      {/* Hero: indigo, white and turquoise, straight from the logo. */}
-      <section className="relative isolate bg-brand text-on-brand">
-        <div aria-hidden="true" className="absolute inset-0 -z-10 overflow-hidden">
-          <div className="absolute -right-40 -top-40 size-[34rem] rounded-full bg-brand-accent opacity-15 blur-3xl" />
-          <div className="absolute -bottom-52 -left-40 size-[30rem] rounded-full bg-brand-deep opacity-70 blur-3xl" />
-        </div>
+      {/* Full-bleed hero. It sits under the transparent header (data-overlay-hero). */}
+      <section
+        data-overlay-hero
+        className="relative isolate flex min-h-[44rem] flex-col justify-end overflow-hidden bg-brand-deep text-on-brand lg:min-h-[100svh]"
+      >
+        <HeroBackdrop listings={featured.slice(0, 5)} />
 
-        <Container className="grid items-center gap-12 pb-32 pt-12 md:pt-16 lg:grid-cols-[1.05fr_1fr] lg:pb-36">
-          <div>
-            <p
-              data-hero
-              className="inline-flex items-center gap-2 rounded-full bg-brand-accent px-3.5 py-1.5 text-sm font-semibold text-brand-deep"
-            >
-              <BadgeCheck className="size-4" aria-hidden="true" />
-              Verified property across Zimbabwe
-            </p>
-            <h1 data-hero className="mt-6 text-4xl leading-[1.08] md:text-6xl">
-              Find the <span className="text-brand-accent">right property</span>, any day of the year
-            </h1>
-            <p data-hero className="mt-6 max-w-lg text-lg leading-relaxed opacity-90">
-              Homes, commercial space and land from agents and owners we have checked. Send one
-              enquiry and follow it until you get an answer.
-            </p>
-            <div data-hero className="mt-8 flex flex-wrap gap-3">
-              <ButtonLink href="/listings?deal=sale" size="lg" variant="accent">
-                Browse homes for sale
-              </ButtonLink>
-              <ButtonLink href="/listings?deal=rent" size="lg" variant="on-brand">
-                Find a rental
-              </ButtonLink>
-            </div>
-            <dl data-hero className="mt-10 flex flex-wrap gap-x-10 gap-y-4 border-t border-white/20 pt-6">
-              {stats.map((stat) => (
-                <div key={stat.label} className="flex flex-col-reverse">
-                  <dt className="text-sm opacity-80">{stat.label}</dt>
-                  <dd className="text-3xl font-bold tabular-nums text-brand-accent md:text-4xl">
-                    <StatCounter value={stat.value} />
-                  </dd>
-                </div>
-              ))}
-            </dl>
+        <Container className="pb-40 pt-[calc(var(--header-h)+3rem)] lg:pb-44">
+          <p
+            data-hero
+            className="inline-flex items-center gap-2 rounded-full bg-brand-accent px-3.5 py-1.5 text-sm font-semibold text-brand-deep"
+          >
+            <BadgeCheck className="size-4" aria-hidden="true" />
+            Verified property across Zimbabwe
+          </p>
+          <h1 data-split className="mt-6 max-w-4xl text-5xl leading-[1.02] md:text-7xl">
+            Find the <span className="text-brand-accent">right property</span> any day of the year
+          </h1>
+          <p data-hero className="mt-6 max-w-xl text-lg leading-relaxed opacity-90 md:text-xl">
+            Homes, commercial space and land from agents and owners we have checked. Send one
+            enquiry and follow it until you get an answer.
+          </p>
+          <div data-hero className="mt-8 flex flex-wrap gap-3">
+            <ButtonLink href="/listings?deal=sale" size="lg" variant="accent" data-magnetic>
+              Browse homes for sale
+            </ButtonLink>
+            <ButtonLink href="/listings?deal=rent" size="lg" variant="on-brand" data-magnetic>
+              Find a rental
+            </ButtonLink>
           </div>
-
-          <div data-hero className="relative hidden lg:block">
-            <HeroSpotlight listings={featured.slice(0, 5)} />
-            <p
-              data-float
-              className="absolute -right-4 top-8 flex items-center gap-2 rounded-full bg-brand-accent px-4 py-2 text-sm font-semibold text-brand-deep shadow-lg"
-            >
-              <ShieldCheck className="size-4" aria-hidden="true" />
-              Verified agent
-            </p>
-            <p
-              data-float
-              className="absolute -left-6 top-1/3 flex items-center gap-2 rounded-full bg-surface px-4 py-2 text-sm font-semibold text-ink shadow-lg"
-            >
-              <RefreshCw className="size-4 text-primary-ink" aria-hidden="true" />
-              Refreshed every 90 days
-            </p>
-          </div>
+          <dl data-hero className="mt-10 flex flex-wrap gap-x-10 gap-y-4 border-t border-white/20 pt-6 lg:max-w-xl">
+            {stats.map((stat) => (
+              <div key={stat.label} className="flex flex-col-reverse">
+                <dt className="text-sm opacity-80">{stat.label}</dt>
+                <dd className="text-3xl font-bold tabular-nums text-brand-accent md:text-4xl">
+                  <StatCounter value={stat.value} />
+                </dd>
+              </div>
+            ))}
+          </dl>
         </Container>
       </section>
 
@@ -319,14 +260,24 @@ export default function HomePage() {
         </div>
       </Container>
 
-      <Container className="pt-16 md:pt-20">
-        <SectionHeading title="Featured properties" note="Hand-picked by our agencies this week." />
-        <div data-reveal-group className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {featured.slice(0, 5).map((listing, index) => (
-            <MosaicTile key={listing.id} listing={listing} large={index === 0} />
-          ))}
-        </div>
-      </Container>
+      <div className="mt-16 md:mt-20">
+        <ShowcaseScroll
+          listings={featured.slice(0, 6)}
+          heading={
+            <div className="flex items-end justify-between gap-6">
+              <div>
+                <p className="text-sm font-semibold text-brand-accent">Signature collection</p>
+                <h2 data-split className="mt-3 max-w-2xl text-3xl md:text-5xl">
+                  Featured properties worth a closer look
+                </h2>
+              </div>
+              <p className="hidden max-w-xs text-sm opacity-80 lg:block">
+                Hand-picked by our agencies this week. Keep scrolling to move through the collection.
+              </p>
+            </div>
+          }
+        />
+      </div>
 
       <Container className="pt-16 md:pt-20">
         <SectionHeading
@@ -342,7 +293,7 @@ export default function HomePage() {
       <section className="mt-16 border-y border-line bg-surface md:mt-20">
         <Container className="py-16 md:py-20">
           <SectionHeading title="Explore by city" note="See what is on the market where you want to live or work." />
-          <ul data-reveal-group className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {cities.map(([city, count]) => {
               // Cities without their own photo borrow one from a listing there.
               const fallback = listings.find((listing) => listing.city === city)?.image;
@@ -351,16 +302,17 @@ export default function HomePage() {
                 <li key={city}>
                   <Link
                     href={`/listings?q=${encodeURIComponent(city)}`}
-                    className="group relative flex aspect-[4/3] items-end overflow-hidden rounded-lg bg-brand text-on-brand shadow-xs transition-shadow hover:shadow-lg"
+                    data-reveal-clip
+                    className="group relative flex aspect-[3/4] items-end overflow-hidden rounded-lg bg-brand text-on-brand shadow-xs transition-shadow hover:shadow-lg"
                   >
                     {photo && (
                       <Image
                         src={photo.src}
                         alt={photo.alt}
                         fill
-                        sizes="(min-width: 1024px) 380px, (min-width: 640px) 50vw, 100vw"
+                        sizes="(min-width: 1024px) 290px, (min-width: 640px) 50vw, 100vw"
                         placeholder="blur"
-                        className="object-cover transition-transform duration-500 ease-standard group-hover:scale-105"
+                        className="object-cover transition-transform duration-700 ease-standard group-hover:scale-105"
                       />
                     )}
                     <span
@@ -522,7 +474,7 @@ export default function HomePage() {
         >
           <div className="px-6 py-12 md:px-12 md:py-16">
             <p className="text-sm font-semibold text-brand-accent">For agents, landlords and developers</p>
-            <h2 className="mt-3 max-w-xl text-3xl md:text-4xl">
+            <h2 data-split className="mt-3 max-w-xl text-3xl md:text-5xl">
               More than an advert. The tools to run the deal.
             </h2>
             <ul className="mt-8 space-y-6">
@@ -538,7 +490,7 @@ export default function HomePage() {
                 </li>
               ))}
             </ul>
-            <ButtonLink href="/register" size="lg" variant="accent" className="mt-10">
+            <ButtonLink href="/register" size="lg" variant="accent" className="mt-10" data-magnetic>
               Create an account
             </ButtonLink>
             <p className="mt-4 text-sm opacity-90">

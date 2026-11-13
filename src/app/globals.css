@@ -72,6 +72,50 @@
   --ease-standard: var(--rp-motion-easing-standard);
 }
 
+/*
+ * Height of the sticky site header: 64px bar + 1px border, plus the 53px
+ * navigation row that shows below it on phones. Heroes that sit under the
+ * header (data-overlay-hero) pull themselves up by this much.
+ */
+:root {
+  --header-h: 118px;
+}
+@media (min-width: 48rem) {
+  :root {
+    --header-h: 65px;
+  }
+}
+
+/*
+ * Overlay header. When a page has a hero marked data-overlay-hero, the header
+ * is transparent with white text until the page scrolls (HeaderScrollWatcher
+ * then sets data-scrolled). Pure CSS via :has(), so it is right on first
+ * paint. Unlayered on purpose: it must beat the header's utility classes.
+ * The colour tokens are re-pointed only on the marked parts, so menus that
+ * open from the header keep their normal colours.
+ */
+[data-overlay-hero] {
+  margin-top: calc(-1 * var(--header-h));
+}
+body:has([data-overlay-hero]) [data-site-header]:not([data-scrolled]) {
+  border-color: transparent;
+  background: transparent;
+  backdrop-filter: none;
+}
+body:has([data-overlay-hero]) [data-site-header]:not([data-scrolled]) [data-overlay-part] {
+  --rp-color-text-muted: rgb(255 255 255 / 0.88);
+  --rp-color-text-ink: #ffffff;
+  --rp-color-brand-logo: #ffffff;
+  --rp-color-bg-sunken: rgb(255 255 255 / 0.14);
+  --rp-color-border-line: rgb(255 255 255 / 0.18);
+}
+/* Without scripting the header cannot turn solid on scroll, so it scrolls away. */
+@media (scripting: none) {
+  body:has([data-overlay-hero]) [data-site-header] {
+    position: relative;
+  }
+}
+
 @layer base {
   html {
     scroll-behavior: smooth;
@@ -117,6 +161,16 @@
     [data-reveal],
     [data-reveal-group] > * {
       opacity: 0;
+    }
+
+    /* Headlines revealed word by word: hidden until GSAP has split them. */
+    [data-split] {
+      visibility: hidden;
+    }
+
+    /* Photos that wipe in from the bottom. */
+    [data-reveal-clip] {
+      clip-path: inset(100% 0 0 0);
     }
   }
 
