@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ComponentProps } from "react";
 import { cn } from "@/lib/cn";
 
-type Variant = "primary" | "secondary" | "ghost" | "danger";
+type Variant = "primary" | "secondary" | "ghost" | "danger" | "accent" | "on-brand";
 type Size = "sm" | "md" | "lg";
 
 const base =
@@ -15,6 +15,9 @@ const variants: Record<Variant, string> = {
   secondary: "border border-line-strong bg-surface text-ink hover:bg-sunken",
   ghost: "text-ink hover:bg-sunken",
   danger: "bg-danger text-on-inverse hover:opacity-90",
+  // The two below are for use on the brand indigo background only.
+  accent: "bg-brand-accent text-brand-deep hover:bg-white",
+  "on-brand": "border border-white/40 text-on-brand hover:bg-white/10",
 };
 
 // md and lg meet the 44px touch-target guideline; sm is for dense desktop UI.

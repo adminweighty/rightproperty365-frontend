@@ -48,7 +48,12 @@ export function ListingCard({ listing }: { listing: Listing }) {
   return (
     <article className="group relative flex flex-col overflow-hidden rounded-lg border border-line bg-surface shadow-xs transition-shadow duration-200 hover:shadow-md focus-within:shadow-md">
       <div className="relative">
-        <ListingMedia tone={listing.tone} className="aspect-[16/10]" />
+        <ListingMedia
+          image={listing.image}
+          sizes="(min-width: 1024px) 380px, (min-width: 640px) 50vw, 100vw"
+          zoomOnHover
+          className="aspect-[16/10]"
+        />
         <div className="absolute left-3 top-3 flex gap-1.5">
           <Badge tone="primary" className="bg-surface text-ink shadow-xs">
             {dealLabels[listing.deal]}

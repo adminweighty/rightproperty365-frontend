@@ -1,3 +1,11 @@
+import type { StaticImageData } from "next/image";
+import apartmentAvondale from "@/assets/images/listing-apartment-avondale.jpg";
+import houseBorrowdale from "@/assets/images/listing-house-borrowdale.jpg";
+import houseVictoriaFalls from "@/assets/images/listing-house-victoria-falls.jpg";
+import officeEastlea from "@/assets/images/listing-office-eastlea.jpg";
+import standHillside from "@/assets/images/listing-stand-hillside.jpg";
+import townhouseMountPleasant from "@/assets/images/listing-townhouse-mount-pleasant.jpg";
+
 /**
  * SAMPLE DATA for UI development only. Replace with the Go API listings
  * endpoints once they exist. The ids match the listings seeded in the
@@ -12,6 +20,8 @@ export type Category = "residential" | "commercial" | "land";
 export type Listing = {
   id: string;
   slug: string;
+  /** Sample photo (see src/assets/images/CREDITS.md). Real photos will come from object storage. */
+  image: { src: StaticImageData; alt: string };
   reference: string;
   title: string;
   deal: DealType;
@@ -40,6 +50,7 @@ export const listings: Listing[] = [
   {
     id: id(1),
     slug: "four-bedroom-family-home-borrowdale",
+    image: { src: houseBorrowdale, alt: "White two-storey house with a tiled roof under a blue sky" },
     reference: "RP-ZW-10001",
     title: "Four-bedroom family home with garden",
     deal: "sale",
@@ -64,6 +75,7 @@ export const listings: Listing[] = [
   {
     id: id(2),
     slug: "two-bedroom-garden-apartment-avondale",
+    image: { src: apartmentAvondale, alt: "White apartment building behind a large green tree" },
     reference: "RP-ZW-10002",
     title: "Two-bedroom garden apartment",
     deal: "rent",
@@ -88,6 +100,7 @@ export const listings: Listing[] = [
   {
     id: id(3),
     slug: "office-suite-eastlea",
+    image: { src: officeEastlea, alt: "Bright office with a long meeting table and chairs" },
     reference: "RP-ZW-10003",
     title: "Office suite with reception and boardroom",
     deal: "rent",
@@ -109,6 +122,7 @@ export const listings: Listing[] = [
   {
     id: id(4),
     slug: "residential-stand-hillside-bulawayo",
+    image: { src: standHillside, alt: "Open grassy plot with trees along the boundary" },
     reference: "RP-ZW-10004",
     title: "Serviced residential stand",
     deal: "sale",
@@ -119,7 +133,7 @@ export const listings: Listing[] = [
     city: "Bulawayo",
     marketCode: "ZW",
     landArea: 2000,
-    summary: "Level 2,000 m² stand on a tarred road with water and power at the boundary.",
+    summary: "Level 2,000 mÂ² stand on a tarred road with water and power at the boundary.",
     description:
       "A level, cleared stand in an established suburb. Municipal water and electricity run along the boundary and the road is tarred. Title deeds are available for inspection.",
     features: ["Title deeds", "Tarred road", "Water at boundary", "Power at boundary"],
@@ -129,6 +143,7 @@ export const listings: Listing[] = [
   {
     id: id(5),
     slug: "three-bedroom-townhouse-mount-pleasant",
+    image: { src: townhouseMountPleasant, alt: "Row of white townhouses beside a quiet road" },
     reference: "RP-ZW-10005",
     title: "Three-bedroom townhouse",
     deal: "rent",
@@ -153,6 +168,7 @@ export const listings: Listing[] = [
   {
     id: id(6),
     slug: "five-bedroom-house-victoria-falls",
+    image: { src: houseVictoriaFalls, alt: "Swimming pool and timber deck surrounded by trees" },
     reference: "RP-ZW-10006",
     title: "Five-bedroom house near the river",
     deal: "sale",

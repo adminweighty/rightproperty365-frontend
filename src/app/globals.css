@@ -107,6 +107,19 @@
     color: var(--rp-color-primary-ink);
   }
 
+  /*
+   * Start state for elements animated by components/motion/page-motion.tsx.
+   * Only when scripts run and motion is welcome; otherwise content is simply
+   * visible.
+   */
+  @media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+    [data-hero],
+    [data-reveal],
+    [data-reveal-group] > * {
+      opacity: 0;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

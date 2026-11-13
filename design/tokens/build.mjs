@@ -78,6 +78,7 @@ const pairs = [
   ["brand.on", "brand.base", 4.5],
   ["brand.on", "brand.deep", 4.5],
   ["brand.accent", "brand.base", 4.5],
+  ["brand.deep", "brand.accent", 4.5],
   ["brand.logo", "bg.page", 4.5],
   ["brand.logo", "bg.sunken", 4.5],
   ["primary.on", "primary.base", 4.5],

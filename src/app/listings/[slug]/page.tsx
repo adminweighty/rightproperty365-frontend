@@ -79,7 +79,12 @@ async function ListingContent({ params }: Pick<Props, "params">) {
         </ol>
       </nav>
 
-      <ListingMedia tone={listing.tone} className="mt-6 aspect-[16/9] rounded-xl md:aspect-[21/9]" />
+      <ListingMedia
+        image={listing.image}
+        sizes="(min-width: 1280px) 1136px, 100vw"
+        priority
+        className="mt-6 aspect-[16/9] rounded-xl md:aspect-[21/9]"
+      />
 
       <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_24rem]">
         <div>
