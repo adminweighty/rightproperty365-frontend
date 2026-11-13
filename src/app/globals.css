@@ -73,6 +73,99 @@
 }
 
 /*
+ * Logo-colour borders (design/foundations/color.md, "Brand frames").
+ *
+ *   frame-brand        indigo-to-turquoise outline that appears on hover/focus
+ *   frame-brand-on     the same outline, always visible
+ *   frame-brand-light  turquoise-to-white outline for indigo backgrounds
+ *   rule-brand         a 3px indigo-to-turquoise bar (section and card accents)
+ *
+ * The outline is drawn on a pseudo-element with a mask, so it never changes
+ * the element's size and follows its border radius.
+ */
+@utility frame-brand {
+  position: relative;
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    padding: 2px;
+    border-radius: inherit;
+    background: linear-gradient(135deg, var(--rp-color-brand-base), var(--rp-color-brand-accent));
+    mask:
+      linear-gradient(#000 0 0) content-box exclude,
+      linear-gradient(#000 0 0);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity var(--rp-motion-duration-base) var(--rp-motion-easing-standard);
+  }
+  &:hover::before,
+  &:focus-within::before {
+    opacity: 1;
+  }
+}
+@utility frame-brand-on {
+  position: relative;
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    padding: 2px;
+    border-radius: inherit;
+    background: linear-gradient(135deg, var(--rp-color-brand-base), var(--rp-color-brand-accent));
+    mask:
+      linear-gradient(#000 0 0) content-box exclude,
+      linear-gradient(#000 0 0);
+    pointer-events: none;
+  }
+}
+@utility frame-brand-light {
+  position: relative;
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    padding: 2px;
+    border-radius: inherit;
+    background: linear-gradient(135deg, var(--rp-color-brand-accent), #ffffff 55%, var(--rp-color-brand-accent));
+    mask:
+      linear-gradient(#000 0 0) content-box exclude,
+      linear-gradient(#000 0 0);
+    pointer-events: none;
+  }
+}
+@utility rule-brand {
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--rp-color-brand-base), var(--rp-color-brand-accent));
+}
+
+/* The header and footer carry the same indigo-to-turquoise line. */
+[data-site-header]::after,
+[data-site-footer]::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--rp-color-brand-base), var(--rp-color-brand-accent), var(--rp-color-brand-base));
+}
+[data-site-header]::after {
+  bottom: -2px;
+}
+[data-site-footer] {
+  position: relative;
+}
+[data-site-footer]::before {
+  top: 0;
+}
+body:has([data-overlay-hero]) [data-site-header]:not([data-scrolled])::after {
+  opacity: 0;
+}
+
+/*
  * Height of the sticky site header: 64px bar + 1px border, plus the 53px
  * navigation row that shows below it on phones. Heroes that sit under the
  * header (data-overlay-hero) pull themselves up by this much.

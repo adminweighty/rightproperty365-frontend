@@ -116,7 +116,7 @@ function SectionHeading({
   return (
     <div data-reveal className={cn("flex items-end justify-between gap-4", className)}>
       <div>
-        <span aria-hidden="true" className="block h-1 w-12 rounded-full bg-brand-accent" />
+        <span aria-hidden="true" className="rule-brand block w-16" />
         <h2 className="mt-4 text-2xl md:text-4xl">{title}</h2>
         {note && <p className="mt-3 max-w-xl text-muted">{note}</p>}
       </div>
@@ -207,7 +207,7 @@ export default function HomePage() {
       {/* Search card straddles the hero's bottom edge. */}
       <Container className="relative z-10 -mt-24">
         <div data-hero>
-          <HeroSearch className="mx-auto max-w-4xl ring-1 ring-line" />
+          <HeroSearch className="mx-auto max-w-4xl" />
         </div>
       </Container>
 
@@ -347,7 +347,7 @@ export default function HomePage() {
               <li key={suburb}>
                 <Link
                   href={`/listings?q=${encodeURIComponent(suburb)}`}
-                  className="flex min-h-11 items-center gap-2 rounded-full border border-line bg-page px-4 text-sm font-medium text-ink transition-colors hover:border-brand hover:bg-brand hover:text-on-brand"
+                  className="frame-brand flex min-h-11 items-center gap-2 rounded-full border border-line bg-page px-4 text-sm font-medium text-ink transition-colors hover:bg-primary-soft"
                 >
                   {suburb}
                   <span className="rounded-full bg-accent-soft px-2 py-0.5 text-xs font-semibold text-accent-ink">
@@ -386,7 +386,7 @@ export default function HomePage() {
               <li key={key}>
                 <Link
                   href={`/listings?category=${key}`}
-                  className="group flex items-center gap-4 rounded-lg border border-line bg-surface p-5 transition-shadow hover:shadow-md"
+                  className="group frame-brand flex items-center gap-4 rounded-lg border border-line bg-surface p-5 transition-shadow hover:shadow-md"
                 >
                   <span className="flex size-12 shrink-0 items-center justify-center rounded-md bg-brand text-on-brand transition-colors group-hover:bg-brand-accent group-hover:text-brand-deep">
                     <Icon className="size-6" aria-hidden="true" />
@@ -417,7 +417,7 @@ export default function HomePage() {
             <li key={kind}>
               <Link
                 href={`/directory/${kind}`}
-                className="group flex h-full items-center gap-4 rounded-lg border border-line bg-surface p-5 transition-shadow hover:shadow-md"
+                className="group frame-brand flex h-full items-center gap-4 rounded-lg border border-line bg-surface p-5 transition-shadow hover:shadow-md"
               >
                 <span className="flex size-12 shrink-0 items-center justify-center rounded-md bg-accent-soft text-xl font-bold tabular-nums text-accent-ink">
                   {profilesOfKind(kind).length}
@@ -439,7 +439,7 @@ export default function HomePage() {
           <SectionHeading title="How it works" note="Three steps, and you always know where your enquiry stands." />
           <ol data-reveal-group className="mt-10 grid gap-6 md:grid-cols-3">
             {steps.map((step, index) => (
-              <li key={step.title} className="rounded-lg border border-line bg-page p-6">
+              <li key={step.title} className="frame-brand rounded-lg border border-line bg-page p-6">
                 <span
                   aria-hidden="true"
                   className="flex size-11 items-center justify-center rounded-full bg-brand-accent text-lg font-bold text-brand-deep"
@@ -470,7 +470,7 @@ export default function HomePage() {
         <section
           id="for-agents"
           data-reveal
-          className="grid scroll-mt-24 overflow-hidden rounded-xl bg-brand text-on-brand lg:grid-cols-[1.2fr_1fr]"
+          className="frame-brand-light grid scroll-mt-24 overflow-hidden rounded-xl bg-brand text-on-brand lg:grid-cols-[1.2fr_1fr]"
         >
           <div className="px-6 py-12 md:px-12 md:py-16">
             <p className="text-sm font-semibold text-brand-accent">For agents, landlords and developers</p>

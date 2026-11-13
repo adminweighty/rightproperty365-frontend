@@ -25,6 +25,10 @@ export type Profile = {
   city: string;
   areas: string[];
   services: string[];
+  /** Service providers only: the trade they are listed under. */
+  category?: string;
+  /** What each service involves, shown on the profile page. */
+  offerings?: { name: string; description: string }[];
   verified: boolean;
   /** Paid placement. Always labelled "Sponsored" wherever it is shown. */
   sponsored?: boolean;
@@ -65,7 +69,7 @@ export const directories: Record<
   "service-providers": {
     title: "Property services",
     singular: "Service provider",
-    description: "Conveyancers, valuers, movers and tradespeople for buying, selling and maintaining property.",
+    description: "Plumbers, electricians, solar installers, borehole drillers, conveyancers, valuers and movers.",
   },
 };
 
@@ -355,16 +359,167 @@ export const profiles: Profile[] = [
 
   // ---- Service providers ----
   {
+    slug: "sample-plumbers",
+    kind: "service-providers",
+    name: "Sample Plumbers",
+    role: "Plumbing",
+    category: "Plumbing",
+    tagline: "Emergency call-outs, geysers and full bathroom plumbing.",
+    about:
+      "Sample Plumbers is a team of qualified plumbers working on homes, rental properties and offices across Harare. They quote before they start and leave the site clean.",
+    city: "Harare",
+    areas: ["Harare", "Ruwa", "Chitungwiza"],
+    services: ["Burst pipes and leaks", "Geysers", "Bathrooms and kitchens", "Water tanks and pumps"],
+    offerings: [
+      { name: "Burst pipes and leaks", description: "Same-day call-outs to find and fix leaks, burst pipes and blocked drains." },
+      { name: "Geysers", description: "Supply, installation and repair of electric and solar geysers." },
+      { name: "Bathrooms and kitchens", description: "First and second fix plumbing for renovations and new builds." },
+      { name: "Water tanks and pumps", description: "Installing tanks, booster pumps and pressure systems for borehole or municipal water." },
+    ],
+    verified: true,
+    sponsored: true,
+    since: 2012,
+  },
+  {
+    slug: "sample-rapid-plumbing",
+    kind: "service-providers",
+    name: "Sample Rapid Plumbing",
+    role: "Plumbing",
+    category: "Plumbing",
+    tagline: "Blocked drains, leaks and maintenance contracts for landlords.",
+    about:
+      "Sample Rapid Plumbing looks after houses and blocks of flats in Bulawayo, with maintenance contracts for landlords and agents who need a plumber they can rely on.",
+    city: "Bulawayo",
+    areas: ["Bulawayo"],
+    services: ["Blocked drains", "Leak detection", "Landlord maintenance"],
+    offerings: [
+      { name: "Blocked drains", description: "Rodding and jetting for sinks, toilets and sewer lines." },
+      { name: "Leak detection", description: "Finding hidden leaks behind walls and under floors before they cause damage." },
+      { name: "Landlord maintenance", description: "A fixed monthly arrangement for repairs across a rental portfolio." },
+    ],
+    verified: true,
+    since: 2018,
+  },
+  {
+    slug: "sample-electricians",
+    kind: "service-providers",
+    name: "Sample Electricians",
+    role: "Electrical",
+    category: "Electrical",
+    tagline: "Licensed electricians for homes, shops and offices.",
+    about:
+      "Sample Electricians carries out wiring, fault finding and compliance work. Every job is signed off by a licensed electrician.",
+    city: "Harare",
+    areas: ["Harare", "Norton"],
+    services: ["Fault finding and repairs", "Rewiring and new installations", "Certificates of compliance", "Backup power changeovers"],
+    offerings: [
+      { name: "Fault finding and repairs", description: "Tripping breakers, dead circuits and burnt sockets traced and repaired." },
+      { name: "Rewiring and new installations", description: "Wiring for renovations, extensions and new buildings." },
+      { name: "Certificates of compliance", description: "Inspection and certification for sales, lettings and insurance." },
+      { name: "Backup power changeovers", description: "Generator and inverter changeover switches fitted safely." },
+    ],
+    verified: true,
+    since: 2010,
+  },
+  {
+    slug: "sample-sparks",
+    kind: "service-providers",
+    name: "Sample Sparks",
+    role: "Electrical",
+    category: "Electrical",
+    tagline: "Domestic and commercial electrical work in Bulawayo.",
+    about:
+      "Sample Sparks is a small firm of electricians handling everything from a new plug point to a full distribution board upgrade.",
+    city: "Bulawayo",
+    areas: ["Bulawayo", "Gwanda"],
+    services: ["Distribution boards", "Lighting", "Electric fences and gates"],
+    offerings: [
+      { name: "Distribution boards", description: "Upgrades, earth leakage protection and surge protection." },
+      { name: "Lighting", description: "Indoor, security and garden lighting, including LED conversions." },
+      { name: "Electric fences and gates", description: "Installation and repair of electric fencing and gate motors." },
+    ],
+    verified: true,
+    since: 2016,
+  },
+  {
+    slug: "sample-solar-installers",
+    kind: "service-providers",
+    name: "Sample Solar Installers",
+    role: "Solar power",
+    category: "Solar power",
+    tagline: "Solar systems sized for your home, with batteries and backup.",
+    about:
+      "Sample Solar Installers designs and fits solar power systems for homes and small businesses. They start with a load assessment, so the system matches what you actually use.",
+    city: "Harare",
+    areas: ["Harare", "Mutare", "Marondera"],
+    services: ["Home solar systems", "Solar geysers", "Business and farm systems", "Servicing and upgrades"],
+    offerings: [
+      { name: "Home solar systems", description: "Panels, inverter and lithium batteries sized from a load assessment." },
+      { name: "Solar geysers", description: "Replacing electric geysers with solar water heating." },
+      { name: "Business and farm systems", description: "Larger systems for offices, shops, boreholes and irrigation." },
+      { name: "Servicing and upgrades", description: "Health checks, panel cleaning and adding batteries or panels to an existing system." },
+    ],
+    verified: true,
+    sponsored: true,
+    since: 2015,
+  },
+  {
+    slug: "sample-sun-power",
+    kind: "service-providers",
+    name: "Sample Sun Power",
+    role: "Solar power",
+    category: "Solar power",
+    tagline: "Affordable solar kits and installations in Matabeleland.",
+    about:
+      "Sample Sun Power supplies and installs solar kits for lights, fridges and televisions, through to full off-grid systems for homes outside town.",
+    city: "Bulawayo",
+    areas: ["Bulawayo", "Victoria Falls", "Hwange"],
+    services: ["Starter solar kits", "Off-grid systems", "Solar borehole pumps"],
+    offerings: [
+      { name: "Starter solar kits", description: "Entry-level kits that keep lights, phones and a television running." },
+      { name: "Off-grid systems", description: "Complete systems for homes and lodges with no mains connection." },
+      { name: "Solar borehole pumps", description: "Solar-powered pumping for boreholes and tanks." },
+    ],
+    verified: true,
+    since: 2019,
+  },
+  {
+    slug: "sample-borehole-drillers",
+    kind: "service-providers",
+    name: "Sample Borehole Drillers",
+    role: "Boreholes and water",
+    category: "Boreholes and water",
+    tagline: "Siting, drilling and equipping boreholes.",
+    about:
+      "Sample Borehole Drillers surveys, drills and equips boreholes for homes, estates and farms, and services existing pumps.",
+    city: "Harare",
+    areas: ["Harare", "Bulawayo", "Mutare"],
+    services: ["Siting and drilling", "Pumps and tanks", "Servicing"],
+    offerings: [
+      { name: "Siting and drilling", description: "Geophysical survey followed by drilling and casing." },
+      { name: "Pumps and tanks", description: "Submersible pumps, tank stands and storage tanks installed." },
+      { name: "Servicing", description: "Pump repairs, flushing and yield testing for existing boreholes." },
+    ],
+    verified: true,
+    since: 2011,
+  },
+  {
     slug: "sample-conveyancers",
     kind: "service-providers",
     name: "Sample Conveyancers",
     role: "Legal and conveyancing",
+    category: "Legal and conveyancing",
     tagline: "Transfers, title deeds and agreements of sale.",
     about:
       "Sample Conveyancers handles property transfers, title deed registration, agreements of sale and lease agreements.",
     city: "Harare",
     areas: ["Harare", "Bulawayo", "Mutare"],
-    services: ["Property transfers", "Title deeds", "Agreements of sale", "Leases"],
+    services: ["Property transfers", "Title deed work", "Agreements and leases"],
+    offerings: [
+      { name: "Property transfers", description: "Transfer of ownership from agreement of sale to registered title." },
+      { name: "Title deed work", description: "Deed searches, replacement of lost deeds and registration." },
+      { name: "Agreements and leases", description: "Drafting and reviewing agreements of sale and lease agreements." },
+    ],
     verified: true,
     sponsored: true,
     since: 2005,
@@ -374,12 +529,18 @@ export const profiles: Profile[] = [
     kind: "service-providers",
     name: "Sample Valuers",
     role: "Valuations",
+    category: "Valuations",
     tagline: "Independent valuations for sale, finance and insurance.",
     about:
       "Sample Valuers provides independent valuations of residential, commercial and agricultural property.",
     city: "Harare",
     areas: ["Harare", "Bulawayo"],
     services: ["Market valuations", "Insurance valuations", "Rental assessments"],
+    offerings: [
+      { name: "Market valuations", description: "What a property should sell or let for today." },
+      { name: "Insurance valuations", description: "Replacement cost assessments for buildings insurance." },
+      { name: "Rental assessments", description: "Fair market rent for landlords, tenants and disputes." },
+    ],
     verified: true,
     since: 2008,
   },
@@ -387,43 +548,22 @@ export const profiles: Profile[] = [
     slug: "sample-movers",
     kind: "service-providers",
     name: "Sample Movers",
-    role: "Removals and storage",
+    role: "Removals",
+    category: "Removals",
     tagline: "House and office moves within Zimbabwe and across the border.",
     about:
       "Sample Movers packs, moves and stores household and office contents, locally and to neighbouring countries.",
     city: "Harare",
     areas: ["Harare", "Bulawayo", "Victoria Falls"],
     services: ["House moves", "Office moves", "Storage", "Cross-border moves"],
+    offerings: [
+      { name: "House moves", description: "Packing, loading, transport and unpacking for local and long-distance moves." },
+      { name: "Office moves", description: "After-hours and weekend moves to keep a business running." },
+      { name: "Storage", description: "Secure short-term and long-term storage." },
+      { name: "Cross-border moves", description: "Moves to and from neighbouring countries, including customs paperwork." },
+    ],
     verified: true,
     since: 2013,
-  },
-  {
-    slug: "sample-solar-and-boreholes",
-    kind: "service-providers",
-    name: "Sample Solar and Boreholes",
-    role: "Power and water",
-    tagline: "Solar systems and borehole drilling for homes and businesses.",
-    about:
-      "Sample Solar and Boreholes designs and installs solar power systems and drills, equips and services boreholes.",
-    city: "Bulawayo",
-    areas: ["Bulawayo", "Harare"],
-    services: ["Solar installation", "Borehole drilling", "Pumps and tanks", "Servicing"],
-    verified: true,
-    since: 2016,
-  },
-  {
-    slug: "sample-plumbing-and-electrical",
-    kind: "service-providers",
-    name: "Sample Plumbing and Electrical",
-    role: "Maintenance and repairs",
-    tagline: "Plumbers and electricians for repairs and renovations.",
-    about:
-      "Sample Plumbing and Electrical carries out repairs, installations and compliance checks for homes, landlords and agents.",
-    city: "Harare",
-    areas: ["Harare"],
-    services: ["Plumbing", "Electrical", "Geysers", "Compliance certificates"],
-    verified: true,
-    since: 2014,
   },
 ];
 
@@ -481,3 +621,34 @@ export const initials = (name: string) =>
     .join("")
     .slice(0, 2)
     .toUpperCase();
+
+/** Trades people look for most come first; anything unlisted follows alphabetically. */
+const tradeOrder = [
+  "Plumbing",
+  "Electrical",
+  "Solar power",
+  "Boreholes and water",
+  "Legal and conveyancing",
+  "Valuations",
+  "Removals",
+];
+
+/** Service providers grouped by trade, in the order the trades are shown. */
+export function serviceCategories(): { category: string; id: string; entries: Profile[] }[] {
+  const groups = new Map<string, Profile[]>();
+  for (const profile of profilesOfKind("service-providers")) {
+    const category = profile.category ?? "Other services";
+    groups.set(category, [...(groups.get(category) ?? []), profile]);
+  }
+  const rank = (category: string) => {
+    const index = tradeOrder.indexOf(category);
+    return index < 0 ? tradeOrder.length : index;
+  };
+  return [...groups]
+    .sort(([a], [b]) => rank(a) - rank(b) || a.localeCompare(b))
+    .map(([category, entries]) => ({
+      category,
+      id: category.toLowerCase().replaceAll(" ", "-"),
+      entries,
+    }));
+}

@@ -47,6 +47,22 @@ Exact values are in [`tokens.json`](../tokens/tokens.json).
 - Text on a status tint uses the matching base colour: `bg-success-soft text-success`.
 - Do not use opacity to make new colours, except `opacity-80` for secondary text on `inverse`.
 
+## Brand frames
+
+The three logo colours also draw borders. These utilities are defined in `src/app/globals.css`:
+
+| Class | Looks like | Use |
+| --- | --- | --- |
+| `frame-brand` | 2px indigo-to-turquoise outline that fades in on hover and keyboard focus | Interactive cards: listings, profiles, category and directory tiles, chips |
+| `frame-brand-on` | The same outline, always visible | The one surface a page wants noticed: the hero search, an enquiry card, sponsored profiles |
+| `frame-brand-light` | Turquoise-to-white outline | Panels on the indigo `brand` background |
+| `rule-brand` | 3px indigo-to-turquoise bar | Above section headings; the header and footer lines use the same gradient |
+
+- The outline is drawn on a pseudo-element, so adding it never changes an element's size or causes layout shift, and it follows the element's radius.
+- Keep the 1px `border-line` under a `frame-brand`; the gradient replaces it only while hovered or focused.
+- At most one `frame-brand-on` per screen area. If everything is outlined, nothing stands out.
+- The gradient is decoration. It never carries meaning on its own: a sponsored profile also has a "Sponsored" badge.
+
 ## Contrast
 
 `npm run tokens` checks these pairs in both themes and exits non-zero on a failure: body, muted and subtle text on page and surface (4.5:1), text on primary (4.5:1), each status on its tint (4.5:1), and control borders and focus rings on their backgrounds (3:1). Add a pair to `build.mjs` whenever a new foreground and background combination is introduced.

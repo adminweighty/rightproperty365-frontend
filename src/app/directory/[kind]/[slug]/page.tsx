@@ -1,9 +1,10 @@
-import { BadgeCheck, Check, ChevronRight, MapPin } from "lucide-react";
+import { BadgeCheck, Check, ChevronRight, MapPin, ShieldCheck } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ProfileAvatar, ProfileGrid } from "@/components/directory/profile-card";
+import { ProfileEnquiryForm } from "@/components/directory/profile-enquiry-form";
 import { ListingGrid } from "@/components/listings/listing-card";
 import { JsonLd } from "@/components/seo/json-ld";
 import { Badge } from "@/components/ui/badge";
@@ -88,6 +89,7 @@ async function ProfileContent({ params }: Pick<Props, "params">) {
 
       <header className="mt-6 overflow-hidden rounded-xl border border-line bg-surface">
         <div aria-hidden="true" className="h-24 bg-brand md:h-32" />
+        <div aria-hidden="true" className="rule-brand rounded-none" />
         <div className="flex flex-col gap-5 px-6 pb-6 md:flex-row md:items-end md:px-8">
           <ProfileAvatar
             profile={profile}
@@ -133,42 +135,63 @@ async function ProfileContent({ params }: Pick<Props, "params">) {
           <p className="mt-3 max-w-prose leading-relaxed text-muted">{profile.about}</p>
 
           <h2 className="mt-10 text-2xl">Services</h2>
-          <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-            {profile.services.map((service) => (
-              <li key={service} className="flex items-center gap-2.5 text-ink">
-                <Check className="size-4 shrink-0 text-primary-ink" aria-hidden="true" />
-                {service}
+          {profile.offerings ? (
+            <ul className="mt-4 grid gap-4 sm:grid-cols-2">
+              {profile.offerings.map((offering) => (
+                <li key={offering.name} className="rounded-lg border border-line bg-surface p-5">
+                  <h3 className="flex items-center gap-2.5 font-sans text-base font-semibold tracking-normal">
+                    <Check className="size-4 shrink-0 text-primary-ink" aria-hidden="true" />
+                    {offering.name}
+                  </h3>
+                  <p className="mt-2 text-sm leading-relaxed text-muted">{offering.description}</p>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+              {profile.services.map((service) => (
+                <li key={service} className="flex items-center gap-2.5 text-ink">
+                  <Check className="size-4 shrink-0 text-primary-ink" aria-hidden="true" />
+                  {service}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <h2 className="mt-10 text-2xl">Areas covered</h2>
+          <ul className="mt-4 flex flex-wrap gap-2">
+            {profile.areas.map((area) => (
+              <li key={area}>
+                <Badge tone="primary">{area}</Badge>
               </li>
             ))}
           </ul>
         </div>
 
-        <aside>
-          <Card>
-            <h2 className="text-xl">Areas covered</h2>
-            <ul className="mt-4 flex flex-wrap gap-2">
-              {profile.areas.map((area) => (
-                <li key={area}>
-                  <Badge tone="primary">{area}</Badge>
-                </li>
-              ))}
-            </ul>
-            <h2 className="mt-8 text-xl">Get in touch</h2>
-            {listings.length > 0 ? (
-              <>
-                <p className="mt-2 text-sm leading-relaxed text-muted">
-                  Open one of their listings and send a request. It goes straight to {profile.name}{" "}
-                  and you can track the reply.
-                </p>
-                <ButtonLink href="#listings" className="mt-4 w-full">
-                  See their listings
-                </ButtonLink>
-              </>
-            ) : (
-              <p className="mt-2 text-sm leading-relaxed text-muted">
-                Direct enquiries to {directory.title.toLowerCase()} are not open yet. They will go
-                through RightProperty365 in the same tracked way as listing enquiries.
-              </p>
+        <aside aria-labelledby="enquiry-heading">
+          <Card className="frame-brand-on lg:sticky lg:top-24">
+            <h2 id="enquiry-heading" className="text-2xl">
+              Send an enquiry
+            </h2>
+            <p className="mt-2 flex items-start gap-2 text-sm leading-relaxed text-muted">
+              <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary-ink" aria-hidden="true" />
+              <span>
+                Phone numbers and email addresses are not shown on RightProperty365. Your enquiry
+                goes to {profile.name} in the app and they reply to you.
+              </span>
+            </p>
+            <div className="mt-6">
+              <ProfileEnquiryForm
+                kind={profile.kind}
+                slug={profile.slug}
+                name={profile.name}
+                services={profile.services}
+              />
+            </div>
+            {listings.length > 0 && (
+              <ButtonLink href="#listings" variant="secondary" className="mt-4 w-full">
+                See their listings
+              </ButtonLink>
             )}
           </Card>
         </aside>

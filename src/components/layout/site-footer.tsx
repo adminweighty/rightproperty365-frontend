@@ -16,7 +16,7 @@ const browse = [
 
 export function SiteFooter() {
   return (
-    <footer className="mt-24 border-t border-line bg-sunken">
+    <footer data-site-footer className="mt-24 bg-sunken">
       <Container className="grid gap-10 py-12 md:grid-cols-[1.4fr_1fr_1fr]">
         <div className="max-w-sm">
           <Logo />

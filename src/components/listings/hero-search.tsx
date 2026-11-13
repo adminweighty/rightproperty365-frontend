@@ -19,7 +19,7 @@ export function HeroSearch({ className }: { className?: string }) {
       action="/listings"
       role="search"
       aria-label="Property search"
-      className={cn("overflow-hidden rounded-xl bg-surface text-ink shadow-lg", className)}
+      className={cn("frame-brand-on overflow-hidden rounded-xl bg-surface text-ink shadow-lg", className)}
     >
       <fieldset className="flex border-b border-line">
         <legend className="sr-only">Buy or rent</legend>

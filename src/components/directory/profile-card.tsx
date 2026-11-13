@@ -32,7 +32,11 @@ export function ProfileCard({ profile }: { profile: Profile }) {
   const agency = profile.kind === "agents" ? agencyOfAgent(profile) : undefined;
 
   return (
-    <article className="group relative flex h-full flex-col rounded-lg border border-line bg-surface p-5 shadow-xs transition-shadow hover:shadow-md focus-within:shadow-md">
+    <article className={cn(
+        "group flex h-full flex-col rounded-lg border border-line bg-surface p-5 shadow-xs transition-shadow hover:shadow-md focus-within:shadow-md",
+        // Sponsored profiles keep the brand outline; others show it on hover.
+        profile.sponsored ? "frame-brand-on" : "frame-brand",
+      )}>
       <div className="flex items-start gap-4">
         <ProfileAvatar profile={profile} />
         <div className="min-w-0 flex-1">

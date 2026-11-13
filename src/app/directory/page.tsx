@@ -48,7 +48,7 @@ export default function DirectoryPage() {
             <li key={kind}>
               <Link
                 href={`/directory/${kind}`}
-                className="group flex h-full flex-col rounded-lg border border-line bg-surface p-6 shadow-xs transition-shadow hover:shadow-md"
+                className="group frame-brand flex h-full flex-col rounded-lg border border-line bg-surface p-6 shadow-xs transition-shadow hover:shadow-md"
               >
                 <span className="text-4xl font-bold tabular-nums text-primary-ink">{count}</span>
                 <span className="mt-2 text-xl font-bold text-ink group-hover:underline">

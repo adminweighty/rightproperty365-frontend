@@ -6,7 +6,13 @@ import { Suspense } from "react";
 import { ProfileGrid } from "@/components/directory/profile-card";
 import { JsonLd } from "@/components/seo/json-ld";
 import { Container } from "@/components/ui/container";
-import { directories, directoryKinds, isDirectoryKind, profilesOfKind } from "@/lib/data/directory";
+import {
+  directories,
+  directoryKinds,
+  isDirectoryKind,
+  profilesOfKind,
+  serviceCategories,
+} from "@/lib/data/directory";
 import { activeMarket } from "@/lib/data/markets";
 import { directoryJsonLd } from "@/lib/seo";
 
@@ -38,6 +44,43 @@ export default function DirectoryKindPage({ params }: Props) {
         <DirectoryList params={params} />
       </Suspense>
     </Container>
+  );
+}
+
+/** Service providers grouped under their trade, with jump links to each group. */
+function ServicesByTrade() {
+  const groups = serviceCategories();
+  return (
+    <>
+      <nav aria-label="Trades" className="mt-8">
+        <ul className="flex flex-wrap gap-2">
+          {groups.map((group) => (
+            <li key={group.id}>
+              <a
+                href={`#${group.id}`}
+                className="flex min-h-11 items-center gap-2 rounded-full border border-line bg-surface px-4 text-sm font-medium text-ink transition-colors hover:border-brand hover:bg-brand hover:text-on-brand"
+              >
+                {group.category}
+                <span className="rounded-full bg-accent-soft px-2 py-0.5 text-xs font-semibold text-accent-ink">
+                  {group.entries.length}
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+
+      {groups.map((group) => (
+        <section key={group.id} id={group.id} aria-labelledby={`${group.id}-heading`} className="mt-12 scroll-mt-28">
+          <h2 id={`${group.id}-heading`} className="text-2xl">
+            {group.category}
+          </h2>
+          <div className="mt-6">
+            <ProfileGrid profiles={group.entries} />
+          </div>
+        </section>
+      ))}
+    </>
   );
 }
 
@@ -80,9 +123,13 @@ async function DirectoryList({ params }: Pick<Props, "params">) {
         {hasSponsored && " · sponsored profiles are shown first"}
       </p>
 
-      <div className="mt-8">
-        <ProfileGrid profiles={entries} />
-      </div>
+      {kind === "service-providers" ? (
+        <ServicesByTrade />
+      ) : (
+        <div className="mt-8">
+          <ProfileGrid profiles={entries} />
+        </div>
+      )}
 
       <nav aria-label="Other directories" className="mt-16 border-t border-line pt-10">
         <h2 className="text-xl">Other directories</h2>
