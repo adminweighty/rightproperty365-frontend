@@ -17,6 +17,8 @@ const swatches = [
   ["surface", "bg-surface"],
   ["sunken", "bg-sunken"],
   ["inverse", "bg-inverse"],
+  ["brand", "bg-brand"],
+  ["brand-accent", "bg-brand-accent"],
   ["primary", "bg-primary"],
   ["primary-soft", "bg-primary-soft"],
   ["accent", "bg-accent"],

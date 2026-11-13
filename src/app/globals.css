@@ -27,6 +27,12 @@
   --color-line-strong: var(--rp-color-border-strong);
   --color-control: var(--rp-color-border-control);
 
+  --color-brand: var(--rp-color-brand-base);
+  --color-brand-deep: var(--rp-color-brand-deep);
+  --color-on-brand: var(--rp-color-brand-on);
+  --color-brand-accent: var(--rp-color-brand-accent);
+  --color-brand-logo: var(--rp-color-brand-logo);
+
   --color-primary: var(--rp-color-primary-base);
   --color-primary-hover: var(--rp-color-primary-hover);
   --color-primary-soft: var(--rp-color-primary-soft);
@@ -82,8 +88,8 @@
   h2,
   h3 {
     font-family: var(--rp-font-family-display);
-    font-weight: 500;
-    letter-spacing: -0.015em;
+    font-weight: 700;
+    letter-spacing: -0.02em;
     text-wrap: balance;
   }
 

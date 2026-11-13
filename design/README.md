@@ -2,7 +2,7 @@
 
 The shared visual and interaction language for the RightProperty365 web app, and the reference for the mobile apps. Everything the UI uses for colour, type, shape and motion is defined here first and consumed by code second.
 
-> **Status: provisional.** The palette and wordmark were chosen before the official logo pack was available. When the logo files arrive, put them in [`assets/logo`](assets/logo/README.md), then adjust the `palette` block in [`tokens/tokens.json`](tokens/tokens.json). No component code needs to change.
+> **Brand source:** the approved Blue, White and Turquoise logo kit v4.1 in [`assets/logo`](assets/logo/README.md). Indigo `#1900AC` is the brand colour, turquoise `#21DDBA` the accent, and Inter the typeface.
 
 ## What is in this folder
 
@@ -20,7 +20,7 @@ A live rendering of the tokens and components is served by the app at `/design-s
 
 ## Principles
 
-1. **Calm over loud.** Warm neutral surfaces, one brand colour, one accent. Colour carries meaning (action, status), never decoration.
+1. **Calm over loud.** Cool neutral surfaces, one brand colour, one accent. Colour carries meaning (action, status), never decoration.
 2. **Content first.** Property, price and place are the interface. Chrome stays thin: hairline borders, the lightest shadow that still separates layers.
 3. **Plain language.** Say what happened and what happens next. Never claim more than the system knows (a request is "received", not "delivered").
 4. **Accessible by default.** WCAG 2.2 AA is a build requirement. Contrast is checked by script, focus is always visible, targets are at least 44px on touch layouts.
