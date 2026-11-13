@@ -46,12 +46,17 @@ design/                 Design system: tokens, foundations, component specs, gui
 src/app/                Routes (App Router)
   page.tsx              Home
   listings/             Search results and listing detail
+  (auth)/               Sign in, register, confirm email, password reset
+  account/              Profile, roles and memberships
+  agent/requests/       Request inbox for professional accounts
   design-system/        Live token and component reference (not indexed)
 src/components/
   ui/                   Primitives: Button, Field, Input, Select, Badge, Card, Container
   layout/               Header, footer, logo
   listings/             Listing card, media, search bar
   requests/             Property request form
+  auth/                 Auth provider, forms, account menu, RequireAuth
+  agent/                Request inbox
 src/lib/
   api/                  Typed clients for the Go API
   data/                 SAMPLE listings and market config, until the API serves them
@@ -62,6 +67,7 @@ src/lib/
 
 - **Colours, radius, shadow and fonts come from tokens.** Tailwind's default palette is disabled; use semantic classes such as `bg-surface` and `text-muted`.
 - **All business writes go to the Go API.** Customer enquiries are sent only to `POST /v1/property-requests`. Never post customer details to an agent or a third party from the browser.
+- **The session is an HttpOnly cookie set by the API.** The web app never stores a token. `AuthProvider` loads the user from `GET /v1/me`; roles in the browser decide what to show, and the API authorises every request.
 - **Money is a decimal string plus an ISO 4217 code**, formatted for display only.
 - **Request-time data sits behind `<Suspense>`** (`params`, `searchParams`, cookies) so every route keeps a static shell.
 - **WCAG 2.2 AA** is required. See `design/guidelines/accessibility.md`.
@@ -70,11 +76,15 @@ src/lib/
 
 | Branch | Purpose |
 | --- | --- |
-| `dev` | Integration branch. Feature branches merge here first. |
-| `main` | Reviewed, release-ready code. Deploys to staging. |
-| `production` | What is live. Updated only by promoting `main`. |
+| `dev` | Integration branch. Every push is checked, built and deployed to **staging** (staging.rightproperty365.com). |
+| `main` | Stable, reviewed code. Checked by CI; not deployed. |
+| `production` | What is live. Every push is checked, built and deployed to **production** (rightproperty365.com). |
 
 Flow: `feature/*` → `dev` → `main` → `production`.
+
+## Deployment
+
+`.github/workflows/publish-and-update-gitops.yml` runs CI, publishes `ghcr.io/adminweighty/rightproperty365-frontend:sha-<commit>` and updates the image tag in the GitOps repository (`adminweighty/weightygitops`), which Argo CD syncs. It needs the `GITOPS_TOKEN` secret and the GitHub environments `staging` and `production`. The container listens on port 3000.
 
 ## Docker
 
@@ -90,6 +100,6 @@ docker run -p 3000:3000 rightproperty365-web
 
 ## Current state
 
-Built: design system, UI primitives, home page, listing search and detail pages (sample data), and the property request form wired to the API contract.
+Built: design system, UI primitives, home page, listing search and detail pages (sample data), the property request form, and authentication: register, email confirmation, sign in and out, password reset, an account page showing roles, and the agent request inbox.
 
-Not built yet: authentication, real listing data, agent and admin portals, maps, media uploads, YouTube embeds, analytics events, sitemap and structured data.
+Not built yet: multi-factor authentication, organisation invitations and agent onboarding, account deletion, real listing data, agent and admin portals, maps, media uploads, YouTube embeds, analytics events, sitemap and structured data.

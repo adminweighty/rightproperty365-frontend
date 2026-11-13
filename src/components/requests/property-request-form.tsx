@@ -2,6 +2,8 @@
 
 import { CircleCheck } from "lucide-react";
 import { useRef, useState, type FormEvent } from "react";
+import { useAuth } from "@/components/auth/auth-provider";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field, fieldDescribedBy, Input, Select, Textarea } from "@/components/ui/field";
 import {
@@ -33,7 +35,13 @@ const apiFieldToControl: Record<string, string> = {
 };
 
 export function PropertyRequestForm({ listingId, listingReference, advertiserName }: Props) {
+  const { user } = useAuth();
   const [requestType, setRequestType] = useState<RequestType>("ENQUIRY");
+  const [contactMethod, setContactMethod] = useState<ContactMethod>("EMAIL");
+  const phoneRequired = contactMethod !== "EMAIL";
+  const phoneHint = phoneRequired
+    ? "Needed so they can reach you. Include the country code, for example +263 77 123 4567."
+    : "Include the country code, for example +263 77 123 4567.";
   const [pending, setPending] = useState(false);
   const [failure, setFailure] = useState<ApiFailure | null>(null);
   const [receipt, setReceipt] = useState<PropertyRequestReceipt | null>(null);
@@ -61,15 +69,16 @@ export function PropertyRequestForm({ listingId, listingReference, advertiserNam
       listing_id: listingId,
       request_type: requestType,
       message: text("message"),
-      preferred_contact_method: text("preferred_contact_method") as ContactMethod,
+      preferred_contact_method: contactMethod,
       // datetime-local is the visitor's local time; the API stores UTC.
       preferred_slot_utc:
         slot && slotTypes.includes(requestType) ? new Date(slot).toISOString() : undefined,
       idempotency_key: idempotencyKey.current,
+      // Signed-in customers send no name or email; the API uses their profile.
       guest_contact: {
-        name: text("name"),
-        email: text("email"),
-// The API expects E.164, so drop the spaces and dashes people type.
+        name: user ? undefined : text("name"),
+        email: user ? undefined : text("email"),
+        // The API expects E.164, so drop the spaces and dashes people type.
         phone: text("phone").replace(/[\s()-]/g, "") || undefined,
       },
       consent: { privacy_version: PRIVACY_NOTICE_VERSION, accepted: data.get("consent") === "on" },
@@ -147,55 +156,70 @@ export function PropertyRequestForm({ listingId, listingReference, advertiserNam
         </Field>
       )}
 
-      <Field id="name" label="Full name" error={errors.name}>
-        <Input
-          id="name"
-          name="name"
-          required
-          maxLength={120}
-          autoComplete="name"
-          aria-invalid={Boolean(errors.name)}
-          aria-describedby={fieldDescribedBy("name", { error: errors.name })}
-        />
-      </Field>
+      {user ? (
+        <p className="rounded-md bg-sunken p-3 text-sm text-muted">
+          Sending as <span className="font-medium text-ink">{user.name}</span>{" "}
+          <span className="break-all">({user.email})</span>
+        </p>
+      ) : (
+        <>
+          <Field id="name" label="Full name" error={errors.name}>
+            <Input
+              id="name"
+              name="name"
+              required
+              maxLength={120}
+              autoComplete="name"
+              aria-invalid={Boolean(errors.name)}
+              aria-describedby={fieldDescribedBy("name", { error: errors.name })}
+            />
+          </Field>
 
-      <Field id="email" label="Email address" error={errors.email}>
-        <Input
-          id="email"
-          name="email"
-          type="email"
-          required
-          autoComplete="email"
-          aria-invalid={Boolean(errors.email)}
-          aria-describedby={fieldDescribedBy("email", { error: errors.email })}
-        />
-      </Field>
-
-      <Field
-        id="phone"
-        label="Phone number"
-        optional
-        hint="Include the country code, for example +263 77 123 4567."
-        error={errors.phone}
-      >
-        <Input
-          id="phone"
-          name="phone"
-          type="tel"
-          autoComplete="tel"
-          aria-invalid={Boolean(errors.phone)}
-          aria-describedby={fieldDescribedBy("phone", { hint: "hint", error: errors.phone })}
-        />
-      </Field>
+          <Field id="email" label="Email address" error={errors.email}>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              required
+              autoComplete="email"
+              aria-invalid={Boolean(errors.email)}
+              aria-describedby={fieldDescribedBy("email", { error: errors.email })}
+            />
+          </Field>
+        </>
+      )}
 
       <Field id="preferred_contact_method" label="How should they reply?" error={errors.preferred_contact_method}>
-        <Select id="preferred_contact_method" name="preferred_contact_method" defaultValue="EMAIL">
+        <Select
+          id="preferred_contact_method"
+          name="preferred_contact_method"
+          value={contactMethod}
+          onChange={(event) => setContactMethod(event.target.value as ContactMethod)}
+        >
           {contactMethods.map((method) => (
             <option key={method.value} value={method.value}>
               {method.label}
             </option>
           ))}
         </Select>
+      </Field>
+
+      <Field
+        id="phone"
+        label="Phone number"
+        optional={!phoneRequired}
+        hint={phoneHint}
+        error={errors.phone}
+      >
+        <Input
+          id="phone"
+          name="phone"
+          type="tel"
+          required={phoneRequired}
+          autoComplete="tel"
+          aria-invalid={Boolean(errors.phone)}
+          aria-describedby={fieldDescribedBy("phone", { hint: phoneHint, error: errors.phone })}
+        />
       </Field>
 
       <Field id="message" label="Message" error={errors.message}>
@@ -231,14 +255,7 @@ export function PropertyRequestForm({ listingId, listingReference, advertiserNam
         )}
       </div>
 
-      {failure && (
-        <div role="alert" className="rounded-md bg-danger-soft p-3 text-sm text-danger">
-          <p className="font-medium">{failure.message}</p>
-          {failure.traceId && (
-            <p className="mt-1 text-xs">Support reference: {failure.traceId}</p>
-          )}
-        </div>
-      )}
+      {failure && <Alert title={failure.message} traceId={failure.traceId} />}
 
       <Button type="submit" size="lg" disabled={pending} aria-busy={pending}>
         {pending ? "Sending…" : "Send request"}

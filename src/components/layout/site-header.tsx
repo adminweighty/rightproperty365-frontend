@@ -1,6 +1,6 @@
 import Link from "next/link";
+import { AccountMenu } from "@/components/auth/account-menu";
 import { Logo } from "@/components/layout/logo";
-import { ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { activeMarket } from "@/lib/data/markets";
 
@@ -41,12 +41,16 @@ export function SiteHeader() {
         </nav>
 
         <div className="ml-auto flex items-center gap-3">
-          <span className="hidden text-sm text-muted sm:inline" title="Current market">
+          <span className="hidden text-sm text-muted lg:inline" title="Current market">
             {activeMarket.name} · {activeMarket.currency}
           </span>
-          <ButtonLink href="/#for-agents" variant="secondary" size="sm">
+          <Link
+            href="/#for-agents"
+            className="hidden rounded-md px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-sunken hover:text-ink sm:block"
+          >
             For agents
-          </ButtonLink>
+          </Link>
+          <AccountMenu />
         </div>
       </Container>
 

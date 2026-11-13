@@ -65,6 +65,15 @@ The unit of search results.
 
 A GET form that works without JavaScript and produces shareable URLs. Each control has a screen-reader label. On phones it stacks to one column; from `lg` it is a single row.
 
+## HeroSearch (`listings/hero-search.tsx`)
+
+The landing-page search, shown on the brand indigo hero.
+
+- Buy and Rent tabs sit above a row with location, property type and the submit button. The tabs are native radio buttons in a `fieldset`, so arrow keys switch between them and the choice is sent as the `deal` parameter.
+- Like `SearchBar`, it is a GET form to `/listings`: it works without JavaScript and produces a shareable URL.
+- The selected tab is shown by text colour and an underline, not colour alone. The focus outline is drawn on the tab label.
+- Use it once, on the landing page. Results pages use `SearchBar`.
+
 ## PropertyRequestForm (`requests/property-request-form.tsx`)
 
 The only route by which a customer contacts an advertiser. It posts to the RightProperty365 API, never to an agent directly.
@@ -80,6 +89,49 @@ The only route by which a customer contacts an advertiser. It posts to the Right
 - The header is sticky, 64px tall, and begins with a "Skip to content" link.
 - Primary navigation shows inline from `md`; on phones it is a horizontally scrolling row under the header, so no menu button is needed.
 - The footer lists markets with their status, which keeps the multi-country roadmap honest.
+
+## Alert (`ui/alert.tsx`)
+
+An inline message about the result of an action, placed next to what it describes (above a submit button, at the top of a list).
+
+- Tones: `danger`, `warning`, `success`, `info`. The title is a full sentence in the tone colour; supporting text below it is `ink`.
+- `danger` uses `role="alert"` and interrupts screen readers. The other tones use `role="status"`.
+- Pass `traceId` when the API returns one so people can quote it to support. Leave it out for expected outcomes such as a wrong password.
+- Not for field validation. Field errors go under the control through `Field`.
+
+## AuthShell (`auth/auth-shell.tsx`)
+
+The frame for sign-in, registration and account recovery: a 448px card centred on the page with one `h1`, an optional description, the form, and one secondary link below the card.
+
+- One task per screen. No marketing content, no navigation beyond the single secondary link.
+- Password fields use `autoComplete="current-password"` or `"new-password"` so password managers work. Never block paste.
+- The password rule (10 characters minimum) is shown as a hint before submission, not only as an error after it.
+- Registration and password-reset confirmations must not reveal whether an address has an account. Say "If this address can be registered…" and "If an account exists…".
+- A wrong email or password gets one message that does not say which was wrong.
+
+## AccountMenu (`auth/account-menu.tsx`)
+
+The session control at the right of the header.
+
+- Loading: an empty block the size of the button, so the header does not shift.
+- Signed out: a small primary "Sign in" button.
+- Signed in: a secondary button with the person's first name that opens a menu with their email, "Your account", "Request inbox" (professional accounts only) and "Sign out".
+- The button has `aria-expanded` and `aria-controls`. The menu closes on Escape, on an outside click, and when an item is chosen.
+
+## RequireAuth (`auth/require-auth.tsx`)
+
+Wraps content that depends on the session and renders one of four states: loading skeleton, "Sign in to continue" (with a link that returns to the page), "You do not have access to this page", or the content.
+
+- It decides what to show. It is not a security boundary: the API authorises every request.
+- A feature a role cannot use is absent from navigation; this state covers people who arrive by URL.
+
+## RequestInbox (`agent/request-inbox.tsx`)
+
+The list of customer requests routed to the signed-in member's organisation.
+
+- Each request is a card: type and status badges, received time in the viewer's time zone, customer name and listing, the message, then contact links and the reference.
+- States: loading skeleton, error with "Try again", empty ("No requests yet"), and the list with a count.
+- Contact details appear only here, behind sign-in. They must never be put in a notification preview or a URL.
 
 ## Not built yet
 
