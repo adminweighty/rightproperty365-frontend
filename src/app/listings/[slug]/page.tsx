@@ -167,7 +167,9 @@ async function ListingContent({ params }: Pick<Props, "params">) {
             <h2 id="contact-heading" className="text-2xl">
               Contact the {listing.advertiser.kind === "agency" ? "agent" : "seller"}
             </h2>
-            <p className="mt-2 flex items-center gap-1.5 text-sm text-muted">
+            <p className="mt-2 flex flex-wrap items-center gap-1.5 text-sm text-muted">
+              <span className="font-semibold text-ink">{listing.listedBy}</span>
+              <span aria-hidden="true">·</span>
               {listing.advertiser.name}
               {listing.advertiser.verified && (
                 <Badge tone="success">
