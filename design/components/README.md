@@ -109,6 +109,27 @@ The frame for sign-in, registration and account recovery: a 448px card centred o
 - Registration and password-reset confirmations must not reveal whether an address has an account. Say "If this address can be registered…" and "If an account exists…".
 - A wrong email or password gets one message that does not say which was wrong.
 
+## RoleSelect (`auth/role-select.tsx`)
+
+The sign-up question "How will you use RightProperty365?". People choose one or more roles; any combination is allowed.
+
+- One outer `fieldset` with the question as its `legend` and the hint "Choose all that apply", then one nested `fieldset` per group: Looking for property, Listing or managing property, Working at an agency.
+- Native checkboxes named `roles`. Each label row is at least 44px tall and the whole row is the target. "Buyer or renter" is ticked by default.
+- At least one is required. The error ("Choose at least one option.", or the API's `roles` message) appears under the groups and is linked to the outer fieldset with `aria-describedby`.
+- A note under the groups says listing, managing and agency roles are confirmed after verification. Choosing one records a request; it grants no access by itself.
+- Platform administrator roles never appear here. The API also rejects them, so this list is not the safeguard.
+- On the account page each chosen role is shown with a status badge: "Active" (`success`) or "Pending verification" (`warning`), separate from organisation memberships and staff access.
+
+## Administrator sign-in and landing (`admin/admin-sign-in-form.tsx`, `admin/admin-home.tsx`)
+
+Platform administrators sign in at `/admin/sign-in`, a separate page from the customer sign-in, and land on `/admin`.
+
+- The page uses `AuthShell` with the heading "Administrator sign in". It has no "create an account" link, no role picker and no email password reset; a line of text says to ask a super administrator.
+- It is not linked from the header, footer or customer sign-in, is `noindex, nofollow`, and is not in the sitemap. Administrators are given the address.
+- Every failed attempt shows the same message, "That email and password do not match.", whether the address is unknown, the password is wrong, or the account is not an administrator. The customer sign-in shows the same message for an administrator account.
+- `/admin` states: loading skeleton; signed out (redirects to `/admin/sign-in`); signed in without an administrator session (the "You do not have access" state with links to the account page and customer sign-in); administrator (name, platform roles with their market, and an honest "not built yet" notice).
+- For an administrator session the account menu shows "Administration" in place of "Your account", and signing out returns to `/admin/sign-in`.
+
 ## AccountMenu (`auth/account-menu.tsx`)
 
 The session control at the right of the header.
@@ -127,7 +148,7 @@ Wraps content that depends on the session and renders one of four states: loadin
 
 ## RequestInbox (`agent/request-inbox.tsx`)
 
-The list of customer requests routed to the signed-in member's organisation.
+The list of customer requests routed to the signed-in person: an agent's own listings, everything in the agency for an owner or manager, or a private seller's own listings. It is shown to organisation members and private sellers; the API decides which requests each may read.
 
 - Each request is a card: type and status badges, received time in the viewer's time zone, customer name and listing, the message, then contact links and the reference.
 - States: loading skeleton, error with "Try again", empty ("No requests yet"), and the list with a count.

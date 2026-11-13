@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
-  isProfessional,
+  accountRoleLabels,
+  canUseInbox,
   membershipRoleLabels,
   organisationKindLabels,
   platformRoleLabels,
@@ -53,11 +54,33 @@ function Details({ user }: { user: User }) {
 
         <Card>
           <h2 className="text-2xl">Access</h2>
-          <ul className="mt-4 space-y-3">
-            <li className="flex items-center justify-between gap-3">
-              <span className="text-ink">Customer</span>
-              <Badge>Everyone</Badge>
-            </li>
+          <h3 className="mt-4 text-sm font-medium tracking-normal text-muted">Your roles</h3>
+          <ul className="mt-2 space-y-3">
+            {user.account_roles.map(({ role, status }) => (
+              <li key={role} className="flex items-center justify-between gap-3">
+                <span className="text-ink">{accountRoleLabels[role] ?? role}</span>
+                {status === "ACTIVE" ? (
+                  <Badge tone="success">Active</Badge>
+                ) : (
+                  <Badge tone="warning">Pending verification</Badge>
+                )}
+              </li>
+            ))}
+            {user.account_roles.length === 0 && <li className="text-muted">Buyer or renter</li>}
+          </ul>
+          {user.account_roles.some(({ status }) => status === "PENDING_VERIFICATION") && (
+            <p className="mt-3 text-sm leading-relaxed text-muted">
+              Pending roles do not give access yet. We will confirm them once you or your
+              organisation has been verified.
+            </p>
+          )}
+
+          {(user.memberships.length > 0 || user.platform_roles.length > 0) && (
+            <h3 className="mt-6 border-t border-line pt-4 text-sm font-medium tracking-normal text-muted">
+              Organisations and staff access
+            </h3>
+          )}
+          <ul className="mt-2 space-y-3">
             {user.memberships.map((membership) => (
               <li
                 key={`${membership.organisation_id}-${membership.market_code}`}
@@ -91,7 +114,7 @@ function Details({ user }: { user: User }) {
       </div>
 
       <div className="mt-8 flex flex-wrap gap-3">
-        {isProfessional(user) && <ButtonLink href="/agent/requests">Open request inbox</ButtonLink>}
+        {canUseInbox(user) && <ButtonLink href="/agent/requests">Open request inbox</ButtonLink>}
         <Button
           variant="secondary"
           onClick={async () => {

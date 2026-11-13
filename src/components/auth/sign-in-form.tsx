@@ -19,7 +19,7 @@ function safeNext(value: string | null): string {
 export function SignInForm() {
   const router = useRouter();
   const next = safeNext(useSearchParams().get("next"));
-  const { setUser } = useAuth();
+  const { setSession } = useAuth();
   const [pending, setPending] = useState(false);
   const [failure, setFailure] = useState<ApiFailure | null>(null);
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
@@ -38,7 +38,7 @@ export function SignInForm() {
     setPending(false);
 
     if (result.ok) {
-      setUser(result.data.user);
+      setSession(result.data);
       router.push(next);
       return;
     }

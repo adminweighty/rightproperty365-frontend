@@ -5,7 +5,8 @@ import { useState, type FormEvent } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field, fieldDescribedBy, Input } from "@/components/ui/field";
-import { register } from "@/lib/api/auth";
+import { RoleSelect } from "@/components/auth/role-select";
+import { register, type AccountRole } from "@/lib/api/auth";
 import type { ApiFailure } from "@/lib/api/http";
 
 export const PASSWORD_HINT = "At least 10 characters. A short phrase works well.";
@@ -14,18 +15,27 @@ export function RegisterForm() {
   const [pending, setPending] = useState(false);
   const [failure, setFailure] = useState<ApiFailure | null>(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
+  const [rolesError, setRolesError] = useState<string | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const email = String(data.get("email") ?? "").trim();
+    const roles = data.getAll("roles") as AccountRole[];
+
+    if (roles.length === 0) {
+      setRolesError("Choose at least one option.");
+      return;
+    }
 
     setPending(true);
     setFailure(null);
+    setRolesError(null);
     const result = await register({
       name: String(data.get("name") ?? "").trim(),
       email,
       password: String(data.get("password") ?? ""),
+      roles,
       accepted: data.get("consent") === "on",
     });
     setPending(false);
@@ -94,6 +104,8 @@ export function RegisterForm() {
           aria-describedby={fieldDescribedBy("password", { hint: PASSWORD_HINT, error: errors.password })}
         />
       </Field>
+
+      <RoleSelect error={rolesError ?? errors.roles} />
 
       <div>
         <label className="flex items-start gap-3 text-sm leading-relaxed text-muted">

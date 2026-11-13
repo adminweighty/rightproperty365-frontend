@@ -6,14 +6,14 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { buttonClasses, ButtonLink } from "@/components/ui/button";
-import { isProfessional } from "@/lib/api/auth";
+import { canUseInbox } from "@/lib/api/auth";
 
 const itemClass =
   "block w-full rounded-sm px-3 py-2.5 text-left text-sm text-ink hover:bg-sunken focus-visible:bg-sunken";
 
 /** Header control: "Sign in" when anonymous, otherwise a small account menu. */
 export function AccountMenu() {
-  const { status, user, signOut } = useAuth();
+  const { status, user, isAdmin, signOut } = useAuth();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const container = useRef<HTMLDivElement>(null);
@@ -67,11 +67,17 @@ export function AccountMenu() {
           <p className="truncate px-3 py-2 text-xs text-muted">{user.email}</p>
           <ul>
             <li>
-              <Link href="/account" className={itemClass} onClick={() => setOpen(false)}>
-                Your account
-              </Link>
+              {isAdmin ? (
+                <Link href="/admin" className={itemClass} onClick={() => setOpen(false)}>
+                  Administration
+                </Link>
+              ) : (
+                <Link href="/account" className={itemClass} onClick={() => setOpen(false)}>
+                  Your account
+                </Link>
+              )}
             </li>
-            {isProfessional(user) && (
+            {!isAdmin && canUseInbox(user) && (
               <li>
                 <Link href="/agent/requests" className={itemClass} onClick={() => setOpen(false)}>
                   Request inbox
@@ -85,7 +91,7 @@ export function AccountMenu() {
                 onClick={async () => {
                   setOpen(false);
                   await signOut();
-                  router.push("/");
+                  router.push(isAdmin ? "/admin/sign-in" : "/");
                 }}
               >
                 Sign out

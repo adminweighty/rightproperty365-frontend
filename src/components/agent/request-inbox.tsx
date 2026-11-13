@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { listAgentPropertyRequests, type AgentPropertyRequest } from "@/lib/api/agent";
-import { isProfessional } from "@/lib/api/auth";
+import { canUseInbox } from "@/lib/api/auth";
 import type { ApiFailure } from "@/lib/api/http";
 import { contactMethods, requestTypes } from "@/lib/api/property-requests";
 import { listings } from "@/lib/data/listings";
@@ -142,11 +142,11 @@ function Inbox() {
 
 export function RequestInbox() {
   return (
-    <RequireAuth allow={isProfessional}>
+    <RequireAuth allow={canUseInbox}>
       {() => (
         <>
           <h1 className="text-4xl">Request inbox</h1>
-          <p className="mt-2 text-muted">Customer requests sent to your organisation.</p>
+          <p className="mt-2 text-muted">Customer requests sent to you or your organisation.</p>
           <div className="mt-8">
             <Inbox />
           </div>

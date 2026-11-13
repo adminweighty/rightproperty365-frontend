@@ -46,7 +46,7 @@ export function RequireAuth({ allow, children }: Props) {
       <div className="rounded-lg border border-dashed border-line-strong p-10 text-center">
         <h1 className="text-2xl">You do not have access to this page</h1>
         <p className="mx-auto mt-2 max-w-md text-muted">
-          It is for agents and other professional accounts. If you work for an agency, ask the
+          It is for agents, agency staff and private sellers. If you work for an agency, ask the
           owner to add you.
         </p>
         <ButtonLink href="/account" variant="secondary" className="mt-6">

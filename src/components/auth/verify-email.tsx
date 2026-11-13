@@ -11,7 +11,7 @@ import type { ApiFailure } from "@/lib/api/http";
 export function VerifyEmail() {
   const token = useSearchParams().get("token");
   const router = useRouter();
-  const { setUser } = useAuth();
+  const { setSession } = useAuth();
   const [failure, setFailure] = useState<ApiFailure | null>(null);
   // The token is single-use, so guard against the effect running twice.
   const started = useRef(false);
@@ -21,13 +21,13 @@ export function VerifyEmail() {
     started.current = true;
     verifyEmail(token).then((result) => {
       if (result.ok) {
-        setUser(result.data.user);
+        setSession(result.data);
         router.replace("/account?welcome=1");
       } else {
         setFailure(result.failure);
       }
     });
-  }, [token, router, setUser]);
+  }, [token, router, setSession]);
 
   if (!token || failure) {
     const expired = !token || failure?.code === "INVALID_TOKEN";
