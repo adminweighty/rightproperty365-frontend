@@ -1,0 +1,113 @@
+@import "tailwindcss";
+@import "../../design/tokens/tokens.css";
+
+/*
+ * Tailwind theme = design tokens. The default Tailwind palette is removed on
+ * purpose so only semantic colours from design/tokens can be used.
+ * See design/README.md.
+ */
+@theme {
+  --color-*: initial;
+}
+
+@theme inline {
+  --color-white: #ffffff;
+
+  --color-page: var(--rp-color-bg-page);
+  --color-surface: var(--rp-color-bg-surface);
+  --color-sunken: var(--rp-color-bg-sunken);
+  --color-inverse: var(--rp-color-bg-inverse);
+
+  --color-ink: var(--rp-color-text-ink);
+  --color-muted: var(--rp-color-text-muted);
+  --color-subtle: var(--rp-color-text-subtle);
+  --color-on-inverse: var(--rp-color-text-inverse);
+
+  --color-line: var(--rp-color-border-line);
+  --color-line-strong: var(--rp-color-border-strong);
+  --color-control: var(--rp-color-border-control);
+
+  --color-primary: var(--rp-color-primary-base);
+  --color-primary-hover: var(--rp-color-primary-hover);
+  --color-primary-soft: var(--rp-color-primary-soft);
+  --color-primary-ink: var(--rp-color-primary-ink);
+  --color-on-primary: var(--rp-color-primary-on);
+
+  --color-accent: var(--rp-color-accent-base);
+  --color-accent-soft: var(--rp-color-accent-soft);
+  --color-accent-ink: var(--rp-color-accent-ink);
+
+  --color-success: var(--rp-color-success-base);
+  --color-success-soft: var(--rp-color-success-soft);
+  --color-warning: var(--rp-color-warning-base);
+  --color-warning-soft: var(--rp-color-warning-soft);
+  --color-danger: var(--rp-color-danger-base);
+  --color-danger-soft: var(--rp-color-danger-soft);
+  --color-info: var(--rp-color-info-base);
+  --color-info-soft: var(--rp-color-info-soft);
+
+  --color-focus: var(--rp-color-focus);
+  --color-overlay: var(--rp-color-overlay);
+
+  --font-display: var(--rp-font-family-display);
+  --font-sans: var(--rp-font-family-sans);
+  --font-mono: var(--rp-font-family-mono);
+
+  --radius-sm: var(--rp-radius-sm);
+  --radius-md: var(--rp-radius-md);
+  --radius-lg: var(--rp-radius-lg);
+  --radius-xl: var(--rp-radius-xl);
+
+  --shadow-xs: var(--rp-shadow-xs);
+  --shadow-sm: var(--rp-shadow-sm);
+  --shadow-md: var(--rp-shadow-md);
+  --shadow-lg: var(--rp-shadow-lg);
+
+  --ease-standard: var(--rp-motion-easing-standard);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background: var(--rp-color-bg-page);
+    color: var(--rp-color-text-ink);
+    font-family: var(--rp-font-family-sans);
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--rp-font-family-display);
+    font-weight: 500;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--rp-color-focus);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--rp-color-primary-soft);
+    color: var(--rp-color-primary-ink);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, dev, production]
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Design tokens are in sync and pass contrast checks
+        run: |
+          npm run tokens
+          git diff --exit-code design/tokens/tokens.css
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
