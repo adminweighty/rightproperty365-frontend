@@ -23,6 +23,8 @@ export type Listing = {
   /** Sample photo (see src/assets/images/CREDITS.md). Real photos will come from object storage. */
   image: { src: StaticImageData; alt: string };
   reference: string;
+  /** UTC instant the current 90-day publication cycle started. */
+  publishedAt: string;
   title: string;
   deal: DealType;
   category: Category;
@@ -52,6 +54,7 @@ export const listings: Listing[] = [
     slug: "four-bedroom-family-home-borrowdale",
     image: { src: houseBorrowdale, alt: "White two-storey house with a tiled roof under a blue sky" },
     reference: "RP-ZW-10001",
+    publishedAt: "2026-11-10T08:00:00Z",
     title: "Four-bedroom family home with garden",
     deal: "sale",
     category: "residential",
@@ -77,6 +80,7 @@ export const listings: Listing[] = [
     slug: "two-bedroom-garden-apartment-avondale",
     image: { src: apartmentAvondale, alt: "White apartment building behind a large green tree" },
     reference: "RP-ZW-10002",
+    publishedAt: "2026-11-08T08:00:00Z",
     title: "Two-bedroom garden apartment",
     deal: "rent",
     category: "residential",
@@ -102,6 +106,7 @@ export const listings: Listing[] = [
     slug: "office-suite-eastlea",
     image: { src: officeEastlea, alt: "Bright office with a long meeting table and chairs" },
     reference: "RP-ZW-10003",
+    publishedAt: "2026-11-03T08:00:00Z",
     title: "Office suite with reception and boardroom",
     deal: "rent",
     category: "commercial",
@@ -124,6 +129,7 @@ export const listings: Listing[] = [
     slug: "residential-stand-hillside-bulawayo",
     image: { src: standHillside, alt: "Open grassy plot with trees along the boundary" },
     reference: "RP-ZW-10004",
+    publishedAt: "2026-10-28T08:00:00Z",
     title: "Serviced residential stand",
     deal: "sale",
     category: "land",
@@ -133,7 +139,7 @@ export const listings: Listing[] = [
     city: "Bulawayo",
     marketCode: "ZW",
     landArea: 2000,
-    summary: "Level 2,000 mÂ² stand on a tarred road with water and power at the boundary.",
+    summary: "Level 2,000 mÃ‚Â² stand on a tarred road with water and power at the boundary.",
     description:
       "A level, cleared stand in an established suburb. Municipal water and electricity run along the boundary and the road is tarred. Title deeds are available for inspection.",
     features: ["Title deeds", "Tarred road", "Water at boundary", "Power at boundary"],
@@ -145,6 +151,7 @@ export const listings: Listing[] = [
     slug: "three-bedroom-townhouse-mount-pleasant",
     image: { src: townhouseMountPleasant, alt: "Row of white townhouses beside a quiet road" },
     reference: "RP-ZW-10005",
+    publishedAt: "2026-11-06T08:00:00Z",
     title: "Three-bedroom townhouse",
     deal: "rent",
     category: "residential",
@@ -170,6 +177,7 @@ export const listings: Listing[] = [
     slug: "five-bedroom-house-victoria-falls",
     image: { src: houseVictoriaFalls, alt: "Swimming pool and timber deck surrounded by trees" },
     reference: "RP-ZW-10006",
+    publishedAt: "2026-10-22T08:00:00Z",
     title: "Five-bedroom house near the river",
     deal: "sale",
     category: "residential",
@@ -217,3 +225,13 @@ export const categoryLabels: Record<Category, string> = {
   commercial: "Commercial",
   land: "Land",
 };
+
+/** Listings are published for 90 days (FR-006). */
+export const PUBLICATION_DAYS = 90;
+
+/** UTC instant the listing's current publication cycle ends. */
+export function listingExpiresAt(listing: Listing): string {
+  const expires = new Date(listing.publishedAt);
+  expires.setUTCDate(expires.getUTCDate() + PUBLICATION_DAYS);
+  return expires.toISOString();
+}

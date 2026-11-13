@@ -3,13 +3,21 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { ListingFacts, ListingPrice } from "@/components/listings/listing-card";
+import { ListingFacts, ListingGrid, ListingPrice } from "@/components/listings/listing-card";
 import { ListingMedia } from "@/components/listings/listing-media";
 import { PropertyRequestForm } from "@/components/requests/property-request-form";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
-import { categoryLabels, dealLabels, getListingBySlug, listings } from "@/lib/data/listings";
+import { JsonLd } from "@/components/seo/json-ld";
+import {
+  categoryLabels,
+  dealLabels,
+  getListingBySlug,
+  listingExpiresAt,
+  listings,
+} from "@/lib/data/listings";
+import { listingJsonLd, listingPath, listingSeoDescription, listingSeoTitle } from "@/lib/seo";
 
 type Props = PageProps<"/listings/[slug]">;
 
@@ -22,11 +30,31 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const listing = getListingBySlug(slug);
-  if (!listing) return { title: "Listing not found" };
+  if (!listing) return { title: "Listing not found", robots: { index: false, follow: true } };
+
+  const title = listingSeoTitle(listing);
+  const description = listingSeoDescription(listing);
+  const { src, width, height } = listing.image.src;
+
   return {
-    title: `${listing.title} in ${listing.suburb}, ${listing.city}`,
-    description: listing.summary,
-    alternates: { canonical: `/listings/${listing.slug}` },
+    title,
+    description,
+    alternates: { canonical: listingPath(listing) },
+    // Tells search engines to drop the page when the 90-day publication ends.
+    robots: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      unavailable_after: listingExpiresAt(listing),
+    },
+    openGraph: {
+      type: "website",
+      title,
+      description,
+      url: listingPath(listing),
+      images: [{ url: src, width, height, alt: listing.image.alt }],
+    },
+    twitter: { card: "summary_large_image", title, description, images: [src] },
   };
 }
 
@@ -57,10 +85,25 @@ async function ListingContent({ params }: Pick<Props, "params">) {
   const listing = getListingBySlug(slug);
   if (!listing) notFound();
 
+  // Related listings: same city first, then same category. Internal links
+  // like these are how crawlers and people move between listings.
+  const similar = listings
+    .filter((other) => other.id !== listing.id)
+    .filter((other) => other.city === listing.city || other.category === listing.category)
+    .sort((a, b) => Number(b.city === listing.city) - Number(a.city === listing.city))
+    .slice(0, 3);
+
   return (
     <>
+      <JsonLd data={listingJsonLd(listing)} />
       <nav aria-label="Breadcrumb">
         <ol className="flex flex-wrap items-center gap-1.5 text-sm text-muted">
+          <li>
+            <Link href="/" className="hover:text-ink hover:underline">
+              Home
+            </Link>
+          </li>
+          <ChevronRight className="size-4" aria-hidden="true" />
           <li>
             <Link href="/listings" className="hover:text-ink hover:underline">
               Listings
@@ -143,6 +186,17 @@ async function ListingContent({ params }: Pick<Props, "params">) {
           </Card>
         </aside>
       </div>
+
+      {similar.length > 0 && (
+        <section aria-labelledby="similar-heading" className="mt-16 border-t border-line pt-12">
+          <h2 id="similar-heading" className="text-2xl md:text-3xl">
+            Similar properties
+          </h2>
+          <div className="mt-8">
+            <ListingGrid listings={similar} />
+          </div>
+        </section>
+      )}
     </>
   );
 }

@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   TrendingUp,
 } from "lucide-react";
+import type { Metadata } from "next";
 import Image, { type StaticImageData } from "next/image";
 import Link from "next/link";
 import agentsPhoto from "@/assets/images/agents.jpg";
@@ -21,11 +22,29 @@ import heroPhoto from "@/assets/images/hero.jpg";
 import { HeroSearch } from "@/components/listings/hero-search";
 import { ListingGrid } from "@/components/listings/listing-card";
 import { PageMotion } from "@/components/motion/page-motion";
+import { JsonLd } from "@/components/seo/json-ld";
 import { ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { cn } from "@/lib/cn";
 import { listings } from "@/lib/data/listings";
 import { formatMoney } from "@/lib/format";
+import { organizationJsonLd, websiteJsonLd } from "@/lib/seo";
+
+const homeTitle = "RightProperty365 | Property for sale and to rent in Zimbabwe";
+const homeDescription =
+  "Search verified property for sale and to rent in Zimbabwe. Send an enquiry and track it until the agent replies.";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    siteName: "RightProperty365",
+    locale: "en_ZW",
+    title: homeTitle,
+    description: homeDescription,
+    url: "/",
+  },
+};
 
 const cityPhotos: Record<string, { src: StaticImageData; alt: string }> = {
   Harare: { src: hararePhoto, alt: "Harare city skyline" },
@@ -121,6 +140,8 @@ export default function HomePage() {
 
   return (
     <PageMotion>
+      <JsonLd data={organizationJsonLd()} />
+      <JsonLd data={websiteJsonLd()} />
       {/* Hero: indigo, white and turquoise, straight from the logo. */}
       <section className="relative isolate bg-brand text-on-brand">
         <div aria-hidden="true" className="absolute inset-0 -z-10 overflow-hidden">

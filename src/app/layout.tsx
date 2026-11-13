@@ -19,6 +19,14 @@ export const metadata: Metadata = {
   description:
     "Search verified property for sale and to rent in Zimbabwe. Send an enquiry and track it until the agent replies.",
   manifest: "/site.webmanifest",
+  applicationName: "RightProperty365",
+  // Public pages are indexable by default. Private pages set
+  // `robots: { index: false }`, which replaces this whole object.
+  robots: { index: true, follow: true, "max-image-preview": "large" },
+  // A page that sets `openGraph` replaces this object (metadata merges
+  // shallowly), so pages repeat `type` and set their own title and url.
+  openGraph: { type: "website", siteName: "RightProperty365", locale: "en_ZW" },
+  twitter: { card: "summary_large_image" },
 };
 
 export const viewport: Viewport = {
