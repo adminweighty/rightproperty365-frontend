@@ -9,6 +9,8 @@ const navItems = [
   { href: "/listings?deal=rent", label: "Rent" },
   { href: "/listings?category=commercial", label: "Commercial" },
   { href: "/listings?category=land", label: "Land" },
+  { href: "/directory/agencies", label: "Agents" },
+  { href: "/directory", label: "Directory" },
 ];
 
 export function SiteHeader() {

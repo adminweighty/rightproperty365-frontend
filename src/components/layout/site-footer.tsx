@@ -9,6 +9,9 @@ const browse = [
   { href: "/listings?deal=rent", label: "Property to rent" },
   { href: "/listings?category=commercial", label: "Commercial property" },
   { href: "/listings?category=land", label: "Land and stands" },
+  { href: "/directory/agencies", label: "Estate agencies" },
+  { href: "/directory/developers", label: "Property developers" },
+  { href: "/directory", label: "Property directory" },
 ];
 
 export function SiteFooter() {

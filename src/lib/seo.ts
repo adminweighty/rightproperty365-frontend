@@ -6,6 +6,13 @@ import {
   type DealType,
   type Listing,
 } from "@/lib/data/listings";
+import {
+  agencyOfAgent,
+  directories,
+  profilePath,
+  type DirectoryKind,
+  type Profile,
+} from "@/lib/data/directory";
 import { activeMarket } from "@/lib/data/markets";
 import { env } from "@/lib/env";
 import { formatMoney } from "@/lib/format";
@@ -270,6 +277,83 @@ export function listingsCollectionJsonLd(facet: ListingsFacet, results: Listing[
         position: index + 1,
         url: absoluteUrl(listingPath(listing)),
         name: listing.title,
+      })),
+    },
+  };
+}
+
+// ---- Directory profiles ----------------------------------------------------
+
+export function directoryCrumbs(kind: DirectoryKind, profile?: Profile): Crumb[] {
+  const crumbs: Crumb[] = [
+    { name: "Home", path: "/" },
+    { name: "Directory", path: "/directory" },
+    { name: directories[kind].title, path: `/directory/${kind}` },
+  ];
+  if (profile) crumbs.push({ name: profile.name, path: profilePath(profile) });
+  return crumbs;
+}
+
+/** Agencies are RealEstateAgent, agents are Person, everything else Organization. */
+export function profileJsonLd(profile: Profile): JsonLd {
+  const url = absoluteUrl(profilePath(profile));
+  const agency = profile.kind === "agents" ? agencyOfAgent(profile) : undefined;
+  const common = {
+    "@id": url,
+    url,
+    name: profile.name,
+    description: profile.about,
+    areaServed: profile.areas.map((name) => ({ "@type": "Place", name })),
+  };
+
+  const entity =
+    profile.kind === "agents"
+      ? {
+          "@type": "Person",
+          ...common,
+          jobTitle: profile.role,
+          ...(agency && {
+            worksFor: { "@type": "RealEstateAgent", name: agency.name, url: absoluteUrl(profilePath(agency)) },
+          }),
+        }
+      : {
+          "@type": profile.kind === "agencies" ? "RealEstateAgent" : "Organization",
+          ...common,
+          address: {
+            "@type": "PostalAddress",
+            addressLocality: profile.city,
+            addressCountry: activeMarket.code,
+          },
+          ...(profile.since && { foundingDate: String(profile.since) }),
+        };
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "ProfilePage",
+    url,
+    name: profile.name,
+    isPartOf: { "@id": absoluteUrl("/#website") },
+    breadcrumb: breadcrumbJsonLd(directoryCrumbs(profile.kind, profile)),
+    mainEntity: entity,
+  };
+}
+
+export function directoryJsonLd(kind: DirectoryKind, entries: Profile[]): JsonLd {
+  return {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    url: absoluteUrl(`/directory/${kind}`),
+    name: `${directories[kind].title} in ${activeMarket.name}`,
+    isPartOf: { "@id": absoluteUrl("/#website") },
+    breadcrumb: breadcrumbJsonLd(directoryCrumbs(kind)),
+    mainEntity: {
+      "@type": "ItemList",
+      numberOfItems: entries.length,
+      itemListElement: entries.map((profile, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        url: absoluteUrl(profilePath(profile)),
+        name: profile.name,
       })),
     },
   };

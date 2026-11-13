@@ -28,6 +28,7 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { cn } from "@/lib/cn";
+import { directories, directoryKinds, profilesOfKind } from "@/lib/data/directory";
 import { dealLabels, listings, type Listing } from "@/lib/data/listings";
 import { formatMoney } from "@/lib/format";
 import { organizationJsonLd, websiteJsonLd } from "@/lib/seo";
@@ -281,8 +282,10 @@ export default function HomePage() {
           <ul className="flex flex-wrap gap-3">
             {agencies.map(([name, count]) => (
               <li key={name}>
-                {/* Becomes a link once agency profile pages exist. */}
-                <div className="flex items-center gap-3 rounded-md border border-line bg-surface px-3 py-2">
+                <Link
+                  href={`/directory/agencies/${name.toLowerCase().replaceAll(" ", "-")}`}
+                  className="flex items-center gap-3 rounded-md border border-line bg-surface px-3 py-2 transition-shadow hover:shadow-md"
+                >
                   <span
                     aria-hidden="true"
                     className="flex size-9 items-center justify-center rounded-sm bg-brand text-sm font-bold text-on-brand"
@@ -297,7 +300,7 @@ export default function HomePage() {
                     <span className="block text-sm font-semibold text-ink">{name}</span>
                     <span className="block text-xs text-muted">{plural(count, "listing", "listings")}</span>
                   </span>
-                </div>
+                </Link>
               </li>
             ))}
           </ul>
@@ -450,7 +453,36 @@ export default function HomePage() {
         </Container>
       </section>
 
-      <section className="bg-surface">
+      <Container className="py-16 md:py-20">
+        <SectionHeading
+          title="Find a professional"
+          note="Agents, developers, property managers, hosts and the services around a move."
+          href="/directory"
+          linkLabel="Open the directory"
+        />
+        <ul data-reveal-group className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {directoryKinds.map((kind) => (
+            <li key={kind}>
+              <Link
+                href={`/directory/${kind}`}
+                className="group flex h-full items-center gap-4 rounded-lg border border-line bg-surface p-5 transition-shadow hover:shadow-md"
+              >
+                <span className="flex size-12 shrink-0 items-center justify-center rounded-md bg-accent-soft text-xl font-bold tabular-nums text-accent-ink">
+                  {profilesOfKind(kind).length}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-semibold text-ink group-hover:underline">
+                    {directories[kind].title}
+                  </span>
+                  <span className="block text-sm text-muted">{directories[kind].description}</span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </Container>
+
+      <section className="border-t border-line bg-surface">
         <Container className="py-16 md:py-20">
           <SectionHeading title="How it works" note="Three steps, and you always know where your enquiry stands." />
           <ol data-reveal-group className="mt-10 grid gap-6 md:grid-cols-3">

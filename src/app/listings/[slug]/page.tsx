@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
 import { JsonLd } from "@/components/seo/json-ld";
+import { profilePath, profilesForListing } from "@/lib/data/directory";
 import {
   categoryLabels,
   dealLabels,
@@ -84,6 +85,8 @@ async function ListingContent({ params }: Pick<Props, "params">) {
   const { slug } = await params;
   const listing = getListingBySlug(slug);
   if (!listing) notFound();
+
+  const { agency, agent } = profilesForListing(listing);
 
   // Related listings: same city first, then same category. Internal links
   // like these are how crawlers and people move between listings.
@@ -168,9 +171,21 @@ async function ListingContent({ params }: Pick<Props, "params">) {
               Contact the {listing.advertiser.kind === "agency" ? "agent" : "seller"}
             </h2>
             <p className="mt-2 flex flex-wrap items-center gap-1.5 text-sm text-muted">
-              <span className="font-semibold text-ink">{listing.listedBy}</span>
+              {agent ? (
+                <Link href={profilePath(agent)} className="font-semibold text-primary-ink hover:underline">
+                  {listing.listedBy}
+                </Link>
+              ) : (
+                <span className="font-semibold text-ink">{listing.listedBy}</span>
+              )}
               <span aria-hidden="true">·</span>
-              {listing.advertiser.name}
+              {agency ? (
+                <Link href={profilePath(agency)} className="text-primary-ink hover:underline">
+                  {listing.advertiser.name}
+                </Link>
+              ) : (
+                listing.advertiser.name
+              )}
               {listing.advertiser.verified && (
                 <Badge tone="success">
                   <BadgeCheck className="size-3.5" aria-hidden="true" />

@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { directoryKinds, profilePath, profiles } from "@/lib/data/directory";
 import { findListings, listings } from "@/lib/data/listings";
 import { absoluteUrl, curatedFacets, listingPath, listingsPath } from "@/lib/seo";
 
@@ -26,6 +27,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     { url: absoluteUrl("/"), lastModified: newest(listings) },
     ...facetPages,
+    { url: absoluteUrl("/directory") },
+    ...directoryKinds.map((kind) => ({ url: absoluteUrl(`/directory/${kind}`) })),
+    ...profiles.map((profile) => ({ url: absoluteUrl(profilePath(profile)) })),
     ...listings.map((listing) => ({
       url: absoluteUrl(listingPath(listing)),
       lastModified: listing.publishedAt,

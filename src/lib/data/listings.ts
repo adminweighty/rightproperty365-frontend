@@ -153,7 +153,7 @@ export const listings: Listing[] = [
     city: "Bulawayo",
     marketCode: "ZW",
     landArea: 2000,
-    summary: "Level 2,000 mÃƒâ€šÃ‚Â² stand on a tarred road with water and power at the boundary.",
+    summary: "Level 2,000 m² stand on a tarred road with water and power at the boundary.",
     description:
       "A level, cleared stand in an established suburb. Municipal water and electricity run along the boundary and the road is tarred. Title deeds are available for inspection.",
     features: ["Title deeds", "Tarred road", "Water at boundary", "Power at boundary"],
@@ -404,7 +404,7 @@ export const listings: Listing[] = [
     city: "Harare",
     marketCode: "ZW",
     landArea: 800,
-    summary: "800 mÂ² serviced stand with roads and water reticulation complete.",
+    summary: "800 m² serviced stand with roads and water reticulation complete.",
     description:
       "A level stand in a gated development. Roads, water and sewer reticulation are complete, and power is being connected. Payment terms are available from the developer.",
     features: ["Serviced", "Gated development", "Payment terms", "Tarred roads"],
