@@ -96,7 +96,16 @@ async function Results({ searchParams }: Pick<Props, "searchParams">) {
   const { catalogue, search, result } = loaded.data;
   const page = result.status === "ok" ? result.page : undefined;
   const options = buildSearchOptions(catalogue.sets, page?.facets, search.filters, catalogue.markets);
-  const currency = page?.facets.price.currency ?? search.query.currency;
+  const currency = page?.facets.price?.currency ?? search.query.currency;
+  // The line under the heading names a currency only when every result is in
+  // it. An API that reports several currencies gets "each listing's currency".
+  const currencies = (page?.facets as { currencies?: unknown } | undefined)?.currencies;
+  const priceNote =
+    Array.isArray(currencies) && currencies.length > 1
+      ? "prices shown in each listing’s currency"
+      : page?.facets.price?.currency
+        ? `prices shown in ${page.facets.price.currency}`
+        : undefined;
   // Without facets (the API refused the search) the price labels still name the currency.
   options.currency ??= currency;
   const chips = activeFilterChips(search.filters, catalogue, currency);
@@ -114,7 +123,7 @@ async function Results({ searchParams }: Pick<Props, "searchParams">) {
         <p className="mt-2 text-muted" role="status">
           {propertyCount(page.total)}
           {page.total_pages > 1 && ` · page ${page.page} of ${page.total_pages}`}
-          {currency && ` · prices shown in ${currency}`}
+          {priceNote && ` · ${priceNote}`}
         </p>
       )}
 

@@ -1,3 +1,4 @@
+import { countryInSentence } from "@/lib/countries";
 import { ChevronRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -46,7 +47,13 @@ async function readDirectory(kind: string, params: RawParams = {}) {
   const country = catalogue.markets.find(({ code }) => code === first(params.country))?.code;
   const region = (catalogue.sets.regions ?? []).find(({ code }) => code === first(params.region))?.code;
   const filters = { country, region };
-  return { list: await getDirectoryList(kind, filters), kinds, catalogue, filters, filtered: Boolean(country || region) };
+  // The place is named in the heading only when the visitor chose one: the region, else the country.
+  const market = catalogue.markets.find(({ code }) => code === country);
+  const regionLabel = (catalogue.sets.regions ?? []).find(({ code }) => code === region)?.label;
+  const place = regionLabel
+    ? [regionLabel, market?.name].filter(Boolean).join(", ")
+    : market && countryInSentence(market.code, market.name);
+  return { list: await getDirectoryList(kind, filters), kinds, catalogue, filters, filtered: Boolean(country || region), place };
 }
 
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
@@ -54,10 +61,10 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const loaded = await load(() => readDirectory(kind, query));
   if (!loaded.ok) return { title: "Professionals", robots: { index: false, follow: true } };
 
-  const { list, catalogue } = loaded.data;
+  const { list, place } = loaded.data;
   if (!list) return { title: "Page not found", robots: { index: false, follow: true } };
 
-  const title = catalogue.market ? `${list.kind.label} in ${catalogue.market.name}` : list.kind.label;
+  const title = place ? `${list.kind.label} in ${place}` : list.kind.label;
   const { description } = list.kind;
   const path = `/directory/${list.kind.code}`;
   // A filtered list is a subset of the directory: not indexed, no canonical (docs/seo.md).
@@ -149,7 +156,7 @@ async function DirectoryList({ params, searchParams }: Pick<Props, "params" | "s
   if (!loaded.ok) {
     return <ErrorState title="We could not load these profiles." retryHref={`/directory/${kindCode}`} />;
   }
-  const { list, kinds, catalogue, filters, filtered } = loaded.data;
+  const { list, kinds, catalogue, filters, filtered, place } = loaded.data;
   if (!list) notFound();
   const regions = catalogue.sets.regions ?? [];
 
@@ -160,7 +167,7 @@ async function DirectoryList({ params, searchParams }: Pick<Props, "params" | "s
 
   return (
     <>
-      {!filtered && <JsonLd data={directoryJsonLd(kind, profiles, catalogue.market)} />}
+      {!filtered && <JsonLd data={directoryJsonLd(kind, profiles)} />}
       <nav aria-label="Breadcrumb">
         <ol className="flex flex-wrap items-center gap-1.5 text-sm text-muted">
           <li>
@@ -183,7 +190,7 @@ async function DirectoryList({ params, searchParams }: Pick<Props, "params" | "s
 
       <h1 className="mt-6 text-3xl md:text-4xl">
         {kind.label}
-        {catalogue.market && ` in ${catalogue.market.name}`}
+        {place && ` in ${place}`}
       </h1>
       <p className="mt-3 max-w-2xl text-muted">{kind.description}</p>
       <p className="mt-2 text-sm text-muted" role="status">

@@ -14,11 +14,11 @@ const mono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"], dis
 export const metadata: Metadata = {
   metadataBase: new URL(env.siteUrl),
   title: {
-    default: "RightProperty365 | Property for sale and to rent in Zimbabwe",
+    default: "RightProperty365 | Property for sale and to rent",
     template: "%s | RightProperty365",
   },
   description:
-    "Search verified property for sale and to rent in Zimbabwe. Send an enquiry and track it until the agent replies.",
+    "Search property for sale and to rent from verified agents and owners. Send an enquiry and track it until the agent replies.",
   manifest: "/site.webmanifest",
   applicationName: "RightProperty365",
   // Public pages are indexable by default. Private pages set
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true, "max-image-preview": "large" },
   // A page that sets `openGraph` replaces this object (metadata merges
   // shallowly), so pages repeat `type` and set their own title and url.
-  openGraph: { type: "website", siteName: "RightProperty365", locale: "en_ZW" },
+  openGraph: { type: "website", siteName: "RightProperty365", locale: "en_GB" },
   twitter: { card: "summary_large_image" },
 };
 

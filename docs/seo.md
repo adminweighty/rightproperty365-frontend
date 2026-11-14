@@ -44,6 +44,30 @@ Rules behind the table:
 - **The legal pages are static.** They read no API, so they are prerendered in every build and never show an error state. Their titles, descriptions, dates and addresses come from `src/lib/legal.ts`. The mobile apps link to them, so the addresses do not change.
 - **Crawlers get metadata in `<head>`.** By default Next.js streams request-time metadata into `<body>` for browsers and for Googlebot, but Google honours `rel=canonical` only in `<head>`. `htmlLimitedBots` in `next.config.ts` lists crawler user agents (Next's default list plus Googlebot and generic crawler names) that receive complete `<head>` metadata instead. Browsers keep the faster streamed behaviour.
 
+## Headings and titles name a place only when one is chosen
+
+The site lists property from any country, so nothing assumes one. `listingsHeading` in `src/lib/seo.ts` builds the `h1`, the title, the description, the Open Graph title and the labels of the curated pages, and the same rule applies to the lists of professionals.
+
+| Address | Heading and title |
+| --- | --- |
+| `/listings` | Property for sale and to rent |
+| `/listings?deal=sale` | Property for sale |
+| `/listings?category=residential` | Residential property |
+| `/listings?category=short-stay` | Short stays |
+| `/listings?deal=sale&country=GB` | Property for sale in the United Kingdom |
+| `/listings?country=ZW` | Property in Zimbabwe |
+| `/listings?region=harare` | Property in Harare |
+| `/listings?deal=rent&city=harare` | Property to rent in Harare |
+| `/listings?region=harare&country=ZW` | Property in Harare, Zimbabwe |
+| `/directory/solicitors` | Solicitors |
+| `/directory/solicitors?country=GB` | Solicitors in the United Kingdom |
+
+- **No place chosen, no place named.** There is no default country. The root title is "RightProperty365 | Property for sale and to rent".
+- **With a place, name the narrowest one chosen**: suburb and city, else region, else country. The country follows it when the visitor chose the country as well ("Harare, Zimbabwe").
+- **Country names come from the API** (`GET /v1/markets`). `src/lib/countries.ts` holds only which names take "the" ("in the United Kingdom"), by ISO code.
+- **A category label that is an adjective gets "property" after it** ("Residential property", "Commercial property"); one that is already a noun phrase stands alone ("Land", "Short stays"). The adjectives are the one list, by category code, in `listingsHeading`.
+- The line under the results heading says "prices shown in USD" only when every result is in that currency, and "prices shown in each listing's currency" when the API reports several.
+
 ## Where the data comes from
 
 Titles, headings, canonicals and structured data are built from what the API returns: listings and profiles, and the labels of deals, categories, cities and directories in its reference data. Nothing in `src/lib/seo.ts` names a deal, category or city. The sitemap is built from `GET /v1/sitemap` (published, unexpired listings and active profiles only) and its data is cached for no longer than an hour, so expired listings drop out.

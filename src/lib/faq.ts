@@ -66,7 +66,7 @@ export const faqCategories: FaqCategory[] = [
         question: "Which countries does it cover?",
         answer: [
           p(
-            "RightProperty365 started in Zimbabwe and accepts listings from any country. The search shows the countries that have listings, and you can narrow it by country, region, city and suburb.",
+            "Any country. RightProperty365 started in Zimbabwe and accepts listings from anywhere. The search shows the countries that have listings, and you can narrow it by country, region, city and suburb.",
           ),
         ],
       },

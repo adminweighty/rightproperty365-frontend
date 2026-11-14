@@ -100,7 +100,7 @@ async function ProfileContent({ params }: Pick<Props, "params">) {
 
   return (
     <>
-      <JsonLd data={profileJsonLd(profile, kind, catalogue.market)} />
+      <JsonLd data={profileJsonLd(profile, kind)} />
       <nav aria-label="Breadcrumb">
         <ol className="flex flex-wrap items-center gap-1.5 text-sm text-muted">
           <li>

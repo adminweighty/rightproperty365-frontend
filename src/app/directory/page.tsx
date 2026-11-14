@@ -93,8 +93,8 @@ export default function DirectoryPage() {
       />
       <h1 className="text-3xl md:text-5xl">Find a property professional</h1>
       <p className="mt-3 max-w-2xl text-lg text-muted">
-        The people and businesses behind property in Zimbabwe: who sells it, builds it, manages it
-        and keeps it running.
+        The people and businesses behind property: who sells it, builds it, manages it and keeps
+        it running.
       </p>
 
       <ApiBoundary fallback={<div aria-busy="true" aria-label="Loading professionals and businesses" className="mt-10 h-96 rounded-lg bg-sunken" />}>

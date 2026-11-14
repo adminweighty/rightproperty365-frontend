@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 
 // Default share image for pages that do not set their own (listing pages use
 // the listing photo). Brand colours come from the logo kit.
-export const alt = "RightProperty365: property for sale and to rent in Zimbabwe";
+export const alt = "RightProperty365: property for sale and to rent";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -35,7 +35,7 @@ export default function OpengraphImage() {
           rightproperty<span style={{ color: TURQUOISE }}>365</span>.com
         </div>
         <div style={{ display: "flex", marginTop: 20, fontSize: 40, opacity: 0.9 }}>
-          Property for sale and to rent in Zimbabwe
+          Property for sale and to rent
         </div>
       </div>
     ),

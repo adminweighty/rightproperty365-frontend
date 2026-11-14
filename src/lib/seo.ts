@@ -1,3 +1,4 @@
+import { countryInSentence } from "@/lib/countries";
 import { faqAnswerText, type FaqCategory } from "@/lib/faq";
 import type {
   AdvertiserType,
@@ -132,13 +133,23 @@ const joinLabels = (labels: string[]) =>
     ? (labels[0] ?? "")
     : `${labels.slice(0, -1).join(", ")} and ${labels[labels.length - 1]}`;
 
+/** Categories whose label is an adjective and so needs "property" after it: "Residential property". */
+const ADJECTIVE_CATEGORIES = new Set(["residential", "commercial", "industrial", "agricultural"]);
+
 /**
  * The heading of a result page, built from reference labels:
- * "Residential property for sale in Harare", "Property to rent in Zimbabwe".
+ * "Property for sale", "Residential property for sale in Harare", "Short
+ * stays", "Property in the United Kingdom".
+ *
+ * A place is named only when the visitor chose one. The site lists property
+ * from any country, so with no place chosen the heading names none; there is
+ * no default country. With a place, it is the narrowest one chosen (suburb
+ * and city, else region, else country), followed by the country when that
+ * was chosen as well.
  */
 export function listingsHeading(
   filters: Pick<ListingFilters, "deal" | "category" | "property_type" | "country" | "region" | "city" | "suburb">,
-  { sets, market, markets = [] }: SearchContext,
+  { sets, markets = [] }: SearchContext,
 ): string {
   const type = labelOf(sets.property_types, filters.property_type);
   const category = labelOf(sets.property_categories, filters.category);
@@ -146,20 +157,28 @@ export function listingsHeading(
   const suburb = sets.suburbs.find((item) => item.code === filters.suburb);
   const city = labelOf(sets.cities, filters.city) ?? labelOf(sets.cities, suburb?.parent_code ?? undefined);
 
-  // A category whose label already ends in a noun ("Land") reads badly with
-  // "property" after it; a one-word label that is not an adjective is rare
-  // enough to special-case by code and fall back to "<label> property".
-  const noun = type ?? (category ? (filters.category === "land" ? category : `${category} property`) : "Property");
-  // The narrowest place named: suburb and city, else the region, else the country.
+  // An adjective needs its noun ("Residential property"); a label that is
+  // already a noun phrase stands alone ("Land", "Short stays").
+  const noun =
+    type ??
+    (category
+      ? ADJECTIVE_CATEGORIES.has(filters.category ?? "")
+        ? `${category} property`
+        : category
+      : "Property");
+  // The narrowest place chosen: suburb and city, else the region, else the country.
   const region = labelOf(sets.regions ?? [], filters.region);
-  const country = markets.find((item) => item.code === filters.country)?.name;
-  const place = [suburb?.label, city].filter(Boolean).join(", ") || region || country || market?.name;
+  const market = markets.find((item) => item.code === filters.country);
+  const narrower = [suburb?.label, city].filter(Boolean).join(", ") || region;
+  const place = narrower
+    ? [narrower, market?.name].filter(Boolean).join(", ")
+    : market && countryInSentence(market.code, market.name);
   const where = place ? ` in ${place}` : "";
 
   if (deal) return `${noun} ${deal.toLowerCase()}${where}`;
-  if (type || category) return `${noun}${where}`;
+  if (type || category || where) return `${noun}${where}`;
   const deals = joinLabels(sets.deal_types.map((item) => item.label.toLowerCase()));
-  return `${noun}${deals ? ` ${deals}` : ""}${where}`;
+  return `${noun}${deals ? ` ${deals}` : ""}`;
 }
 
 export type ListingsSearch = {
@@ -587,11 +606,7 @@ const DEFAULT_ENTITY_TYPE = "Organization";
 
 export const profileEntityType = (kindCode: string) => profileEntityTypes[kindCode] ?? DEFAULT_ENTITY_TYPE;
 
-export function profileJsonLd(
-  profile: DirectoryProfile,
-  kind: DirectoryKindInfo,
-  market: Market | null,
-): JsonLd {
+export function profileJsonLd(profile: DirectoryProfile, kind: DirectoryKindInfo): JsonLd {
   const url = absoluteUrl(profilePath(profile));
   const common = {
     "@id": url,
@@ -622,7 +637,8 @@ export function profileJsonLd(
         address: {
           "@type": "PostalAddress",
           addressLocality: profile.city.label,
-          ...(market && { addressCountry: market.code }),
+          // The profile's own country, when the API gives one. None is assumed.
+          ...(profile.country && { addressCountry: profile.country.code }),
         },
         ...(profile.since && { foundingDate: String(profile.since) }),
       };
@@ -638,16 +654,12 @@ export function profileJsonLd(
   };
 }
 
-export function directoryJsonLd(
-  kind: DirectoryKindInfo,
-  entries: DirectoryProfile[],
-  market: Market | null,
-): JsonLd {
+export function directoryJsonLd(kind: DirectoryKindInfo, entries: DirectoryProfile[]): JsonLd {
   return {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
     url: absoluteUrl(`/directory/${kind.code}`),
-    name: market ? `${kind.label} in ${market.name}` : kind.label,
+    name: kind.label,
     isPartOf: { "@id": absoluteUrl("/#website") },
     breadcrumb: breadcrumbJsonLd(directoryCrumbs(kind)),
     mainEntity: {

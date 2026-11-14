@@ -1,6 +1,6 @@
 # RightProperty365 web
 
-The Next.js web application for RightProperty365, a multi-country property marketplace launching in Zimbabwe. This repository also holds the [design system](design/README.md).
+The Next.js web application for RightProperty365, a property marketplace for any country (it started in Zimbabwe). This repository also holds the [design system](design/README.md).
 
 The Go API, worker and database migrations live in a separate repository (`RightProperty365-Backend`).
 
@@ -159,6 +159,7 @@ src/lib/
   api/                  Browser clients for the Go API (session cookie), and types.ts
   api/server/           Server-side cached readers for listings, directory, reference data
   seo.ts                Search parameters, indexing rules, structured data (docs/seo.md)
+  countries.ts          Which country names take "the" in a sentence
   legal.ts              Every business fact the legal pages state (docs/legal.md)
   faq.ts                The frequently asked questions, as data
   app-links.ts          App Store and Google Play addresses (placeholders until the apps are published)
@@ -181,6 +182,7 @@ src/lib/
 - **No lists in code.** A drop-down, filter or label for a value the API returns comes from the API's reference data. Add a row in the database, not an array in the app.
 - **Every drop-down is a `SearchableSelect`** (`src/components/ui/searchable-select.tsx`): a native select in the HTML, searchable by typing once the page is interactive. Do not render a bare `<select>`.
 - **"Professionals" is the user-facing name for the directory.** Visitors read "Professionals", "Find a property professional" and "your public profile"; the word "directory" is not shown to them. The code, the addresses (`/directory/<kind>/<slug>`), the cache tag and the API (`/v1/directory`, `directory_kinds`) keep the name, so links in emails, the mobile app and search engines keep working.
+- **No default country in the wording.** The site lists property from any country. A heading, title or description names a country only when the visitor chose one (`?country=GB` gives "Property for sale in the United Kingdom"), or a region, city or suburb, which is then named. Country names come from the API; `src/lib/countries.ts` only knows which few take "the".
 - **WCAG 2.2 AA** is required. See `design/guidelines/accessibility.md`.
 
 ## Legal pages

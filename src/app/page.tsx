@@ -37,16 +37,16 @@ import { buildSearchOptions } from "@/lib/search-options";
 import { listingsHeading, listingsPath, organizationJsonLd, websiteJsonLd } from "@/lib/seo";
 import { ApiBoundary } from "@/components/api-boundary";
 
-const homeTitle = "RightProperty365 | Property for sale and to rent in Zimbabwe";
+const homeTitle = "RightProperty365 | Property for sale and to rent";
 const homeDescription =
-  "Search verified property for sale and to rent in Zimbabwe. Send an enquiry and track it until the agent replies.";
+  "Search property for sale and to rent from verified agents and owners. Send an enquiry and track it until the agent replies.";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
   openGraph: {
     type: "website",
     siteName: "RightProperty365",
-    locale: "en_ZW",
+    locale: "en_GB",
     title: homeTitle,
     description: homeDescription,
     url: "/",
@@ -236,7 +236,7 @@ async function HomeContent() {
   }
 
   const { catalogue, newest, featured, dealRows, otherRow, kinds, advertisers } = loaded.data;
-  const { sets, market } = catalogue;
+  const { sets } = catalogue;
   const { facets } = newest;
   const newIds = newest.items.slice(0, 6).map((listing) => listing.id);
   const searchOptions = buildSearchOptions(sets, facets, {}, catalogue.markets);
@@ -258,7 +258,7 @@ async function HomeContent() {
   return (
     <>
       <Hero
-        eyebrow={`Verified property${market ? ` across ${market.name}` : ""}`}
+        eyebrow="Verified property"
         photo={
           heroPhoto && (
             <Image
