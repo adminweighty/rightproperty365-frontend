@@ -6,6 +6,15 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 3000
+    },
+    {
+      "name": "web-test-site",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "-e",
+        "process.env.NEXT_PUBLIC_TEST_SITE='1';process.env.BUILD_WITHOUT_API='1';require('child_process').spawn('npm',['run','dev'],{stdio:'inherit',shell:true})"
+      ],
+      "port": 3000
     }
   ]
 }

@@ -3,6 +3,7 @@ import { Geist_Mono, Inter } from "next/font/google";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
+import { TestSiteBanner } from "@/components/layout/test-site-banner";
 import { env } from "@/lib/env";
 import "./globals.css";
 
@@ -44,6 +45,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="flex min-h-full flex-col">
         <AuthProvider>
+          <TestSiteBanner />
           <SiteHeader />
           <main id="main" className="flex-1">
             {children}

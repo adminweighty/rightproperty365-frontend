@@ -14,6 +14,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # NEXT_PUBLIC_* values are inlined into the client bundle at build time.
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_SITE_URL
+# Optional: 1 or 0 to force the test-site banner on or off (see .env.example).
+ARG NEXT_PUBLIC_TEST_SITE
 # Listings, directory and reference data are read from the API by the server.
 # If the API answers during the build (API_URL, else NEXT_PUBLIC_API_URL),
 # pages are prerendered with its data. If it does not, or BUILD_WITHOUT_API=1,
@@ -22,6 +24,7 @@ ARG API_URL
 ARG BUILD_WITHOUT_API
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL} \
     NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL} \
+    NEXT_PUBLIC_TEST_SITE=${NEXT_PUBLIC_TEST_SITE} \
     API_URL=${API_URL} \
     BUILD_WITHOUT_API=${BUILD_WITHOUT_API}
 COPY --from=deps /app/node_modules ./node_modules

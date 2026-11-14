@@ -299,6 +299,16 @@ Platform administrators sign in at `/admin/sign-in`, a separate page from the cu
 - `/admin` states: loading skeleton; signed out (redirects to `/admin/sign-in`); signed in without an administrator session (the "You do not have access" state, which says the area is for Platform Administrators, with links to the account page and the main sign-in); administrator (name, a "Verifications" card with the number of applications waiting and a link to the review queue, platform roles with their market, and an honest list of what is not built yet). `AdminGate` (`admin/admin-gate.tsx`) gives every admin page the same states.
 - For an administrator session the account menu shows "Administration" in place of "Your account", and signing out returns to `/admin/sign-in`.
 
+## TestSiteBanner (`layout/test-site-banner.tsx`)
+
+A disclaimer across the top of every page on a test copy of the site (staging). It renders nothing on the live site.
+
+- Shown when the site's address starts with `staging.`, or when the build sets `NEXT_PUBLIC_TEST_SITE=1` (`0` forces it off). The same rule adds an `X-Robots-Tag: noindex, nofollow` header to every response, so a test site never appears in search results.
+- A full-width `warning-soft` band above the header, with an icon, the words "This is a test site." in the `warning` colour and the rest in `ink`. It scrolls away with the page; the header stays sticky.
+- No dismiss button. The notice has to stay true for everyone on every page, including someone arriving from a link in an email.
+- The copy says what is not real (the properties, businesses and accounts), what does not happen (enquiries and bookings do not reach real agents or owners) and what not to do (enter real personal or payment details). Keep it to three short sentences.
+- It is an `aside` with the label "Test site notice", so screen reader users can find or skip it.
+
 ## AccountMenu (`auth/account-menu.tsx`)
 
 The session control at the right of the header.

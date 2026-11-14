@@ -25,6 +25,18 @@ async function apiAnswersAtBuild(phase: string): Promise<boolean> {
   }
 }
 
+/** Mirrors `env.testSite` in src/lib/env.ts (this file cannot import from src). */
+function isTestSite(): boolean {
+  const flag = process.env.NEXT_PUBLIC_TEST_SITE;
+  if (flag === "1") return true;
+  if (flag === "0") return false;
+  try {
+    return new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").hostname.startsWith("staging.");
+  } catch {
+    return false;
+  }
+}
+
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "DENY" },
@@ -56,7 +68,13 @@ const nextConfig = async (phase: string): Promise<NextConfig> => ({
     },
   },
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    // A test copy of the site must not appear in search results, whatever a
+    // page's own robots metadata says. Same rule as `env.testSite` in
+    // src/lib/env.ts.
+    const headers = isTestSite()
+      ? [...securityHeaders, { key: "X-Robots-Tag", value: "noindex, nofollow" }]
+      : securityHeaders;
+    return [{ source: "/:path*", headers }];
   },
 });
 
