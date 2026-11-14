@@ -139,6 +139,7 @@ src/app/                Routes (App Router)
   agent/requests/       Request inbox for professional accounts
   agent/appointments/   Appointments received by a professional or their organisation
   legal/                Privacy Policy, Terms and Conditions, Refund Policy, EULA (static)
+  faq/                  Frequently asked questions (static)
   design-system/        Live token and component reference (not indexed)
 src/components/
   ui/                   Primitives: Button, Field, Input, SearchableSelect, Badge, Card, Container,
@@ -159,6 +160,8 @@ src/lib/
   api/server/           Server-side cached readers for listings, directory, reference data
   seo.ts                Search parameters, indexing rules, structured data (docs/seo.md)
   legal.ts              Every business fact the legal pages state (docs/legal.md)
+  faq.ts                The frequently asked questions, as data
+  app-links.ts          App Store and Google Play addresses (placeholders until the apps are published)
   roles.ts              Groups the API's account roles under their headings
   search-options.ts     Option lists for the search forms, from reference data and facets
   searchable-select.ts  Matching, grouping and keyboard logic of the searchable select
@@ -184,6 +187,10 @@ src/lib/
 `/legal` holds the Privacy Policy, Terms and Conditions, Refund Policy and End User Licence Agreement. The wording is in `src/content/legal`; every business fact (operator, addresses, emails, governing law, refund numbers, dates and versions) is in `src/lib/legal.ts`.
 
 **They are working documents written from what the product does. They are not legal advice and must be reviewed by a qualified lawyer before the live launch.** Several values in `src/lib/legal.ts` are assumptions marked `CONFIRM`. `docs/legal.md` lists them and what needs sign-off.
+
+## Mobile app links
+
+The footer ("Get the app") and the FAQ link to the Apple App Store and Google Play. The two addresses are in `src/lib/app-links.ts`. **They are placeholders today**: each points at the store's home page and is flagged `placeholder: true`, and the site says the apps are being prepared for the stores. **At launch, set each `url` to the app's store page and `placeholder` to `false`.** Nothing else needs to change.
 
 ## Branches
 

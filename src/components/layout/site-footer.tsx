@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Fragment } from "react";
+import { AppLinks } from "@/components/layout/app-links";
 import { Logo } from "@/components/layout/logo";
 import { MarketList } from "@/components/layout/market-info";
 import { professionalsLink, type NavItem } from "@/components/layout/nav-items";
@@ -64,7 +65,7 @@ async function DirectoryLinks() {
   );
 }
 
-/** Light, multi-column footer: brand line, three link columns (the directories from the API), the markets, and a row of legal links. */
+/** Light, multi-column footer: brand line, three link columns (the directories from the API), the markets, the app-store links, and a row with the FAQ and the legal links. */
 export function SiteFooter() {
   return (
     <footer data-site-footer className="mt-20 border-t border-line bg-soft md:mt-24">
@@ -75,6 +76,8 @@ export function SiteFooter() {
             Verified property listings, with every enquiry tracked from the moment you send it to
             the moment the agent replies.
           </p>
+          <h2 className={`mt-6 ${headingClass}`}>Get the app</h2>
+          <AppLinks className="mt-3" />
         </div>
 
         {columns.map((column, index) => (
@@ -104,8 +107,13 @@ export function SiteFooter() {
       </Container>
       <div className="border-t border-line">
         <Container className="py-3">
-          <nav aria-label="Legal">
+          <nav aria-label="Help and legal">
             <ul className="flex flex-col gap-x-6 sm:flex-row sm:flex-wrap">
+              <li>
+                <Link href="/faq" className={linkClass}>
+                  Frequently asked questions
+                </Link>
+              </li>
               {legalDocuments.map((document) => (
                 <li key={document.key}>
                   <Link href={document.path} className={linkClass}>

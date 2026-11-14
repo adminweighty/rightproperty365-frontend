@@ -478,7 +478,12 @@ async function HomeContent() {
 
       <section className="mt-14 border-y border-line bg-tint md:mt-20">
         <Container className="py-14 md:py-20">
-          <SectionHeading title="How it works" note="Three steps, and you always know where your enquiry stands." />
+          <SectionHeading
+            title="How it works"
+            note="Three steps, and you always know where your enquiry stands."
+            href="/faq"
+            linkLabel="Questions and answers"
+          />
           <ol className="mt-8 grid gap-6 md:grid-cols-3">
             {steps.map((step, index) => (
               <li key={step.title} className="rounded-lg border border-line bg-surface p-6 shadow-xs">

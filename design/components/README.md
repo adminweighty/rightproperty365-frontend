@@ -272,7 +272,7 @@ Category and directory tiles: a white card with a `line` border that links to a 
 
 The only route by which a customer contacts an advertiser. It posts to the RightProperty365 API, never to an agent directly.
 
-- States: idle, sending, received (with reference), failed (with a message and, when present, a support reference).
+- States: idle, sending, received (with reference and a "What happens next?" link to the FAQ), failed (with a message and, when present, a support reference).
 - Success copy says the request was **received** and is being passed on. It must not say delivered, sent or read.
 - Field errors returned by the API appear under the matching control.
 - A retry of unchanged content reuses the same idempotency key; any edit starts a new request.
@@ -304,7 +304,8 @@ The navigation below `lg`: a 44px menu button at the right of the header that op
 - Five columns from `lg`: the logo with one sentence, then "Property", "Directory" and "Account" link columns and "Markets". Two columns from `sm`, one on phones. Each link column is a `nav` named by its heading; links are 44px tall on phones.
 - "Directory" lists every directory the API returns, by its label (Real Estate Agencies, Estate Agents, Solicitors and so on), then "Property directory". If the directories cannot be loaded it shows that one link.
 - "Markets" lists every market with its status, which keeps the multi-country roadmap honest. It comes from the API (`layout/market-info.tsx`); if it cannot be loaded the footer says so.
-- Under the columns, a row of legal links in a `nav` named "Legal": Privacy Policy, Terms and Conditions, Refund Policy, End User Licence Agreement, from `src/lib/legal.ts`. One per line and 44px tall on phones; one wrapping row from `sm`.
+- Under the logo's sentence, "Get the app": the two app-store links (`AppLinks`).
+- Under the columns, a row of links in a `nav` named "Help and legal": Frequently asked questions, then Privacy Policy, Terms and Conditions, Refund Policy, End User Licence Agreement, from `src/lib/legal.ts`. One per line and 44px tall on phones; one wrapping row from `sm`.
 - A last row holds the copyright line.
 
 ## Alert (`ui/alert.tsx`)
@@ -489,6 +490,25 @@ The layout of the four legal pages under `/legal`: Privacy Policy, Terms and Con
 - **Voice:** plain English, short sentences, sentence-case headings, defined terms used the same way throughout (Platform, Listing, Professional, Content), role names as titles. Describe what the product does today. No "draft" banner on the page.
 - **`LegalLink`** is the link to a legal document from a consent line or a form (register, property request, business enquiry, onboarding documents). It opens in a new tab so what was typed is not lost, and says "(opens in a new tab)" to screen readers.
 - `/legal` lists the four as tiles with one sentence and the date each was last updated.
+
+## FaqList (`faq/faq-list.tsx`, `app/faq/page.tsx`, `lib/faq.ts`)
+
+`/faq`, "Frequently asked questions": what the site is and how its services work, for customers and for professionals.
+
+- **Content is data.** `src/lib/faq.ts` holds categories of `{ id, question, answer }`. An answer is structured rich text (paragraphs and short lists of text and links), rendered as elements and never as raw HTML. The same data makes the `FAQPage` structured data. The shape is plain JSON so the questions can move to the API later without changing the page.
+- **Page:** a short `rule-brand`, the `h1`, one sentence, then a "Topics" `nav` (anchor links to each category with its number of questions; above the list on phones, a sticky column from `lg`) and the list. It ends with a `soft` "Still need help?" panel with the support address from `src/lib/legal.ts`.
+- **Categories** are `section`s with an `h2`. **Each question is a native `<details>`**: the `<summary>` holds the question as an `h3` and a chevron that turns when open, is at least 48px tall, the whole row is the target, and it takes the global focus outline. It opens with a click, Enter or Space and needs no JavaScript. Every answer is in the HTML.
+- A question's `id` is its address: `/faq#why-no-phone-numbers`. With JavaScript the question named in the address is opened on load and when the hash changes; without it the browser scrolls to the closed question. Do not change an id once published.
+- **"Search the questions"** (with JavaScript only; its space is reserved so nothing moves): a search field that filters the questions as you type, by the words of the question, its answer and its category, ignoring case and accents. A polite `role="status"` says how many match ("3 questions match."). With none: a dashed empty state, "No questions match", with the support address. Categories with no match are hidden.
+- **Answers** are 2 to 4 sentences, at most `max-w-prose` wide, with underlined links to the page that does the thing. Answer from what is built today: never offer a feature that does not exist, and never give a time we cannot keep (verification says "we email you when a decision is made").
+- Linked from the footer, the landing page's "How it works" heading ("Questions and answers"), the enquiry receipts ("What happens next?" goes to `/faq#what-happens-after-enquiry`) and `/legal`. It is not in the header bar, which has no room for another item.
+
+## AppLinks (`layout/app-links.tsx`, `lib/app-links.ts`)
+
+The links to the mobile app in the Apple App Store and Google Play: in the footer under "Get the app", and in the FAQ's "Where do I get the app?".
+
+- Two secondary buttons in words, "Download on the App Store" and "Get it on Google Play". **The stores' badge artwork and logos are not used**; they have their own usage rules. Each opens in a new tab (`rel="noopener"`) and says "(opens in a new tab)" to screen readers.
+- The addresses are in `src/lib/app-links.ts` and nowhere else. **Today they are placeholders** (each store's home page, `placeholder: true`). While any is a placeholder, one sentence under the links says the apps are being prepared for the stores and the links will go to the app pages once they are published. Set the real addresses and `placeholder: false` and the sentence disappears, in the footer and in the FAQ.
 
 ## ApiBoundary (`components/api-boundary.tsx`)
 

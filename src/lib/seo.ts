@@ -1,3 +1,4 @@
+import { faqAnswerText, type FaqCategory } from "@/lib/faq";
 import type {
   AdvertiserType,
   DirectoryKindInfo,
@@ -369,6 +370,26 @@ export function breadcrumbJsonLd(crumbs: Crumb[]): JsonLd {
       name: crumb.name,
       item: absoluteUrl(crumb.path),
     })),
+  };
+}
+
+/** The FAQ page: one `Question` per entry, with its answer as plain text. */
+export function faqJsonLd(categories: FaqCategory[]): JsonLd {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "@id": absoluteUrl("/faq#faq"),
+    url: absoluteUrl("/faq"),
+    name: "Frequently asked questions",
+    isPartOf: { "@id": absoluteUrl("/#website") },
+    mainEntity: categories.flatMap((category) =>
+      category.questions.map((faq) => ({
+        "@type": "Question",
+        "@id": absoluteUrl(`/faq#${faq.id}`),
+        name: faq.question,
+        acceptedAnswer: { "@type": "Answer", text: faqAnswerText(faq.answer) },
+      })),
+    ),
   };
 }
 

@@ -14,6 +14,7 @@ import {
 import type { ApiFailure } from "@/lib/api/http";
 import type { ContactMethod } from "@/lib/api/property-requests";
 import type { Option } from "@/lib/api/types";
+import Link from "next/link";
 import { LegalLink } from "@/components/legal/legal-link";
 import { PRIVACY_NOTICE_VERSION } from "@/lib/env";
 
@@ -111,6 +112,12 @@ export function ProfileEnquiryForm({ kind, slug, name, services, contactMethods 
           method you chose. Keep this reference in case you need to follow up:
         </p>
         <p className="mt-3 font-mono text-lg font-medium text-ink">{receipt.reference}</p>
+        <p className="mt-3 text-sm">
+          <Link href="/faq#what-happens-after-enquiry" target="_blank" rel="noopener" className="font-medium text-primary-ink underline underline-offset-2 hover:no-underline">
+            What happens next?
+            <span className="sr-only"> (opens in a new tab)</span>
+          </Link>
+        </p>
         <Button variant="secondary" size="sm" className="mt-4" onClick={() => setReceipt(null)}>
           Send another enquiry
         </Button>

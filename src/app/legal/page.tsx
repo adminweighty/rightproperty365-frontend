@@ -52,6 +52,10 @@ export default function LegalIndexPage() {
         <a href={`mailto:${legal.emails.legal}`} className="font-medium text-primary-ink underline underline-offset-2 hover:no-underline">
           {legal.emails.legal}
         </a>
+        . For how the site and its services work, see the{" "}
+        <Link href="/faq" className="font-medium text-primary-ink underline underline-offset-2 hover:no-underline">
+          frequently asked questions
+        </Link>
         .
       </p>
     </Container>

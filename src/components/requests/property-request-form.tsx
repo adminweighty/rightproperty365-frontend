@@ -135,6 +135,12 @@ export function PropertyRequestForm({
             )}
           </p>
         )}
+        <p className="mt-3 text-sm">
+          <Link href="/faq#what-happens-after-enquiry" target="_blank" rel="noopener" className="font-medium text-primary-ink underline underline-offset-2 hover:no-underline">
+            What happens next?
+            <span className="sr-only"> (opens in a new tab)</span>
+          </Link>
+        </p>
         <Button variant="secondary" size="sm" className="mt-4" onClick={() => setReceipt(null)}>
           Send another request
         </Button>
