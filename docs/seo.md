@@ -24,6 +24,7 @@ Sources: Google Search Central, schema.org and the Next.js 16 documentation bund
 | `/directory`, `/directory/[kind]` (every directory the API lists) | index | itself | yes |
 | `/directory/[kind]?country=…` or `?region=…` (a filtered directory list) | noindex, follow | none | no |
 | `/directory/[kind]/[slug]` profile | index | itself | yes |
+| `/legal`, `/legal/privacy-policy`, `/legal/terms-and-conditions`, `/legal/refund-policy`, `/legal/eula` | index | itself | yes, with the date the document last changed |
 | Any public page while the API cannot be reached (error state) | noindex, follow | none | the sitemap answers 500 |
 | Sign-in, register, password reset, account, appointments, agent inbox, design system | noindex | none | no |
 
@@ -38,6 +39,7 @@ Rules behind the table:
 - **Expired listings leave the index.** `unavailable_after` (the API's `expires_at`) tells Google when to drop the page, and the sitemap lists only published listings. A listing that was public and no longer is shows "This listing is no longer available" with `noindex`; a slug that never existed is not found. Neither is redirected to a category page.
 - **An error state is never indexed and never cached.** When the API cannot be reached a page shows an error state with `noindex` and no canonical, and the next request tries again. The sitemap answers 500 rather than listing fewer pages.
 - **Content is in the HTML.** When the build could read the API, listings, search results, directories and profiles are complete HTML in the response, in document order, with nothing left for a script to reveal (README, "Builds and the API"). A crawler that does not run JavaScript reads the same page as a browser. A build made without the API streams that content instead, so production images should be built with the API reachable.
+- **The legal pages are static.** They read no API, so they are prerendered in every build and never show an error state. Their titles, descriptions, dates and addresses come from `src/lib/legal.ts`. The mobile apps link to them, so the addresses do not change.
 - **Crawlers get metadata in `<head>`.** By default Next.js streams request-time metadata into `<body>` for browsers and for Googlebot, but Google honours `rel=canonical` only in `<head>`. `htmlLimitedBots` in `next.config.ts` lists crawler user agents (Next's default list plus Googlebot and generic crawler names) that receive complete `<head>` metadata instead. Browsers keep the faster streamed behaviour.
 
 ## Where the data comes from

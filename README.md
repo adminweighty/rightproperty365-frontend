@@ -138,6 +138,7 @@ src/app/                Routes (App Router)
   account/appointments/ The signed-in person's viewings and consultations
   agent/requests/       Request inbox for professional accounts
   agent/appointments/   Appointments received by a professional or their organisation
+  legal/                Privacy Policy, Terms and Conditions, Refund Policy, EULA (static)
   design-system/        Live token and component reference (not indexed)
 src/components/
   ui/                   Primitives: Button, Field, Input, SearchableSelect, Badge, Card, Container,
@@ -157,6 +158,7 @@ src/lib/
   api/                  Browser clients for the Go API (session cookie), and types.ts
   api/server/           Server-side cached readers for listings, directory, reference data
   seo.ts                Search parameters, indexing rules, structured data (docs/seo.md)
+  legal.ts              Every business fact the legal pages state (docs/legal.md)
   roles.ts              Groups the API's account roles under their headings
   search-options.ts     Option lists for the search forms, from reference data and facets
   searchable-select.ts  Matching, grouping and keyboard logic of the searchable select
@@ -176,6 +178,12 @@ src/lib/
 - **No lists in code.** A drop-down, filter or label for a value the API returns comes from the API's reference data. Add a row in the database, not an array in the app.
 - **Every drop-down is a `SearchableSelect`** (`src/components/ui/searchable-select.tsx`): a native select in the HTML, searchable by typing once the page is interactive. Do not render a bare `<select>`.
 - **WCAG 2.2 AA** is required. See `design/guidelines/accessibility.md`.
+
+## Legal pages
+
+`/legal` holds the Privacy Policy, Terms and Conditions, Refund Policy and End User Licence Agreement. The wording is in `src/content/legal`; every business fact (operator, addresses, emails, governing law, refund numbers, dates and versions) is in `src/lib/legal.ts`.
+
+**They are working documents written from what the product does. They are not legal advice and must be reviewed by a qualified lawyer before the live launch.** Several values in `src/lib/legal.ts` are assumptions marked `CONFIRM`. `docs/legal.md` lists them and what needs sign-off.
 
 ## Branches
 

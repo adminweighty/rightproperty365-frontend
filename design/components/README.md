@@ -276,7 +276,7 @@ The only route by which a customer contacts an advertiser. It posts to the Right
 - Success copy says the request was **received** and is being passed on. It must not say delivered, sent or read.
 - Field errors returned by the API appear under the matching control.
 - A retry of unchanged content reuses the same idempotency key; any edit starts a new request.
-- Consent is an unticked checkbox that names who the details are shared with.
+- Consent is an unticked checkbox that names who the details are shared with and links to the Privacy Policy (`LegalLink`).
 - The request types and contact methods are props from the API's reference data, in the API's order; the first of each is selected. Both are `SearchableSelect`s, as are the service and contact method of the business enquiry form. The business enquiry form on a directory profile (`directory/profile-enquiry-form.tsx`) takes its contact methods the same way.
 
 ## SiteHeader (`layout/site-header.tsx`)
@@ -304,6 +304,7 @@ The navigation below `lg`: a 44px menu button at the right of the header that op
 - Five columns from `lg`: the logo with one sentence, then "Property", "Directory" and "Account" link columns and "Markets". Two columns from `sm`, one on phones. Each link column is a `nav` named by its heading; links are 44px tall on phones.
 - "Directory" lists every directory the API returns, by its label (Real Estate Agencies, Estate Agents, Solicitors and so on), then "Property directory". If the directories cannot be loaded it shows that one link.
 - "Markets" lists every market with its status, which keeps the multi-country roadmap honest. It comes from the API (`layout/market-info.tsx`); if it cannot be loaded the footer says so.
+- Under the columns, a row of legal links in a `nav` named "Legal": Privacy Policy, Terms and Conditions, Refund Policy, End User Licence Agreement, from `src/lib/legal.ts`. One per line and 44px tall on phones; one wrapping row from `sm`.
 - A last row holds the copyright line.
 
 ## Alert (`ui/alert.tsx`)
@@ -470,6 +471,24 @@ Every directory the API lists has a tile on `/directory`, a list at `/directory/
 - Profile page: breadcrumb, a header with the directory's singular label, trade or specialism, "Verified" and "Sponsored" badges, then About, Services (offerings with descriptions when the API has them), Areas covered, and the enquiry card. A law firm, an agency and a plumber use the same page.
 - Contact is enquiry-only on every kind. No phone number, email or address is shown.
 - Structured data picks a schema.org type per kind code (`profileEntityType` in `src/lib/seo.ts`): agencies `RealEstateAgent`, agents `Person`, solicitors `LegalService`, anything else `Organization`.
+
+## LegalDocument (`legal/legal-document.tsx`, `legal/legal-link.tsx`)
+
+The layout of the four legal pages under `/legal`: Privacy Policy, Terms and Conditions, Refund Policy, End User Licence Agreement. The mobile apps link to these addresses, so the paths and the section ids are stable.
+
+- **Static and complete.** A Server Component with no API call and no client code. The whole text is in the HTML, so it reads without JavaScript, on a phone, and in a crawler.
+- **Order:** breadcrumb (Home, Legal, the document); a short `rule-brand`; the title as the page's one `h1`; "Last updated" with the date (`<time>`) and the version; then the table of contents and the text.
+- **Table of contents:** a `nav` named "Contents" holding an ordered list of anchor links, one per section, numbered. Above the text on phones (links 44px tall); a sticky column at the left from `lg`, which scrolls by itself if it is taller than the screen.
+- **"In short":** a `soft` panel with an `h2` and two to five plain sentences that say what the document means for the reader, then one line saying that the full text is what applies.
+- **Sections:** each is a `section` with a stable `id` (`#your-rights`), a scroll margin on top of the page’s `scroll-padding-top`, so the sticky header does not cover its heading, and an `h2` that carries its number ("11. Your rights"). Sub-headings are `h3`. Numbers come from the order of the sections, never typed by hand.
+- **Text:** `text-base`, `leading-relaxed`, `ink`, at most `max-w-prose` wide. Links are `primary-ink`, weight 500 and underlined, so they are not shown by colour alone. Long email addresses may break (`wrap-anywhere`), so nothing scrolls sideways at 320px.
+- **"Questions":** always the last numbered section: the four contact addresses with what each is for, and the operator's registered details when the config has them.
+- **"Other documents":** a `nav` with links to the other three.
+- **Print:** the header, footer, test-site notice, breadcrumb, table of contents and "Other documents" are left out; headings do not end a page.
+- **Every business fact comes from `src/lib/legal.ts`:** names, addresses, emails, governing law, refund numbers, dates and versions. A detail that is `null` there is left out; nothing is printed in its place. The wording is in `src/content/legal`. See `docs/legal.md` before changing either.
+- **Voice:** plain English, short sentences, sentence-case headings, defined terms used the same way throughout (Platform, Listing, Professional, Content), role names as titles. Describe what the product does today. No "draft" banner on the page.
+- **`LegalLink`** is the link to a legal document from a consent line or a form (register, property request, business enquiry, onboarding documents). It opens in a new tab so what was typed is not lost, and says "(opens in a new tab)" to screen readers.
+- `/legal` lists the four as tiles with one sentence and the date each was last updated.
 
 ## ApiBoundary (`components/api-boundary.tsx`)
 

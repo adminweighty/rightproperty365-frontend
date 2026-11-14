@@ -6,6 +6,7 @@ import { professionalsLink, type NavItem } from "@/components/layout/nav-items";
 import { Container } from "@/components/ui/container";
 import { getDirectoryKinds } from "@/lib/api/server/directory";
 import { load } from "@/lib/api/server/load";
+import { legalDocuments } from "@/lib/legal";
 import { ApiBoundary } from "@/components/api-boundary";
 
 const columns: { title: string; links: NavItem[] }[] = [
@@ -63,7 +64,7 @@ async function DirectoryLinks() {
   );
 }
 
-/** Light, multi-column footer: brand line, three link columns (the directories from the API) and the markets. */
+/** Light, multi-column footer: brand line, three link columns (the directories from the API), the markets, and a row of legal links. */
 export function SiteFooter() {
   return (
     <footer data-site-footer className="mt-20 border-t border-line bg-soft md:mt-24">
@@ -101,6 +102,21 @@ export function SiteFooter() {
           </ApiBoundary>
         </div>
       </Container>
+      <div className="border-t border-line">
+        <Container className="py-3">
+          <nav aria-label="Legal">
+            <ul className="flex flex-col gap-x-6 sm:flex-row sm:flex-wrap">
+              {legalDocuments.map((document) => (
+                <li key={document.key}>
+                  <Link href={document.path} className={linkClass}>
+                    {document.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </Container>
+      </div>
       <div className="border-t border-line">
         <Container className="flex flex-col gap-2 py-5 text-sm text-subtle sm:flex-row sm:justify-between">
           <p>© 2026 RightProperty365. All rights reserved.</p>

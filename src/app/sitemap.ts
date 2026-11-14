@@ -4,12 +4,14 @@ import { getDirectoryKinds } from "@/lib/api/server/directory";
 import { getSitemapEntries } from "@/lib/api/server/listings";
 import { load } from "@/lib/api/server/load";
 import { getCatalogue } from "@/lib/api/server/reference";
+import { LEGAL_INDEX_PATH, legalDocuments } from "@/lib/legal";
 import { absoluteUrl, listingPath, profilePath } from "@/lib/seo";
 
 /**
  * Only indexable URLs: home, the curated result pages that have listings
- * (docs/seo.md), the directories, and every public listing and profile from
- * GET /v1/sitemap, which returns only published, unexpired listings.
+ * (docs/seo.md), the directories, every public listing and profile from
+ * GET /v1/sitemap, which returns only published, unexpired listings, and the
+ * legal pages.
  * Free-text and filtered searches, result pages 2 and later and private pages
  * are left out. `priority` and `changefreq` are omitted because Google
  * ignores them.
@@ -49,6 +51,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...entries.listings.map((listing) => ({
       url: absoluteUrl(listingPath(listing)),
       lastModified: listing.updated_at,
+    })),
+    { url: absoluteUrl(LEGAL_INDEX_PATH) },
+    ...legalDocuments.map((document) => ({
+      url: absoluteUrl(document.path),
+      lastModified: document.effectiveDate,
     })),
   ];
 }

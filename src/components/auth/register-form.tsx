@@ -5,6 +5,7 @@ import { useState, type FormEvent } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field, fieldDescribedBy, Input } from "@/components/ui/field";
+import { LegalLink } from "@/components/legal/legal-link";
 import { RoleSelect } from "@/components/auth/role-select";
 import { register, type AccountRole, type AccountRoleGroup } from "@/lib/api/auth";
 import type { ApiFailure } from "@/lib/api/http";
@@ -117,7 +118,9 @@ export function RegisterForm({ roleGroups }: { roleGroups: AccountRoleGroup[] })
             className="mt-0.5 size-5 shrink-0 accent-(--rp-color-primary-base)"
             aria-describedby={consentError ? "consent-error" : undefined}
           />
-          <span>I agree to the RightProperty365 terms and privacy notice.</span>
+          <span>
+            I agree to the <LegalLink to="termsAndConditions" /> and <LegalLink to="privacyPolicy" />.
+          </span>
         </label>
         {consentError && (
           <p id="consent-error" className="mt-1.5 text-sm text-danger">

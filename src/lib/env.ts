@@ -1,3 +1,5 @@
+import { legal } from "@/lib/legal";
+
 const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/+$/, "");
 
 /**
@@ -26,5 +28,9 @@ export const env = {
   testSite: isTestSite(),
 } as const;
 
-/** Version of the privacy notice a customer consents to when sending a request. */
-export const PRIVACY_NOTICE_VERSION = "2026-11-draft";
+/**
+ * Version of the Privacy Policy (/legal/privacy-policy) that a person agrees
+ * to when registering or sending a request. The API stores it with the
+ * consent. It follows the policy's version in `src/lib/legal.ts`.
+ */
+export const PRIVACY_NOTICE_VERSION: string = legal.documents.privacyPolicy.version;

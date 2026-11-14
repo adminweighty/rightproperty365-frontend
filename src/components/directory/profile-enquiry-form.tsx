@@ -14,6 +14,7 @@ import {
 import type { ApiFailure } from "@/lib/api/http";
 import type { ContactMethod } from "@/lib/api/property-requests";
 import type { Option } from "@/lib/api/types";
+import { LegalLink } from "@/components/legal/legal-link";
 import { PRIVACY_NOTICE_VERSION } from "@/lib/env";
 
 type Props = {
@@ -229,7 +230,7 @@ export function ProfileEnquiryForm({ kind, slug, name, services, contactMethods 
           />
           <span>
             I agree that RightProperty365 may share these details with {name} so they can answer
-            this enquiry.
+            this enquiry, as the <LegalLink to="privacyPolicy" /> explains.
           </span>
         </label>
         {errors.consent && (

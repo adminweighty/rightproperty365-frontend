@@ -18,6 +18,7 @@ import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { LegalLink } from "@/components/legal/legal-link";
 import { Field, fieldDescribedBy, Input, Textarea } from "@/components/ui/field";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import type { ApiFailure } from "@/lib/api/http";
@@ -366,8 +367,9 @@ function Details({ requirement, lists }: Props) {
             <p className="mt-2 flex items-start gap-2 text-sm leading-relaxed text-muted">
               <Lock className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
               <span>
-                Your documents are private. Only you and our verification team can open them. Each
-                file is saved as soon as it is uploaded.
+                Your documents are private. Only you and our verification team can open them, and
+                they are handled as the <LegalLink to="privacyPolicy" /> describes. Each file is saved
+                as soon as it is uploaded.
               </span>
             </p>
             <ul className="mt-5 space-y-3">

@@ -16,6 +16,7 @@ import {
   type RequestType,
 } from "@/lib/api/property-requests";
 import type { Option } from "@/lib/api/types";
+import { LegalLink } from "@/components/legal/legal-link";
 import { PRIVACY_NOTICE_VERSION } from "@/lib/env";
 
 type Props = {
@@ -268,7 +269,7 @@ export function PropertyRequestForm({
           />
           <span>
             I agree that RightProperty365 may share these details with {advertiserName} so they can
-            answer this request.
+            answer this request, as the <LegalLink to="privacyPolicy" /> explains.
           </span>
         </label>
         {errors.consent && (

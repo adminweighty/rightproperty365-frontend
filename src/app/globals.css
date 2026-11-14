@@ -154,6 +154,15 @@
   position: relative;
 }
 
+@media print {
+  /* A printed page is the content alone: no header, footer or test-site notice. */
+  [data-site-header],
+  [data-site-footer],
+  aside[aria-label="Test site notice"] {
+    display: none;
+  }
+}
+
 @layer base {
   html {
     scroll-behavior: smooth;
