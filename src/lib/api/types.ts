@@ -36,6 +36,10 @@ export type Listing = {
   price_period: "month" | null;
   suburb: Coded;
   city: Coded;
+  /** The province or region of the city. Null where the market has none. */
+  region?: Coded | null;
+  /** The market the listing is in, as a country. */
+  country?: { code: string; name: string };
   market_code: string;
   bedrooms: number | null;
   bathrooms: number | null;
@@ -54,12 +58,15 @@ export type Listing = {
   updated_at: string;
 };
 
-export type FacetCount = { code: string; label: string; count: number };
+export type FacetCount = { code: string; label: string; count: number; /** Suburb facets: the code of the suburb's city. */ city?: string };
 
 export type ListingFacets = {
   deal: FacetCount[];
   category: FacetCount[];
   property_type: FacetCount[];
+  /** Optional: API builds before 0.13 do not send these two. */
+  country?: FacetCount[];
+  region?: FacetCount[];
   city: FacetCount[];
   suburb: FacetCount[];
   bedrooms: FacetCount[];
@@ -76,7 +83,10 @@ export type ListingPage = {
   facets: ListingFacets;
 };
 
-export type ListingSort = "newest" | "price_asc" | "price_desc" | "relevance";
+export type ListingSort = "newest" | "oldest" | "price_asc" | "price_desc" | "area_desc" | "relevance";
+
+/** Who advertises a listing: an enum of the search endpoint. */
+export type AdvertiserType = "agency" | "private";
 
 /** Filters of GET /v1/listings. Codes come from the reference data. */
 export type ListingQuery = {
@@ -84,6 +94,9 @@ export type ListingQuery = {
   deal?: string;
   category?: string;
   property_type?: string;
+  /** A market code. */
+  country?: string;
+  region?: string;
   city?: string;
   suburb?: string;
   min_price?: string;
@@ -91,7 +104,19 @@ export type ListingQuery = {
   /** ISO 4217 code for the price filters. The API defaults to USD. */
   currency?: string;
   bedrooms_min?: number;
+  bedrooms_max?: number;
   bathrooms_min?: number;
+  bathrooms_max?: number;
+  /** Square metres. */
+  floor_area_min?: string;
+  floor_area_max?: string;
+  land_area_min?: string;
+  land_area_max?: string;
+  /** 1 to 365. */
+  listed_within_days?: number;
+  advertiser_type?: AdvertiserType;
+  reference?: string;
+  has_photos?: boolean;
   features?: string[];
   featured?: boolean;
   sort?: ListingSort;
@@ -99,7 +124,11 @@ export type ListingQuery = {
   page_size?: number;
 };
 
-export type ListingSuggestion = { type: "suburb" | "city" | "listing"; label: string; value: string };
+export type ListingSuggestion = {
+  type: "suburb" | "city" | "region" | "country" | "listing";
+  label: string;
+  value: string;
+};
 
 export type DirectoryKindInfo = {
   code: string;
@@ -131,6 +160,8 @@ export type DirectoryProfile = {
   sponsored: boolean;
   since: number | null;
   logo: Photo | null;
+  region?: Coded | null;
+  country?: { code: string; name: string };
   /** Agent profiles only: the agency they work for. */
   agency: ProfileRef | null;
   listing_count: number;
@@ -175,6 +206,7 @@ export type ReferenceSetCode =
   | "directory_kinds"
   | "organisation_kinds"
   | "service_trades"
+  | "regions"
   | "cities"
   | "suburbs"
   | "listing_features";

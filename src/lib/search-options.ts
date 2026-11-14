@@ -1,6 +1,14 @@
-import type { FacetCount, ListingFacets, ListingSort, ReferenceItem, ReferenceSets } from "@/lib/api/types";
+import type {
+  AdvertiserType,
+  FacetCount,
+  ListingFacets,
+  ListingSort,
+  Market,
+  ReferenceItem,
+  ReferenceSets,
+} from "@/lib/api/types";
 import { formatMoney } from "@/lib/format";
-import { listingSorts, type ListingFilters } from "@/lib/seo";
+import { advertiserTypes, listedWithinChoices, listingSorts, type ListingFilters } from "@/lib/seo";
 
 /**
  * The option lists of the search forms, built on the server from the API's
@@ -8,7 +16,13 @@ import { listingSorts, type ListingFilters } from "@/lib/seo";
  * each one has for the current search). Passed to the forms as props.
  */
 
-export type CountedOption = { value: string; label: string; count?: number };
+export type CountedOption = {
+  value: string;
+  label: string;
+  count?: number;
+  /** The code of the place this one is in: a region's country, a city's region, a suburb's city. */
+  parent?: string;
+};
 export type OptionGroup = { label: string; options: CountedOption[] };
 
 export type SearchOptions = {
@@ -16,9 +30,15 @@ export type SearchOptions = {
   categories: CountedOption[];
   /** Property types under their category. */
   propertyTypes: OptionGroup[];
+  /** Countries are the markets. */
+  countries: CountedOption[];
+  regions: CountedOption[];
   cities: CountedOption[];
   /** Suburbs under their city. */
   suburbs: OptionGroup[];
+  /** "Listed in the last N days". */
+  listedWithin: CountedOption[];
+  advertisers: CountedOption[];
   /** "At least n bedrooms", for the bedroom counts that exist in the result. */
   bedrooms: CountedOption[];
   features: CountedOption[];
@@ -34,17 +54,29 @@ export type SearchOptions = {
  */
 const sortLabels: Record<ListingSort, string> = {
   newest: "Newest first",
+  oldest: "Oldest first",
   price_asc: "Price, lowest first",
   price_desc: "Price, highest first",
+  area_desc: "Largest first",
   relevance: "Best match",
 };
+
+/** Also enums of the search endpoint, so labelled here. "Real Estate Agency" is a role title. */
+export const advertiserLabels: Record<AdvertiserType, string> = {
+  agency: "Real Estate Agency",
+  private: "Private owner",
+};
+
+export const listedWithinLabel = (days: number) =>
+  days === 1 ? "Last 24 hours" : `Last ${days} days`;
 
 const FEATURE_LIMIT = 12;
 
 const counted = (items: ReferenceItem[], facet: FacetCount[] | undefined): CountedOption[] =>
-  items.map(({ code, label }) => ({
+  items.map(({ code, label, parent_code, market_code }) => ({
     value: code,
     label,
+    parent: parent_code ?? market_code ?? undefined,
     // With facets, a value that is not in them has no listings.
     count: facet ? (facet.find((item) => item.code === code)?.count ?? 0) : undefined,
   }));
@@ -71,6 +103,7 @@ export function buildSearchOptions(
   sets: ReferenceSets,
   facets: ListingFacets | undefined,
   filters: ListingFilters = {},
+  markets: Market[] = [],
 ): SearchOptions {
   // "n+ bedrooms" counts every listing with at least n.
   const bedroomFacet = (facets?.bedrooms ?? []).filter((item) => Number(item.code) > 0);
@@ -107,8 +140,20 @@ export function buildSearchOptions(
     deals: counted(sets.deal_types, facets?.deal),
     categories: counted(sets.property_categories, facets?.category),
     propertyTypes: grouped(sets.property_types, sets.property_categories, facets?.property_type, filters.category),
+    countries: markets.map(({ code, name }) => ({
+      value: code,
+      label: name,
+      count: facets?.country ? (facets.country.find((item) => item.code === code)?.count ?? 0) : undefined,
+    })),
+    // The API counts regions only within a country; without one the facet is empty, so no counts are shown.
+    regions: counted(sets.regions ?? [], facets?.region?.length ? facets.region : undefined),
     cities: counted(sets.cities, facets?.city),
-    suburbs: grouped(sets.suburbs, sets.cities, facets?.suburb, filters.city),
+    // Every suburb, so the form is complete without JavaScript; LocationFields narrows it with.
+    suburbs: grouped(sets.suburbs, sets.cities, facets?.suburb, undefined),
+    listedWithin: [...new Set([...listedWithinChoices, ...(filters.listed_within_days ? [filters.listed_within_days] : [])])]
+      .sort((a, b) => a - b)
+      .map((days) => ({ value: String(days), label: listedWithinLabel(days) })),
+    advertisers: advertiserTypes.map((value) => ({ value, label: advertiserLabels[value] })),
     bedrooms,
     features,
     sorts: listingSorts.map((value) => ({ value, label: sortLabels[value] })),

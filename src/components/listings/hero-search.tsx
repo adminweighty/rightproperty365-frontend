@@ -1,4 +1,5 @@
-import { Search } from "lucide-react";
+import { Search, SlidersHorizontal } from "lucide-react";
+import Link from "next/link";
 import { GetForm } from "@/components/listings/get-form";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/field";
@@ -13,7 +14,9 @@ type Props = {
 
 /**
  * The landing-page search, inside the hero's white panel: one tab per deal
- * type over city, suburb, property type, highest price and bedrooms. The tabs
+ * type over one Location select (countries, regions, cities and suburbs in
+ * one list, sent as `location=region:harare`), property type, highest price
+ * and bedrooms, with a link to the advanced search. The tabs
  * are native radio buttons and the whole thing is a GET form, so it works
  * without JavaScript and with a keyboard (arrow keys switch tabs). All lists
  * come from the API.
@@ -48,29 +51,39 @@ export function HeroSearch({ options, className }: Props) {
       )}
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <div>
-          <label htmlFor="hero-city" className="sr-only">
-            City or town
+        <div className="sm:col-span-2">
+          <label htmlFor="hero-location" className="sr-only">
+            Location: country, region, city or suburb
           </label>
-          <Select id="hero-city" name="city" defaultValue="">
-            <option value="">Any city or town</option>
-            {options.cities.map((option) => (
-              <option key={option.value} value={option.value}>
-                {optionText(option)}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <div>
-          <label htmlFor="hero-suburb" className="sr-only">
-            Suburb
-          </label>
-          <Select id="hero-suburb" name="suburb" defaultValue="">
-            <option value="">Any suburb</option>
+          <Select id="hero-location" name="location" defaultValue="">
+            <option value="">Any location</option>
+            <optgroup label="Country">
+              {options.countries.map((option) => (
+                <option key={option.value} value={`country:${option.value}`}>
+                  {optionText(option)}
+                </option>
+              ))}
+            </optgroup>
+            {options.regions.length > 0 && (
+              <optgroup label="Region or province">
+                {options.regions.map((option) => (
+                  <option key={option.value} value={`region:${option.value}`}>
+                    {optionText(option)}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            <optgroup label="City or town">
+              {options.cities.map((option) => (
+                <option key={option.value} value={`city:${option.value}`}>
+                  {optionText(option)}
+                </option>
+              ))}
+            </optgroup>
             {options.suburbs.map((group) => (
-              <optgroup key={group.label} label={group.label}>
+              <optgroup key={group.label} label={`Suburbs of ${group.label}`}>
                 {group.options.map((option) => (
-                  <option key={option.value} value={option.value}>
+                  <option key={option.value} value={`suburb:${option.value}`}>
                     {optionText(option)}
                   </option>
                 ))}
@@ -127,6 +140,15 @@ export function HeroSearch({ options, className }: Props) {
           Search
         </Button>
       </div>
+      <p className="mt-3 text-center">
+        <Link
+          href="/listings?advanced=1#advanced-search"
+          className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-primary-ink hover:underline"
+        >
+          <SlidersHorizontal className="size-4" aria-hidden="true" />
+          Advanced search
+        </Link>
+      </p>
     </GetForm>
   );
 }

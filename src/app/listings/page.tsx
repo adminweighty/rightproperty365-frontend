@@ -11,6 +11,8 @@ import { getCuratedListingPages } from "@/lib/api/server/curated";
 import { searchListings, suggestListings } from "@/lib/api/server/listings";
 import { load } from "@/lib/api/server/load";
 import { getCatalogue } from "@/lib/api/server/reference";
+import { X } from "lucide-react";
+import { activeFilterChips } from "@/lib/filter-chips";
 import { buildSearchOptions } from "@/lib/search-options";
 import { listingsCollectionJsonLd, listingsPath, parseListingsSearch } from "@/lib/seo";
 import { ApiBoundary } from "@/components/api-boundary";
@@ -93,8 +95,12 @@ async function Results({ searchParams }: Pick<Props, "searchParams">) {
 
   const { catalogue, search, result } = loaded.data;
   const page = result.status === "ok" ? result.page : undefined;
-  const options = buildSearchOptions(catalogue.sets, page?.facets, search.filters);
-  const currency = page?.facets.price.currency ?? catalogue.market?.currency_code;
+  const options = buildSearchOptions(catalogue.sets, page?.facets, search.filters, catalogue.markets);
+  const currency = page?.facets.price.currency ?? search.query.currency;
+  // Without facets (the API refused the search) the price labels still name the currency.
+  options.currency ??= currency;
+  const chips = activeFilterChips(search.filters, catalogue, currency);
+  const errors = result.status === "invalid" ? result.fields : {};
   const pastTheEnd = page !== undefined && page.items.length === 0 && page.total > 0;
 
   // Nothing matched a keyword: offer what the API suggests for it.
@@ -112,7 +118,40 @@ async function Results({ searchParams }: Pick<Props, "searchParams">) {
         </p>
       )}
 
-      <SearchBar options={options} defaults={search.filters} className="mt-8" />
+      <SearchBar
+        options={options}
+        defaults={search.filters}
+        advanced={search.advanced}
+        errors={errors}
+        className="mt-8"
+      />
+
+      {chips.length > 0 && (
+        <nav aria-label="Filters in use" className="mt-6">
+          <ul className="flex flex-wrap items-center gap-2">
+            {chips.map((chip) => (
+              <li key={chip.key}>
+                <Link
+                  href={chip.href}
+                  className="flex min-h-11 items-center gap-1.5 rounded-full border border-line-strong bg-surface pl-4 pr-3 text-sm font-medium text-ink transition-colors hover:border-primary hover:bg-primary-soft hover:text-primary-ink"
+                >
+                  <span className="sr-only">Remove filter: </span>
+                  {chip.label}
+                  <X className="size-4 text-muted" aria-hidden="true" />
+                </Link>
+              </li>
+            ))}
+            <li>
+              <Link
+                href={listingsPath({ sort: search.filters.sort })}
+                className="flex min-h-11 items-center px-2 text-sm font-semibold text-primary-ink hover:underline"
+              >
+                Clear all<span className="sr-only"> filters</span>
+              </Link>
+            </li>
+          </ul>
+        </nav>
+      )}
 
       {page && page.items.length > 0 && (
         <>
@@ -147,11 +186,8 @@ async function Results({ searchParams }: Pick<Props, "searchParams">) {
                     href={
                       suggestion.type === "listing"
                         ? `/listings/${suggestion.value}`
-                        : listingsPath(
-                            suggestion.type === "city"
-                              ? { city: suggestion.value }
-                              : { suburb: suggestion.value },
-                          )
+                        : // The suggestion's type is the name of the filter it sets.
+                          listingsPath({ [suggestion.type]: suggestion.value })
                     }
                     className="flex min-h-11 items-center rounded-full border border-line-strong bg-surface px-4 text-sm font-medium text-ink transition-colors hover:border-primary hover:bg-primary-soft hover:text-primary-ink"
                   >
@@ -175,7 +211,9 @@ async function Results({ searchParams }: Pick<Props, "searchParams">) {
         <div className="mt-8 rounded-lg border border-dashed border-line-strong p-10 text-center">
           <h2 className="text-2xl">That search could not be run</h2>
           <p className="mx-auto mt-2 max-w-md text-muted">
-            One of the filters is not available any more. Clear the filters and search again.
+            {Object.keys(errors).length > 0
+              ? "Some of the filters do not fit together. Each one is marked in the form above with what to change."
+              : "One of the filters is not available any more. Clear the filters and search again."}
           </p>
           <ButtonLink href="/listings" variant="secondary" className="mt-6">
             Clear filters
@@ -194,7 +232,7 @@ function ResultsFallback() {
   return (
     <div aria-busy="true" aria-label="Loading listings">
       <div className="h-10 max-w-md rounded-md bg-sunken" />
-      <div className="mt-12 h-[7.5rem] rounded-xl bg-sunken" />
+      <div className="mt-12 h-[16rem] rounded-xl bg-sunken" />
       <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {[0, 1, 2].map((i) => (
           <div key={i} className="h-80 rounded-lg bg-sunken" />

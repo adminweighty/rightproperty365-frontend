@@ -3,6 +3,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ProfileGrid } from "@/components/directory/profile-card";
+import { GetForm } from "@/components/listings/get-form";
+import { Button, ButtonLink } from "@/components/ui/button";
+import { Field, Select } from "@/components/ui/field";
 import { JsonLd } from "@/components/seo/json-ld";
 import { Container } from "@/components/ui/container";
 import { ErrorState } from "@/components/ui/error-state";
@@ -30,18 +33,24 @@ export async function generateStaticParams() {
   return kinds?.length ? kinds.map(({ code }) => ({ kind: code })) : SHELL_ONLY;
 }
 
-async function readDirectory(kind: string) {
-  const [list, kinds, catalogue] = await Promise.all([
-    getDirectoryList(kind),
-    getDirectoryKinds(),
-    getCatalogue(),
-  ]);
-  return { list, kinds, catalogue };
+type RawParams = Awaited<Props["searchParams"]>;
+const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value) || undefined;
+
+/**
+ * The directory, optionally narrowed to a country or a region
+ * (`?region=harare`). A code that is not in the reference data is ignored.
+ */
+async function readDirectory(kind: string, params: RawParams = {}) {
+  const [kinds, catalogue] = await Promise.all([getDirectoryKinds(), getCatalogue()]);
+  const country = catalogue.markets.find(({ code }) => code === first(params.country))?.code;
+  const region = (catalogue.sets.regions ?? []).find(({ code }) => code === first(params.region))?.code;
+  const filters = { country, region };
+  return { list: await getDirectoryList(kind, filters), kinds, catalogue, filters, filtered: Boolean(country || region) };
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { kind } = await params;
-  const loaded = await load(() => readDirectory(kind));
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
+  const [{ kind }, query] = await Promise.all([params, searchParams]);
+  const loaded = await load(() => readDirectory(kind, query));
   if (!loaded.ok) return { title: "Directory", robots: { index: false, follow: true } };
 
   const { list, catalogue } = loaded.data;
@@ -50,6 +59,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const title = catalogue.market ? `${list.kind.label} in ${catalogue.market.name}` : list.kind.label;
   const { description } = list.kind;
   const path = `/directory/${list.kind.code}`;
+  // A filtered list is a subset of the directory: not indexed, no canonical (docs/seo.md).
+  if (loaded.data.filtered) return { title, description, robots: { index: false, follow: true } };
   return {
     title,
     description,
@@ -58,11 +69,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default function DirectoryKindPage({ params }: Props) {
+export default function DirectoryKindPage({ params, searchParams }: Props) {
   return (
     <Container className="py-10 md:py-14">
       <ApiBoundary fallback={<div aria-busy="true" className="h-96 rounded-lg bg-sunken" />}>
-        <DirectoryList params={params} />
+        <DirectoryList params={params} searchParams={searchParams} />
       </ApiBoundary>
     </Container>
   );
@@ -131,14 +142,15 @@ function ProfilesByTrade({ groups, others }: { groups: TradeGroup[]; others: Dir
   );
 }
 
-async function DirectoryList({ params }: Pick<Props, "params">) {
-  const { kind: kindCode } = await params;
-  const loaded = await load(() => readDirectory(kindCode));
+async function DirectoryList({ params, searchParams }: Pick<Props, "params" | "searchParams">) {
+  const [{ kind: kindCode }, query] = await Promise.all([params, searchParams]);
+  const loaded = await load(() => readDirectory(kindCode, query));
   if (!loaded.ok) {
     return <ErrorState title="We could not load this directory." retryHref={`/directory/${kindCode}`} />;
   }
-  const { list, kinds, catalogue } = loaded.data;
+  const { list, kinds, catalogue, filters, filtered } = loaded.data;
   if (!list) notFound();
+  const regions = catalogue.sets.regions ?? [];
 
   const { kind, profiles } = list;
   const hasSponsored = profiles.some((profile) => profile.sponsored);
@@ -147,7 +159,7 @@ async function DirectoryList({ params }: Pick<Props, "params">) {
 
   return (
     <>
-      <JsonLd data={directoryJsonLd(kind, profiles, catalogue.market)} />
+      {!filtered && <JsonLd data={directoryJsonLd(kind, profiles, catalogue.market)} />}
       <nav aria-label="Breadcrumb">
         <ol className="flex flex-wrap items-center gap-1.5 text-sm text-muted">
           <li>
@@ -178,9 +190,46 @@ async function DirectoryList({ params }: Pick<Props, "params">) {
         {hasSponsored && " · sponsored profiles are shown first"}
       </p>
 
+      {/* A plain GET form: it works without JavaScript and the filtered list has its own address. */}
+      <GetForm
+        action={`/directory/${kind.code}`}
+        role="search"
+        aria-label={`Filter ${kind.label}`}
+        className="mt-6 grid gap-4 rounded-xl border border-line bg-surface p-4 shadow-xs sm:grid-cols-[1fr_1fr_auto] sm:items-end"
+      >
+        <Field id="directory-country" label="Country">
+          <Select id="directory-country" name="country" defaultValue={filters.country ?? ""}>
+            <option value="">Any country</option>
+            {catalogue.markets.map((market) => (
+              <option key={market.code} value={market.code}>
+                {market.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field id="directory-region" label="Region or province">
+          <Select id="directory-region" name="region" defaultValue={filters.region ?? ""}>
+            <option value="">Any region</option>
+            {regions.map((region) => (
+              <option key={region.code} value={region.code}>
+                {region.label}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <div className="flex gap-3">
+          <Button type="submit">Apply</Button>
+          {filtered && (
+            <ButtonLink href={`/directory/${kind.code}`} variant="secondary">
+              Clear
+            </ButtonLink>
+          )}
+        </div>
+      </GetForm>
+
       {profiles.length === 0 ? (
         <p className="mt-8 rounded-lg border border-dashed border-line-strong p-10 text-center text-muted">
-          No profiles are listed here yet.
+          {filtered ? "No profiles match those filters." : "No profiles are listed here yet."}
         </p>
       ) : tradeGroups.length > 0 ? (
         <ProfilesByTrade groups={tradeGroups} others={profiles.filter((profile) => !profile.trade)} />

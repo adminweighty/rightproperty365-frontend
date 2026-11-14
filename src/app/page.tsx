@@ -207,7 +207,7 @@ function Hero({
 function HomeFallback() {
   return (
     <Hero eyebrow="Verified property" busy>
-      <div className="mt-6 h-[24.25rem] rounded-lg bg-sunken sm:h-[13.75rem] lg:h-[10.25rem]" />
+      <div className="mt-6 h-[24.25rem] rounded-lg bg-sunken sm:h-[17.25rem] lg:h-[13.75rem]" />
     </Hero>
   );
 }
@@ -239,7 +239,7 @@ async function HomeContent() {
   const { sets, market } = catalogue;
   const { facets } = newest;
   const newIds = newest.items.slice(0, 6).map((listing) => listing.id);
-  const searchOptions = buildSearchOptions(sets, facets);
+  const searchOptions = buildSearchOptions(sets, facets, {}, catalogue.markets);
   const roleGroups = groupRoles(sets.account_roles);
   const cities = byCount(facets.city);
   const suburbs = byCount(facets.suburb);

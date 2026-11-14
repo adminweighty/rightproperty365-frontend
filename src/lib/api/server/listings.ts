@@ -15,15 +15,24 @@ import { apiGet, queryString } from "./client";
 
 export type ListingSearch =
   | { status: "ok"; page: ListingPage }
-  /** The API refused a filter (for example a code retired after our reference data was cached). */
-  | { status: "invalid" };
+  /**
+   * The API refused the search: a code retired after our reference data was
+   * cached, a location that is not inside its parent (a city that is not in
+   * the chosen region), or a maximum below its minimum. `fields` has the
+   * API's message for each parameter it refused.
+   */
+  | { status: "invalid"; fields: Record<string, string> };
 
 export async function searchListings(query: ListingQuery = {}): Promise<ListingSearch> {
   "use cache";
   cacheLife("minutes");
   cacheTag("listings");
-  const { status, data } = await apiGet<ListingPage>(`/v1/listings${queryString(query)}`, [400]);
-  return status === 200 ? { status: "ok", page: data } : { status: "invalid" };
+  const { status, data } = await apiGet<ListingPage | { error?: { fields?: Record<string, string> } }>(
+    `/v1/listings${queryString(query)}`,
+    [400],
+  );
+  if (status === 200) return { status: "ok", page: data as ListingPage };
+  return { status: "invalid", fields: ("error" in data && data.error?.fields) || {} };
 }
 
 /** A search with fixed, known-good filters. Null if the API still refuses it. */

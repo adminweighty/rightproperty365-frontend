@@ -1,6 +1,7 @@
 import { Search } from "lucide-react";
 import { GetForm } from "@/components/listings/get-form";
 import { ListingFilterPanel } from "@/components/listings/listing-filters";
+import { LocationFields } from "@/components/listings/location-fields";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/field";
 import { cn } from "@/lib/cn";
@@ -11,16 +12,24 @@ type Props = {
   /** Every list in the form, built from the API by `buildSearchOptions`. */
   options: SearchOptions;
   defaults?: ListingFilters;
+  /** Open the advanced search panel (`advanced=1`). */
+  advanced?: boolean;
+  /** The API's message for each parameter it refused. */
+  errors?: Record<string, string>;
   className?: string;
 };
 
 /**
  * The listing search: a plain GET form, so it works without JavaScript and
- * results have a shareable URL (/listings?deal=rent&city=harare). The first
- * row holds the filters most people use; the rest are in ListingFilterPanel.
+ * results have a shareable URL (/listings?deal=rent&region=harare). First the
+ * filters most people use (buy or rent, category, keyword), then Location
+ * (country, region, city, suburb), then the advanced search panel.
  * Submitting always returns to page 1 of the new result.
  */
-export function SearchBar({ options, defaults = {}, className }: Props) {
+export function SearchBar({ options, defaults = {}, advanced, errors = {}, className }: Props) {
+  // A new key when the address changes, so the selects show the new search after a client navigation.
+  const locationKey = [defaults.country, defaults.region, defaults.city, defaults.suburb].join("|");
+
   return (
     <GetForm
       action="/listings"
@@ -75,7 +84,22 @@ export function SearchBar({ options, defaults = {}, className }: Props) {
         </Button>
       </div>
 
-      <ListingFilterPanel options={options} defaults={defaults} />
+      <fieldset className="mt-4 border-t border-line pt-3">
+        <legend className="float-left mb-3 w-full text-base font-semibold text-ink">Location</legend>
+        <div className="clear-both grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <LocationFields
+            key={locationKey}
+            countries={options.countries}
+            regions={options.regions}
+            cities={options.cities}
+            suburbs={options.suburbs}
+            defaults={defaults}
+            errors={errors}
+          />
+        </div>
+      </fieldset>
+
+      <ListingFilterPanel options={options} defaults={defaults} open={advanced} errors={errors} />
     </GetForm>
   );
 }

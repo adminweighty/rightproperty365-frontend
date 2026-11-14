@@ -21,7 +21,7 @@ export async function getDirectoryKinds(): Promise<DirectoryKindCount[]> {
   return data.kinds;
 }
 
-export type DirectoryFilters = { q?: string; city?: string; trade?: string };
+export type DirectoryFilters = { q?: string; country?: string; region?: string; city?: string; trade?: string };
 
 async function getDirectoryPage(
   kind: string,

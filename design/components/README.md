@@ -64,6 +64,7 @@ The unit of search results.
 - `ListingPrice` always shows the ISO currency code, because markets and currencies are mixed across the platform.
 
 - A listing without a photo shows a neutral frame that says "No photo yet", never a placeholder picture.
+- The place on a card is short: suburb and city ("Borrowdale, Harare"). The listing page adds the region, unless it has the city's name, and the country.
 - Deal, suburb, city and price come from the API. The card has no text of its own apart from "Featured", "New" and "per month".
 
 ## ListingRail (`listings/listing-rail.tsx`)
@@ -80,23 +81,43 @@ A horizontal row of listing cards under a `SectionHeading`: "New listings", one 
 The listing search on results pages: a white card with a `line` border. A GET form (`GetForm`) that works without JavaScript and produces shareable URLs.
 
 - First row: buy or rent, category, keyword and the "Search" button. Each control has a screen-reader label. On phones it stacks to one column; from `lg` it is a single row.
-- Below it, `ListingFilterPanel` holds the rest of the filters.
-- **Every option list is a prop** (`options`, built on the server by `buildSearchOptions` from the API's reference data and search facets). The component contains no list of its own.
-- An option shows how many listings it has for the current search: "Harare (12)". The count is in the option text, so it is read out with the option. A value with no listings shows "(0)" and stays selectable.
-- Submitting returns to page 1 of the new result. With JavaScript, empty fields are left out of the address (`/listings?deal=rent&city=harare`); without it they are submitted empty and ignored.
+- Then a `fieldset` with the legend "Location" (`LocationFields`), always visible, and under it the advanced search panel (`ListingFilterPanel`).
+- **Every option list is a prop** (`options`, built on the server by `buildSearchOptions` from the API's reference data, markets and search facets). The component contains no list of its own.
+- An option shows how many listings it has for the current search: "Harare (12)". The count is in the option text, so it is read out with the option. A value with no listings shows "(0)" and stays selectable. Regions show a count only once a country is chosen, because the API counts regions within a country.
+- Submitting returns to page 1 of the new result. With JavaScript, empty fields are left out of the address (`/listings?deal=rent&region=harare`); without it they are submitted empty and ignored.
+- **A search the API refuses is not a broken page.** The form is shown again with the API's message under each control it refused ("City or town is not a city of that region.", `aria-invalid`, linked with `aria-describedby`), the panel opens if the control is inside it, and a "That search could not be run" state takes the place of the results.
+
+## LocationFields (`listings/location-fields.tsx`)
+
+The four location selects: Country, Region or province, City or town, Suburb. Each is an ordinary `<select>` named for the API's parameter, with a visible label.
+
+- Countries are the API's markets; regions, cities and suburbs are reference sets in which each item names the place it is in.
+- **Without JavaScript** every option is present, grouped with `<optgroup>` under its parent (regions under their country, cities under their region, suburbs under their city). Any combination can be submitted; one that does not fit comes back with the API's message beside the control.
+- **With JavaScript** the selects depend on each other: a country narrows the regions, a region narrows the cities, a city narrows the suburbs, and a choice that no longer fits is cleared. The narrowing starts after the page has loaded, so the HTML always holds the full lists.
+- Nothing is fetched in the browser.
 
 ## ListingFilterPanel (`listings/listing-filters.tsx`)
 
-The extra filters, inside the `SearchBar` form: property type, city or town, suburb, sort order, lowest and highest price, bedrooms, bathrooms and features.
+The advanced search, inside the `SearchBar` form.
 
-- A native `<details>` with the summary "More filters" / "Fewer filters", so it opens with a click, Enter or Space and needs no JavaScript. The summary is 44px tall and shows how many of its filters are in use. It starts open when one is in use.
-- Every control has a visible label (`Field`). Property types are grouped under their category and suburbs under their city with `<optgroup>`. Choosing a category or a city narrows the next list after the form is submitted.
-- Prices are number inputs, not a list of ranges, with the currency in the label and a hint giving the price range of the current search. Bathrooms is a number input because the API has no bathroom facet.
-- Bedrooms lists "n+" for the bedroom counts in the result, each with the number of listings that have at least n.
-- Features are checkboxes in a `fieldset` with the legend "Features": the twelve most common in the result, plus any that are ticked. Each label row is 44px tall and the whole row is the target.
-- Sort order starts on the API's default (newest first, or best match when there is a keyword), which adds nothing to the address.
+- A native `<details id="advanced-search">` with the summary "Advanced search" / "Hide advanced search", so it opens with a click, Enter or Space and needs no JavaScript. The summary is 44px tall and shows how many of its filters are in use. It starts open when one is in use, when the API refused one, or when the address has `advanced=1` (the hero's "Advanced search" link).
+- Three groups, each a `fieldset` whose `legend` is the heading: **Property** (property type; bedrooms, bathrooms, floor area and land area, each "at least" and "at most"), **Price** (lowest and highest, in the chosen country's currency, named in the label), **More** (listed in the last 24 hours, 7, 14, 30 or 90 days; advertised by a Real Estate Agency or a private owner; listing reference; sort order; "Only listings with photos"), then **Features** as checkboxes.
+- Every control has a visible label (`Field`). Ranges are two number inputs, not a list of ranges. Areas are in square metres, said in the label.
+- Features are the twelve most common in the result, plus any that are ticked. Each label row is 44px tall and the whole row is the target.
+- Sort order starts on the API's default (newest first, or best match when there is a keyword), which adds nothing to the address. The others are oldest first, price lowest or highest first, and largest first.
+- A maximum below its minimum, or any other value the API refuses, is reported under that control in the API's words.
 - Actions: "Apply filters" (submits the form) and "Clear filters" (a link to `/listings`).
 - Do not add a filter the API does not support, and do not fetch options in the browser.
+
+## Filter chips (`app/listings/page.tsx`, `lib/filter-chips.ts`)
+
+The filters in use, above the results.
+
+- A `nav` named "Filters in use" holding one chip per filter, in the order of the form: a 44px pill with the filter in words ("Harare", "At least 3 bedrooms", "Up to USD 300,000", "With photos") and a small cross.
+- **Each chip is a real link** to the same search without that filter, so removing a filter works without JavaScript and can be undone with Back. Its accessible name starts "Remove filter:" ("Remove filter: Harare"); the cross is decorative.
+- Labels come from the API's reference data or from the value itself. Sort order is not a filter and has no chip; removing a chip keeps it.
+- "Clear all" at the end is a link to the search with no filters.
+- The row is absent when no filter is in use.
 
 ## Pagination (`ui/pagination.tsx`)
 
@@ -147,10 +168,12 @@ The top of the landing page: a wide property photograph with a white panel centr
 
 The landing-page search, inside the hero's white panel.
 
-- One tab per deal type (the API's labels, "For sale" and "To rent" today), centred, sits above city, suburb, property type, highest price, bedrooms and the primary "Search" button. The tabs are native radio buttons in a `fieldset`, so arrow keys switch between them and the choice is sent as the `deal` parameter.
+- One tab per deal type (the API's labels, "For sale" and "To rent" today), centred, sits above Location, property type, highest price, bedrooms and the primary "Search" button.
+- **Location is one select** covering every kind of place: countries, then regions or provinces, then cities and towns, then suburbs under their city, each under an `<optgroup>`. It is sent as `location=region:harare`, which the results page reads as that filter; the address people share from the results is the plain one (`?region=harare`).
+- Under the form, an "Advanced search" link goes to `/listings?advanced=1#advanced-search`, the results page with the advanced search open. The tabs are native radio buttons in a `fieldset`, so arrow keys switch between them and the choice is sent as the `deal` parameter.
 - Like `SearchBar`, it is a GET form to `/listings` whose option lists are a prop built from the API: it works without JavaScript and produces a shareable URL.
 - The selected tab is shown by text colour and a 3px indigo underline, not colour alone. Tabs are 48px tall. The focus outline is drawn on the tab label.
-- Two rows of three from `lg`, two columns from `sm`, one column on phones.
+- From `lg`: Location (two columns wide) and property type, then price, bedrooms and the button. Two columns from `sm`, one column on phones.
 - Use it once, on the landing page. Results pages use `SearchBar`.
 
 ## RoleGroups (`landing/role-groups.tsx`)
@@ -365,6 +388,7 @@ One row per document type in an application.
 Every directory the API lists has a tile on `/directory`, a list at `/directory/<kind>` and a profile page per entry. Nothing in these pages names a directory: Solicitors appeared when the API added the kind.
 
 - `ProfileCard`: avatar with initials (round for a person, square for a business), name, one line under it, tagline, then city, listing count, "Verified" and "Sponsored" badges. The line under the name is the agent's specialism when the API sends one ("Sales Agent", "Lettings Agent"), otherwise the profile's role line or trade, followed by the agency for an agent.
+- A directory list has a small GET form above it: Country and Region or province, "Apply" and, when a filter is in use, "Clear". A filtered list has its own address (`/directory/agencies?region=bulawayo`), is `noindex`, and says "No profiles match those filters." when empty.
 - Profile page: breadcrumb, a header with the directory's singular label, trade or specialism, "Verified" and "Sponsored" badges, then About, Services (offerings with descriptions when the API has them), Areas covered, and the enquiry card. A law firm, an agency and a plumber use the same page.
 - Contact is enquiry-only on every kind. No phone number, email or address is shown.
 - Structured data picks a schema.org type per kind code (`profileEntityType` in `src/lib/seo.ts`): agencies `RealEstateAgent`, agents `Person`, solicitors `LegalService`, anything else `Organization`.

@@ -1,4 +1,5 @@
 import type {
+  AdvertiserType,
   DirectoryKindInfo,
   DirectoryProfile,
   Listing,
@@ -30,44 +31,80 @@ export function absoluteUrl(path: string): string {
 // ---- Listing search (/listings) -------------------------------------------
 
 /** What the reference data and the active market contribute to search pages. */
-export type SearchContext = { sets: ReferenceSets; market: Market | null };
+export type SearchContext = { sets: ReferenceSets; market: Market | null; markets?: Market[] };
 
 /** Listings per result page. */
 export const LISTINGS_PAGE_SIZE = 12;
 
-export const listingSorts: ListingSort[] = ["newest", "price_asc", "price_desc", "relevance"];
+export const listingSorts: ListingSort[] = ["newest", "oldest", "price_asc", "price_desc", "area_desc", "relevance"];
+export const advertiserTypes: AdvertiserType[] = ["agency", "private"];
+/** The choices of "listed in the last N days". Any value from 1 to 365 is accepted in an address. */
+export const listedWithinChoices = [1, 7, 14, 30, 90];
+/** The kinds of place the single "Location" select of the hero search can name: `location=region:harare`. */
+export const locationKinds = ["country", "region", "city", "suburb"] as const;
+export type LocationKind = (typeof locationKinds)[number];
 
 /** The filters a visitor can set, in the order they appear in a URL. */
 export type ListingFilters = {
   deal?: string;
   category?: string;
   property_type?: string;
+  /** A market code. */
+  country?: string;
+  region?: string;
   city?: string;
   suburb?: string;
   min_price?: string;
   max_price?: string;
   bedrooms_min?: number;
+  bedrooms_max?: number;
   bathrooms_min?: number;
+  bathrooms_max?: number;
+  floor_area_min?: string;
+  floor_area_max?: string;
+  land_area_min?: string;
+  land_area_max?: string;
   features?: string[];
+  listed_within_days?: number;
+  advertiser_type?: AdvertiserType;
+  has_photos?: boolean;
+  reference?: string;
   q?: string;
   sort?: ListingSort;
 };
 
-const filterParams = [
+export const filterParams = [
   "deal",
   "category",
   "property_type",
+  "country",
+  "region",
   "city",
   "suburb",
   "min_price",
   "max_price",
   "bedrooms_min",
+  "bedrooms_max",
   "bathrooms_min",
+  "bathrooms_max",
+  "floor_area_min",
+  "floor_area_max",
+  "land_area_min",
+  "land_area_max",
   "features",
+  "listed_within_days",
+  "advertiser_type",
+  "has_photos",
+  "reference",
   "q",
   "sort",
 ] as const;
-const knownParams = new Set<string>([...filterParams, "page"]);
+/**
+ * `location` is the hero search's single select (`location=city:harare`) and
+ * `advanced` opens the advanced search panel. Neither is a filter of its own:
+ * the canonical address never carries them.
+ */
+const knownParams = new Set<string>([...filterParams, "page", "location", "advanced"]);
 
 /** /listings with the given filters, always in the same parameter order, empty values left out. */
 export function listingsPath(filters: ListingFilters = {}, page = 1): string {
@@ -99,8 +136,8 @@ const joinLabels = (labels: string[]) =>
  * "Residential property for sale in Harare", "Property to rent in Zimbabwe".
  */
 export function listingsHeading(
-  filters: Pick<ListingFilters, "deal" | "category" | "property_type" | "city" | "suburb">,
-  { sets, market }: SearchContext,
+  filters: Pick<ListingFilters, "deal" | "category" | "property_type" | "country" | "region" | "city" | "suburb">,
+  { sets, market, markets = [] }: SearchContext,
 ): string {
   const type = labelOf(sets.property_types, filters.property_type);
   const category = labelOf(sets.property_categories, filters.category);
@@ -112,7 +149,10 @@ export function listingsHeading(
   // "property" after it; a one-word label that is not an adjective is rare
   // enough to special-case by code and fall back to "<label> property".
   const noun = type ?? (category ? (filters.category === "land" ? category : `${category} property`) : "Property");
-  const place = [suburb?.label, city].filter(Boolean).join(", ") || market?.name;
+  // The narrowest place named: suburb and city, else the region, else the country.
+  const region = labelOf(sets.regions ?? [], filters.region);
+  const country = markets.find((item) => item.code === filters.country)?.name;
+  const place = [suburb?.label, city].filter(Boolean).join(", ") || region || country || market?.name;
   const where = place ? ` in ${place}` : "";
 
   if (deal) return `${noun} ${deal.toLowerCase()}${where}`;
@@ -129,10 +169,12 @@ export type ListingsSearch = {
   query: ListingQuery;
   /**
    * True for the result pages we allow into search engines (docs/seo.md): no
-   * filter, deal, category, deal + category, city, deal + city. Still needs
-   * results before it is indexed.
+   * filter, deal, category, deal + category, and one place (country, region
+   * or city) alone or with a deal. Still needs results before it is indexed.
    */
   curated: boolean;
+  /** True when `advanced=1` asked for the advanced search panel to be open. */
+  advanced: boolean;
   /** The page's own URL in canonical parameter order (page 2 and later keep `page`). */
   canonicalPath: string;
   heading: string;
@@ -175,18 +217,56 @@ export function parseListingsSearch(params: RawParams, context: SearchContext): 
     return undefined;
   };
 
+  const markets = context.markets ?? [];
+  const countries = markets.map((market) => ({ code: market.code }) as ReferenceItem);
+  const oneOf = <T extends string>(key: string, values: readonly T[]) => {
+    const value = text(key);
+    if (value === undefined) return undefined;
+    if ((values as readonly string[]).includes(value)) return value as T;
+    invalid = true;
+    return undefined;
+  };
+
   const filters: ListingFilters = {
     deal: code("deal", sets.deal_types),
     category: code("category", sets.property_categories),
     property_type: code("property_type", sets.property_types),
+    country: code("country", countries),
+    region: code("region", sets.regions ?? []),
     city: code("city", sets.cities),
     suburb: code("suburb", sets.suburbs),
     min_price: amount("min_price"),
     max_price: amount("max_price"),
     bedrooms_min: count("bedrooms_min", 0, 50),
+    bedrooms_max: count("bedrooms_max", 0, 50),
     bathrooms_min: count("bathrooms_min", 0, 50),
+    bathrooms_max: count("bathrooms_max", 0, 50),
+    floor_area_min: amount("floor_area_min"),
+    floor_area_max: amount("floor_area_max"),
+    land_area_min: amount("land_area_min"),
+    land_area_max: amount("land_area_max"),
+    listed_within_days: count("listed_within_days", 1, 365),
+    advertiser_type: oneOf("advertiser_type", advertiserTypes),
+    has_photos: oneOf("has_photos", ["true"]) ? true : undefined,
+    reference: text("reference")?.slice(0, 40),
     q: text("q")?.slice(0, 100),
   };
+
+  // The hero search's single "Location" select: `location=region:harare`
+  // stands for `region=harare`. A place given by its own parameter wins.
+  const location = text("location");
+  if (location !== undefined) {
+    const [kind, value] = location.split(":");
+    const known: Record<LocationKind, ReferenceItem[]> = {
+      country: countries,
+      region: sets.regions ?? [],
+      city: sets.cities,
+      suburb: sets.suburbs,
+    };
+    const items = known[kind as LocationKind];
+    if (items?.some((item) => item.code === value)) filters[kind as LocationKind] ??= value;
+    else invalid = true;
+  }
 
   if (filters.min_price && filters.max_price && Number(filters.max_price) < Number(filters.min_price)) {
     filters.max_price = undefined;
@@ -206,18 +286,13 @@ export function parseListingsSearch(params: RawParams, context: SearchContext): 
 
   const page = text("page") === undefined ? 1 : (count("page", 1, 9999) ?? 1);
 
-  const refined =
-    filters.property_type !== undefined ||
-    filters.suburb !== undefined ||
-    filters.min_price !== undefined ||
-    filters.max_price !== undefined ||
-    filters.bedrooms_min !== undefined ||
-    filters.bathrooms_min !== undefined ||
-    filters.features !== undefined ||
-    filters.sort !== undefined ||
-    filters.q !== undefined;
-  // City pages are indexed alone or with a deal, not with a category as well.
-  const curated = !invalid && !refined && !(filters.city && filters.category);
+  // Everything except deal, category, country, region and city is a refinement.
+  const curatedKeys: (keyof ListingFilters)[] = ["deal", "category", "country", "region", "city"];
+  const refined = filterParams.some((key) => !curatedKeys.includes(key) && filters[key] !== undefined);
+  // One place at a time (a country, a region or a city), alone or with a deal,
+  // and never with a category as well.
+  const places = [filters.country, filters.region, filters.city].filter((value) => value !== undefined).length;
+  const curated = !invalid && !refined && places <= 1 && !(places === 1 && filters.category);
 
   const base = listingsHeading(filters, context);
   const heading = filters.q ? `${base} matching "${filters.q}"` : base;
@@ -227,14 +302,22 @@ export function parseListingsSearch(params: RawParams, context: SearchContext): 
     page,
     query: {
       ...filters,
-      // Price filters apply in the active market's currency; nothing is converted.
-      currency: context.market?.currency_code,
+      // Price filters apply in the currency of the chosen country, else of the
+      // active market; nothing is converted.
+      currency: (markets.find((market) => market.code === filters.country) ?? context.market)?.currency_code,
       page,
       page_size: LISTINGS_PAGE_SIZE,
     },
+    advanced: text("advanced") === "1",
     curated,
     canonicalPath: listingsPath(
-      { deal: filters.deal, category: filters.category, city: filters.city },
+      {
+        deal: filters.deal,
+        category: filters.category,
+        country: filters.country,
+        region: filters.region,
+        city: filters.city,
+      },
       page,
     ),
     heading,
@@ -323,7 +406,8 @@ function propertyJsonLd(listing: Listing): JsonLd {
   const address = {
     "@type": "PostalAddress",
     addressLocality: `${listing.suburb.label}, ${listing.city.label}`,
-    addressCountry: listing.market_code,
+    ...(listing.region && { addressRegion: listing.region.label }),
+    addressCountry: listing.country?.code ?? listing.market_code,
   };
   const base = { name: listing.title, description: listing.description, address };
 
@@ -415,18 +499,22 @@ export function listingsCollectionJsonLd(
   search: ListingsSearch,
   results: Listing[],
   total: number,
-  { sets }: SearchContext,
+  { sets, markets = [] }: SearchContext,
 ): JsonLd {
-  const { deal, category, city } = search.filters;
+  const { deal, category, country, region, city } = search.filters;
   const crumbs: Crumb[] = [
     { name: "Home", path: "/" },
     { name: "Listings", path: "/listings" },
   ];
   const dealLabel = labelOf(sets.deal_types, deal);
   const categoryLabel = labelOf(sets.property_categories, category);
+  const countryName = markets.find((item) => item.code === country)?.name;
+  const regionLabel = labelOf(sets.regions ?? [], region);
   const cityLabel = labelOf(sets.cities, city);
   if (dealLabel) crumbs.push({ name: dealLabel, path: listingsPath({ deal }) });
   if (categoryLabel) crumbs.push({ name: categoryLabel, path: listingsPath({ deal, category }) });
+  if (countryName) crumbs.push({ name: countryName, path: listingsPath({ deal, country }) });
+  if (regionLabel) crumbs.push({ name: regionLabel, path: listingsPath({ deal, region }) });
   if (cityLabel) crumbs.push({ name: cityLabel, path: listingsPath({ deal, city }) });
 
   const offset = (search.page - 1) * LISTINGS_PAGE_SIZE;

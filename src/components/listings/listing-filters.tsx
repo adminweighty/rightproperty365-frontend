@@ -1,11 +1,19 @@
 import { SlidersHorizontal } from "lucide-react";
+import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Field, fieldDescribedBy, Input, Select } from "@/components/ui/field";
 import { optionText, type OptionGroup, type SearchOptions } from "@/lib/search-options";
 import type { ListingFilters } from "@/lib/seo";
 
-type Props = { options: SearchOptions; defaults: ListingFilters };
+type Props = {
+  options: SearchOptions;
+  defaults: ListingFilters;
+  /** Open the panel even when none of its filters is in use (`advanced=1`). */
+  open?: boolean;
+  /** The API's message for a parameter it refused, by parameter name. */
+  errors?: Record<string, string>;
+};
 
 function GroupedOptions({ groups }: { groups: OptionGroup[] }) {
   return groups.map((group) => (
@@ -19,41 +27,100 @@ function GroupedOptions({ groups }: { groups: OptionGroup[] }) {
   ));
 }
 
+/** A named group of filters: a fieldset whose legend is the group's heading. */
+function Group({ legend, children }: { legend: string; children: ReactNode }) {
+  return (
+    <fieldset className="mt-6 border-t border-line pt-4 first:mt-2 first:border-0 first:pt-0">
+      <legend className="float-left mb-3 w-full text-base font-semibold text-ink">{legend}</legend>
+      <div className="clear-both grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{children}</div>
+    </fieldset>
+  );
+}
+
+type NumberFieldProps = {
+  name: keyof ListingFilters & string;
+  label: string;
+  defaults: ListingFilters;
+  errors: Record<string, string>;
+  hint?: string;
+  /** Whole numbers (rooms) or any amount (prices, areas). */
+  step?: number | "any";
+  max?: number;
+};
+
+/** A number input for one parameter, with the API's message under it when it was refused. */
+function NumberField({ name, label, defaults, errors, hint, step = "any", max }: NumberFieldProps) {
+  const id = `search-${name.replaceAll("_", "-")}`;
+  // The API names the other parameter by its code ("must not be lower than bedrooms_min").
+  const error = errors[name] ? `${label} ${errors[name].replace(/\b[a-z]+(_[a-z]+)+\b/g, "the lowest value")}.` : undefined;
+  const value = defaults[name];
+  return (
+    <Field id={id} label={label} hint={hint} error={error}>
+      <Input
+        id={id}
+        name={name}
+        type="number"
+        inputMode="numeric"
+        min={0}
+        max={max}
+        step={step}
+        defaultValue={typeof value === "number" || typeof value === "string" ? value : ""}
+        aria-invalid={Boolean(error)}
+        aria-describedby={fieldDescribedBy(id, { hint, error })}
+      />
+    </Field>
+  );
+}
+
 /**
- * The extra filters of the listing search, inside the SearchBar form: property
- * type, city, suburb, price range, bedrooms, bathrooms, features and sort
- * order. It is a native `<details>`, so it opens and closes without
- * JavaScript, and it starts open when one of its filters is in use.
+ * The advanced search of the listing search, inside the SearchBar form, in
+ * three groups: Property, Price and More. (Location sits above it, always
+ * visible.) It is a native `<details>`, so it opens and closes without
+ * JavaScript, and it starts open when one of its filters is in use, when the
+ * API refused one of them, or when the address asks for it (`advanced=1`).
  *
  * Every list comes from the API. The number beside an option is how many
  * listings it has for the current search.
  */
-export function ListingFilterPanel({ options, defaults }: Props) {
-  const inUse = [
-    defaults.property_type,
-    defaults.city,
-    defaults.suburb,
-    defaults.min_price,
-    defaults.max_price,
-    defaults.bedrooms_min,
-    defaults.bathrooms_min,
-    defaults.sort,
-    ...(defaults.features ?? []),
-  ].filter((value) => value !== undefined).length;
+export function ListingFilterPanel({ options, defaults, open = false, errors = {} }: Props) {
+  const keys: (keyof ListingFilters)[] = [
+    "property_type",
+    "min_price",
+    "max_price",
+    "bedrooms_min",
+    "bedrooms_max",
+    "bathrooms_min",
+    "bathrooms_max",
+    "floor_area_min",
+    "floor_area_max",
+    "land_area_min",
+    "land_area_max",
+    "listed_within_days",
+    "advertiser_type",
+    "has_photos",
+    "reference",
+    "sort",
+  ];
+  const inUse =
+    keys.filter((key) => defaults[key] !== undefined).length + (defaults.features?.length ?? 0);
+  const refused = keys.some((key) => errors[key] !== undefined) || errors.features !== undefined;
 
   // Without a keyword the API sorts newest first; with one, by best match.
   const defaultSort = defaults.q ? "relevance" : "newest";
-
-  const priceHint = options.priceRange
-    ? `This search has prices from ${options.priceRange}.`
-    : undefined;
+  const currency = options.currency ? ` (${options.currency})` : "";
+  const priceHint = options.priceRange ? `This search has prices from ${options.priceRange}.` : undefined;
+  const shared = { defaults, errors };
 
   return (
-    <details open={inUse > 0} className="group mt-3 border-t border-line pt-1">
-      <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-md text-sm font-medium text-ink [&::-webkit-details-marker]:hidden">
+    <details
+      id="advanced-search"
+      open={open || inUse > 0 || refused}
+      className="group mt-4 scroll-mt-24 border-t border-line pt-1"
+    >
+      <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-md text-sm font-semibold text-primary-ink [&::-webkit-details-marker]:hidden">
         <SlidersHorizontal className="size-4" aria-hidden="true" />
-        <span className="group-open:hidden">More filters</span>
-        <span className="hidden group-open:inline">Fewer filters</span>
+        <span className="group-open:hidden">Advanced search</span>
+        <span className="hidden group-open:inline">Hide advanced search</span>
         {inUse > 0 && (
           <Badge tone="primary">
             {inUse} <span className="sr-only">in use</span>
@@ -61,39 +128,66 @@ export function ListingFilterPanel({ options, defaults }: Props) {
         )}
       </summary>
 
-      <div className="mt-2 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <Group legend="Property">
         <Field id="search-property-type" label="Property type">
           <Select id="search-property-type" name="property_type" defaultValue={defaults.property_type ?? ""}>
             <option value="">Any property type</option>
             <GroupedOptions groups={options.propertyTypes} />
           </Select>
         </Field>
+        <NumberField name="bedrooms_min" label="Bedrooms, at least" step={1} max={50} {...shared} />
+        <NumberField name="bedrooms_max" label="Bedrooms, at most" step={1} max={50} {...shared} />
+        <NumberField name="bathrooms_min" label="Bathrooms, at least" step={1} max={50} {...shared} />
+        <NumberField name="bathrooms_max" label="Bathrooms, at most" step={1} max={50} {...shared} />
+        <NumberField name="floor_area_min" label="Floor area, at least (m²)" {...shared} />
+        <NumberField name="floor_area_max" label="Floor area, at most (m²)" {...shared} />
+        <NumberField name="land_area_min" label="Land area, at least (m²)" {...shared} />
+        <NumberField name="land_area_max" label="Land area, at most (m²)" {...shared} />
+      </Group>
 
-        <Field id="search-city" label="City or town">
-          <Select id="search-city" name="city" defaultValue={defaults.city ?? ""}>
-            <option value="">Any city or town</option>
-            {options.cities.map((option) => (
+      <Group legend="Price">
+        <NumberField name="min_price" label={`Lowest price${currency}`} hint={priceHint} {...shared} />
+        <NumberField name="max_price" label={`Highest price${currency}`} {...shared} />
+      </Group>
+
+      <Group legend="More">
+        <Field id="search-listed-within" label="Listed">
+          <Select id="search-listed-within" name="listed_within_days" defaultValue={defaults.listed_within_days ?? ""}>
+            <option value="">At any time</option>
+            {options.listedWithin.map((option) => (
               <option key={option.value} value={option.value}>
-                {optionText(option)}
+                {option.label}
               </option>
             ))}
           </Select>
         </Field>
 
-        <Field id="search-suburb" label="Suburb">
-          <Select id="search-suburb" name="suburb" defaultValue={defaults.suburb ?? ""}>
-            <option value="">Any suburb</option>
-            <GroupedOptions groups={options.suburbs} />
+        <Field id="search-advertiser" label="Advertised by">
+          <Select id="search-advertiser" name="advertiser_type" defaultValue={defaults.advertiser_type ?? ""}>
+            <option value="">Anyone</option>
+            {options.advertisers.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </Select>
+        </Field>
+
+        <Field id="search-reference" label="Listing reference" error={errors.reference ? `Listing reference ${errors.reference}.` : undefined}>
+          <Input
+            id="search-reference"
+            name="reference"
+            maxLength={40}
+            autoComplete="off"
+            defaultValue={defaults.reference ?? ""}
+            aria-invalid={Boolean(errors.reference)}
+            aria-describedby={fieldDescribedBy("search-reference", { error: errors.reference })}
+          />
         </Field>
 
         <Field id="search-sort" label="Sort by">
           {/* The API's default order is the empty option, so it adds nothing to the address. */}
-          <Select
-            id="search-sort"
-            name="sort"
-            defaultValue={defaults.sort === defaultSort ? "" : (defaults.sort ?? "")}
-          >
+          <Select id="search-sort" name="sort" defaultValue={defaults.sort === defaultSort ? "" : (defaults.sort ?? "")}>
             {options.sorts
               .filter((option) => option.value === defaultSort)
               .map((option) => (
@@ -111,62 +205,20 @@ export function ListingFilterPanel({ options, defaults }: Props) {
           </Select>
         </Field>
 
-        <Field
-          id="search-min-price"
-          label={`Lowest price${options.currency ? ` (${options.currency})` : ""}`}
-          hint={priceHint}
-        >
-          <Input
-            id="search-min-price"
-            name="min_price"
-            type="number"
-            inputMode="numeric"
-            min={0}
-            step="any"
-            defaultValue={defaults.min_price ?? ""}
-            aria-describedby={fieldDescribedBy("search-min-price", { hint: priceHint })}
+        <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm text-ink sm:col-span-2 lg:col-span-4">
+          <input
+            type="checkbox"
+            name="has_photos"
+            value="true"
+            defaultChecked={defaults.has_photos}
+            className="size-5 shrink-0 accent-(--rp-color-primary-base)"
           />
-        </Field>
-
-        <Field id="search-max-price" label={`Highest price${options.currency ? ` (${options.currency})` : ""}`}>
-          <Input
-            id="search-max-price"
-            name="max_price"
-            type="number"
-            inputMode="numeric"
-            min={0}
-            step="any"
-            defaultValue={defaults.max_price ?? ""}
-          />
-        </Field>
-
-        <Field id="search-bedrooms" label="Bedrooms">
-          <Select id="search-bedrooms" name="bedrooms_min" defaultValue={defaults.bedrooms_min ?? ""}>
-            <option value="">Any number</option>
-            {options.bedrooms.map((option) => (
-              <option key={option.value} value={option.value}>
-                {optionText(option)}
-              </option>
-            ))}
-          </Select>
-        </Field>
-
-        <Field id="search-bathrooms" label="Bathrooms, at least">
-          <Input
-            id="search-bathrooms"
-            name="bathrooms_min"
-            type="number"
-            inputMode="numeric"
-            min={0}
-            max={50}
-            step={1}
-            defaultValue={defaults.bathrooms_min ?? ""}
-          />
-        </Field>
-      </div>
+          Only listings with photos
+        </label>
+      </Group>
 
       {options.features.length > 0 && (
-        <fieldset className="mt-5">
+        <fieldset className="mt-4">
           <legend className="text-sm font-medium text-ink">Features</legend>
           <ul className="mt-1 grid gap-x-6 sm:grid-cols-2 lg:grid-cols-4">
             {options.features.map((option) => (

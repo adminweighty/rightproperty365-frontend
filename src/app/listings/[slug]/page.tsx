@@ -229,7 +229,15 @@ async function ListingContent({ params }: Pick<Props, "params">) {
           <h1 className="mt-4 text-3xl md:text-4xl">{listing.title}</h1>
           <p className="mt-3 flex items-center gap-1.5 text-muted">
             <MapPin className="size-4 shrink-0" aria-hidden="true" />
-            {listing.suburb.label}, {listing.city.label}
+            {/* Suburb, city, then the region (unless it has the city's name) and the country. */}
+            {[
+              listing.suburb.label,
+              listing.city.label,
+              listing.region && listing.region.label !== listing.city.label ? listing.region.label : null,
+              listing.country?.name,
+            ]
+              .filter(Boolean)
+              .join(", ")}
           </p>
           <ListingPrice listing={listing} className="mt-6 text-4xl" />
           <div className="mt-6 border-y border-line py-4">

@@ -44,9 +44,9 @@ Everything the site lists comes from the Go API (`api/openapi.yaml` in the backe
 
 | On the site | API |
 | --- | --- |
-| Every drop-down, filter option and label: deal types, property categories and types, cities, suburbs, listing features, request types, contact methods, sign-up roles with their groups and descriptions, organisation kinds, directories, service trades | `GET /v1/reference` |
-| Markets in the footer | `GET /v1/markets` |
-| Listing search, its facet counts and pages; the landing page rows, city and suburb tiles and counts | `GET /v1/listings` |
+| Every drop-down, filter option and label: deal types, property categories and types, regions, cities, suburbs, listing features, request types, contact methods, sign-up roles with their groups and descriptions, organisation kinds, directories, service trades | `GET /v1/reference` |
+| Markets in the footer; the countries of the search | `GET /v1/markets` |
+| Listing search by country, region, city, suburb and the advanced filters, its facet counts and pages; the landing page rows, city and suburb tiles and counts | `GET /v1/listings` |
 | Listing detail; "no longer available" for a 410 | `GET /v1/listings/{slug}` |
 | Suggestions when a keyword search finds nothing | `GET /v1/listings/suggest` |
 | Directories with counts (Real Estate Agencies, Estate Agents, Solicitors and the rest), directory lists, profiles, the footer's directory links | `GET /v1/directory`, `/v1/directory/{kind}`, `/v1/directory/{kind}/{slug}` |
@@ -57,10 +57,10 @@ How it is wired:
 - **`src/lib/api/server/`** holds the server-side readers. Each is a `'use cache'` function with a lifetime and a tag: reference data and markets for an hour (`reference`, `markets`), listings and the directory for a minute (`listings`, `listing:<slug>`, `directory`, `profile:<kind>:<slug>`). A reader throws when the API fails, so a failure is never cached. Pages call them through `load()`, which turns a failure into an error state.
 - **Server Components fetch; Client Components receive props.** Forms such as the search bars, the sign-up role picker, the property request form and the request inbox get their option lists and labels from the page that renders them. Nothing fetches reference data in the browser.
 - **Results that depend on `searchParams`** (the listing search) are read with the parsed filters passed as arguments, so each search is its own cache entry. The page is rendered by the server for each request (see "Builds and the API").
-- **Codes are checked against the reference data** before they are sent to the API, which answers 400 for a code it does not know.
+- **Codes are checked against the reference data** before they are sent to the API, which answers 400 for a code it does not know. Whether places fit together (a suburb in its city, a city in its region) and whether a maximum is above its minimum is left to the API: its 400 names the parameter, and the search form shows that message beside the control.
 - **Photos.** The API returns a photo as `/assets/images/<file>.jpg` with alt text and size. Object storage and uploads are not built, so those files are the ones bundled from `src/assets/images`. `src/lib/photos.ts` maps the file name to the bundled import, which keeps hashed URLs, responsive sizes and blur placeholders. A photo that is not bundled is loaded from the URL the API gave, unoptimised, at the API's width and height.
 - **Role names come from the API.** Account roles with their groups and descriptions (`account_roles`), organisation kinds (`organisation_kinds`), the title of a membership (`role_label` in `GET /v1/me`), an agent's specialism and the wording of an application's status (`status_label`) are shown as sent. They are titles: see `design/guidelines/content-voice.md`, "Role names".
-- **Not in the reference data**, so still labelled in code: the four sort orders of the listing search (an enum of that endpoint) and the titles of platform administrator roles (an enum of the identity API). The main navigation and the landing page's marketing copy are written in the app.
+- **Not in the reference data**, so still labelled in code: the sort orders, advertiser types and "listed in the last N days" choices of the listing search (enums and a number of that endpoint) and the titles of platform administrator roles (an enum of the identity API). The main navigation and the landing page's marketing copy are written in the app.
 
 ## Onboarding and verification
 
@@ -141,7 +141,7 @@ src/components/
   layout/               Header, menu for small screens, footer, logo, market list
   landing/              Landing-page section heading, photo tiles and role groups
   api-boundary.tsx      Wrapper for public components that read the API
-  listings/             Listing card, media, search bar, filter panel, hero search
+  listings/             Listing card, media, search bar, location selects, advanced search panel, hero search
   directory/            Profile card, enquiry form
   requests/             Property request form
   auth/                 Auth provider, forms, account menu, RequireAuth
@@ -154,6 +154,7 @@ src/lib/
   seo.ts                Search parameters, indexing rules, structured data (docs/seo.md)
   roles.ts              Groups the API's account roles under their headings
   search-options.ts     Option lists for the search forms, from reference data and facets
+  filter-chips.ts       The filters of a search as removable chips
   photos.ts             Maps API photo file names to the bundled images
   env.ts, format.ts     Public config and formatting helpers
 ```
@@ -199,6 +200,6 @@ The build reads the API if it can reach it (`--build-arg API_URL=...`, else `NEX
 
 ## Current state
 
-Built: design system, UI primitives, home page, listing search with filters, facet counts and pages, listing detail, the directories and profiles (including Solicitors), the property request and business enquiry forms, sitemap and structured data, and authentication: register, email confirmation, sign in and out, password reset, an account page showing roles, the request inbox, onboarding for professional, business and owner roles with document uploads, and the administrator review queue. All of it reads the Go API; the listings and profiles it shows are the backend's seed data.
+Built: design system, UI primitives, home page, listing search by country, region, city and suburb with advanced filters, facet counts and pages, listing detail, the directories and profiles (including Solicitors), the property request and business enquiry forms, sitemap and structured data, and authentication: register, email confirmation, sign in and out, password reset, an account page showing roles, the request inbox, onboarding for professional, business and owner roles with document uploads, and the administrator review queue. All of it reads the Go API; the listings and profiles it shows are the backend's seed data.
 
 Not built yet: multi-factor authentication, organisation invitations and agent onboarding, account deletion, creating and editing listings, the rest of the agent and admin portals (listing moderation, markets, invoices, users, audit), maps, media uploads and object storage (photos are bundled files), YouTube embeds, analytics events, and automatic cache revalidation when the API changes (`POST /api/revalidate` exists; the API does not call it yet).
