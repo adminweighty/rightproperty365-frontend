@@ -325,6 +325,23 @@ The list of customer requests routed to the signed-in person: an Estate Agent's 
 - States: loading skeleton, error with "Try again", empty ("No requests yet"), and the list with a count.
 - Contact details appear only here, behind sign-in. They must never be put in a notification preview or a URL.
 
+## Appointments (`appointments/appointment-card.tsx`, `appointments/appointment-lists.tsx`)
+
+Viewings and consultations. The mobile app is the main place for them; the web pages are simple but complete enough to act on, because the API's emails link to them.
+
+- **`/account/appointments`** (anyone signed in): "Upcoming" and "Past" as two links (`?when=past`), the current one filled and marked `aria-current`. **`/agent/appointments`** (professionals): a filter row (status, type, from and to dates) above the list. The API decides who may read the professional list: a 403 shows the "You do not have access" state with a link to the person's own appointments.
+- **AppointmentCard**: type and status badges (the API's `status_label`: Requested, Confirmed, Reschedule Requested, Completed, No Show, Cancelled) and the reference; the date and time as the card's heading; the listing (linked) and the professional's public profile (linked); where to meet; the customer's note; the reason when cancelled.
+- **Times are shown in the appointment's own time zone, and the zone is named**: "Tue, 24 November 2026 at 10:00 (Africa/Harare time)". A new time is typed in that zone too (the label says so) and sent to the API in UTC.
+- A proposed new time is a highlighted line that says who proposed it and, for the proposer, that it is waiting for the other person.
+- **Actions come from the API's `can_*` flags.** Customer: "Accept the new time", "Propose a new time", "Cancel" (reason optional). Professional: "Confirm" (or "Accept the new time" for a customer's proposal), "Propose a new time", "Mark as completed", "Customer did not arrive", "Cancel" (reason required, shown to the customer). Every action except confirm and accept opens a confirmation step in place, with "Keep as it is" to back out; focus moves into it. Buttons are 44px tall.
+- The professional's card also shows the customer's name and contact details and who the appointment is assigned to. Contact details appear only there, behind sign-in. A customer never sees a professional's phone number or email.
+- After an action the list reloads. A 409 is explained: `SLOT_TAKEN` is "You already have a confirmed appointment at that time. Propose a different time."; `INVALID_STATE` says the appointment changed and refreshes the list.
+- "History" is a `<details>` that loads the timeline the first time it is opened: each change in the API's words, who made it, when, and the time it was for.
+- States: loading skeleton, signed out (`RequireAuth`), error with "Try again", empty (with "Browse listings" for a customer with nothing upcoming).
+- Links: "Your appointments" in the account menu and on the account page; "Appointments received" for professionals in both; "Appointments" at the top of the request inbox with a badge counting those waiting for an answer (`GET /v1/inbox/summary`).
+- When a viewing or consultation request with a preferred time is received, the request form's receipt adds the appointment's reference, says it is not confirmed until the advertiser accepts it, and (signed in) links to the person's appointments.
+- Not built: assigning an appointment to a colleague (the API has `can_assign` but no endpoint that lists an organisation's members), paging beyond the first page of a list, and asking for an appointment from a directory profile.
+
 ## OnboardingHub (`onboarding/onboarding-hub.tsx`)
 
 `/onboarding`: the signed-in person's applications for listing, managing and agency roles, one card per role.

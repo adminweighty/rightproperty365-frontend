@@ -98,12 +98,26 @@ export function AccountMenu({ professionals }: { professionals?: NavItem }) {
                 </Link>
               </li>
             )}
-            {!isAdmin && canUseInbox(user) && (
+            {!isAdmin && (
               <li>
-                <Link href="/agent/requests" className={itemClass} onClick={() => setOpen(false)}>
-                  Request inbox
+                <Link href="/account/appointments" className={itemClass} onClick={() => setOpen(false)}>
+                  Your appointments
                 </Link>
               </li>
+            )}
+            {!isAdmin && canUseInbox(user) && (
+              <>
+                <li>
+                  <Link href="/agent/requests" className={itemClass} onClick={() => setOpen(false)}>
+                    Request inbox
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/agent/appointments" className={itemClass} onClick={() => setOpen(false)}>
+                    Appointments received
+                  </Link>
+                </li>
+              </>
             )}
             <li className="mt-1 border-t border-line pt-1">
               <button

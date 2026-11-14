@@ -2,6 +2,7 @@
 
 import { CircleCheck } from "lucide-react";
 import { useRef, useState, type FormEvent } from "react";
+import Link from "next/link";
 import { useAuth } from "@/components/auth/auth-provider";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -120,6 +121,18 @@ export function PropertyRequestForm({
           case you need to follow up:
         </p>
         <p className="mt-3 font-mono text-lg font-medium text-ink">{receipt.reference}</p>
+        {receipt.appointment && (
+          <p className="mt-3 text-sm leading-relaxed text-ink">
+            Your preferred time was saved as appointment{" "}
+            <span className="font-mono font-medium">{receipt.appointment.reference}</span>. It is not
+            confirmed until {advertiserName} accepts it.{" "}
+            {user && (
+              <Link href="/account/appointments" className="font-medium text-primary-ink underline-offset-2 hover:underline">
+                See your appointments
+              </Link>
+            )}
+          </p>
+        )}
         <Button variant="secondary" size="sm" className="mt-4" onClick={() => setReceipt(null)}>
           Send another request
         </Button>

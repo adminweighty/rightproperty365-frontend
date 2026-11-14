@@ -1,6 +1,7 @@
 "use client";
 
 import { Mail, Phone } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { RequireAuth } from "@/components/auth/require-auth";
 import { Alert } from "@/components/ui/alert";
@@ -8,11 +9,34 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { listAgentPropertyRequests, listBusinessEnquiries } from "@/lib/api/agent";
+import { getInboxSummary } from "@/lib/api/appointments";
 import { canUseInbox, isProfessional } from "@/lib/api/auth";
 import type { ApiFailure, ApiResult } from "@/lib/api/http";
 
 /** code -> label maps of the API's reference sets, loaded by the page. */
 type Labels = Record<string, string>;
+
+/** How many appointments wait for an answer, from GET /v1/inbox/summary. Nothing when there are none. */
+function AppointmentsWaiting() {
+  const [waiting, setWaiting] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    getInboxSummary().then((result) => {
+      if (!cancelled && result.ok) {
+        setWaiting(result.data.appointments.requested + result.data.appointments.reschedule_requested);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  if (waiting === 0) return null;
+  return (
+    <Badge tone="primary" className="ml-2">
+      {waiting} <span className="sr-only">waiting for your answer</span>
+    </Badge>
+  );
+}
 
 const statusLabels: Record<string, string> = {
   RECEIVED: "New",
@@ -220,7 +244,13 @@ export function RequestInbox({ requestTypeLabels, contactMethodLabels }: Props) 
       {(user) => (
         <>
           <h1 className="text-4xl">Request inbox</h1>
-          <p className="mt-2 text-muted">Customer requests sent to you or your organisation.</p>
+          <p className="mt-2 text-muted">
+            Customer requests sent to you or your organisation.{" "}
+            <Link href="/agent/appointments" className="font-medium text-primary-ink hover:underline">
+              Appointments
+              <AppointmentsWaiting />
+            </Link>
+          </p>
           <div className="mt-8 space-y-12">
             <InboxSection
               id="inbox-property"

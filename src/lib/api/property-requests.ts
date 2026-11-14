@@ -34,6 +34,8 @@ export type PropertyRequestReceipt = {
   reference: string;
   status: string;
   created_at: string;
+  /** Set when a viewing or consultation request with a preferred time created an appointment. */
+  appointment?: { id: string; reference: string } | null;
 };
 
 export type PropertyRequestResult =

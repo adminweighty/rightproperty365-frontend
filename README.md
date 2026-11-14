@@ -51,6 +51,7 @@ Everything the site lists comes from the Go API (`api/openapi.yaml` in the backe
 | Suggestions when a keyword search finds nothing | `GET /v1/listings/suggest` |
 | Directories with counts (Real Estate Agencies, Estate Agents, Solicitors and the rest), directory lists, profiles, the footer's directory links | `GET /v1/directory`, `/v1/directory/{kind}`, `/v1/directory/{kind}/{slug}` |
 | Sitemap; which listings and profiles are prerendered | `GET /v1/sitemap` |
+| Appointments: a person's own, and those a professional received (read in the browser with the session) | `GET /v1/me/appointments`, `GET /v1/inbox/appointments`, `GET /v1/inbox/summary` and their action routes |
 
 How it is wired:
 
@@ -133,7 +134,9 @@ src/app/                Routes (App Router)
   admin/verifications/  Review queue and review page for platform administrators
   api/revalidate/       Protected on-demand cache revalidation (off unless REVALIDATE_SECRET is set)
   account/              Profile, roles and memberships
+  account/appointments/ The signed-in person's viewings and consultations
   agent/requests/       Request inbox for professional accounts
+  agent/appointments/   Appointments received by a professional or their organisation
   design-system/        Live token and component reference (not indexed)
 src/components/
   ui/                   Primitives: Button, Field, Input, Select, Badge, Card, Container,
@@ -148,6 +151,7 @@ src/components/
   onboarding/           Onboarding hub, form and document uploader
   admin/                Administrator gate, sign-in, landing, review queue and review detail
   agent/                Request inbox
+  appointments/         Appointment card and the two appointment lists
 src/lib/
   api/                  Browser clients for the Go API (session cookie), and types.ts
   api/server/           Server-side cached readers for listings, directory, reference data
@@ -200,6 +204,6 @@ The build reads the API if it can reach it (`--build-arg API_URL=...`, else `NEX
 
 ## Current state
 
-Built: design system, UI primitives, home page, listing search by country, region, city and suburb with advanced filters, facet counts and pages, listing detail, the directories and profiles (including Solicitors), the property request and business enquiry forms, sitemap and structured data, and authentication: register, email confirmation, sign in and out, password reset, an account page showing roles, the request inbox, onboarding for professional, business and owner roles with document uploads, and the administrator review queue. All of it reads the Go API; the listings and profiles it shows are the backend's seed data.
+Built: design system, UI primitives, home page, listing search by country, region, city and suburb with advanced filters, facet counts and pages, listing detail, the directories and profiles (including Solicitors), the property request and business enquiry forms, sitemap and structured data, and authentication: register, email confirmation, sign in and out, password reset, an account page showing roles, the request inbox, appointments (view, confirm, propose a new time, accept, cancel, complete), onboarding for professional, business and owner roles with document uploads, and the administrator review queue. All of it reads the Go API; the listings and profiles it shows are the backend's seed data.
 
-Not built yet: multi-factor authentication, organisation invitations and agent onboarding, account deletion, creating and editing listings, the rest of the agent and admin portals (listing moderation, markets, invoices, users, audit), maps, media uploads and object storage (photos are bundled files), YouTube embeds, analytics events, and automatic cache revalidation when the API changes (`POST /api/revalidate` exists; the API does not call it yet).
+Not built yet: multi-factor authentication, organisation invitations and agent onboarding, account deletion, creating and editing listings, assigning an appointment to a colleague, the rest of the agent and admin portals (listing moderation, markets, invoices, users, audit), maps, media uploads and object storage (photos are bundled files), YouTube embeds, analytics events, and automatic cache revalidation when the API changes (`POST /api/revalidate` exists; the API does not call it yet).

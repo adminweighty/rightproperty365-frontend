@@ -25,7 +25,7 @@ Sources: Google Search Central, schema.org and the Next.js 16 documentation bund
 | `/directory/[kind]?country=…` or `?region=…` (a filtered directory list) | noindex, follow | none | no |
 | `/directory/[kind]/[slug]` profile | index | itself | yes |
 | Any public page while the API cannot be reached (error state) | noindex, follow | none | the sitemap answers 500 |
-| Sign-in, register, password reset, account, agent inbox, design system | noindex | none | no |
+| Sign-in, register, password reset, account, appointments, agent inbox, design system | noindex | none | no |
 
 Rules behind the table:
 

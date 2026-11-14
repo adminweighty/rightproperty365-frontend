@@ -192,6 +192,14 @@ function Details({ user, roleLabels, organisationKindLabels }: Props & { user: U
             Open request inbox
           </ButtonLink>
         )}
+        {canUseInbox(user) && (
+          <ButtonLink href="/agent/appointments" variant="secondary">
+            Appointments received
+          </ButtonLink>
+        )}
+        <ButtonLink href="/account/appointments" variant="secondary">
+          Your appointments
+        </ButtonLink>
         <Button
           variant="secondary"
           onClick={async () => {
