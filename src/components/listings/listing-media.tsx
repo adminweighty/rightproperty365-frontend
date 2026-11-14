@@ -18,6 +18,8 @@ type Props = {
   eager?: boolean;
   /** Zoom slightly when the surrounding `group` is hovered. */
   zoomOnHover?: boolean;
+  /** Ease back from a slight zoom as the page paints: the main photo of a listing. A transform, so the photo is never hidden. */
+  settle?: boolean;
   /** Override the alt text, e.g. "" when the photo is decorative. */
   alt?: string;
   className?: string;
@@ -31,7 +33,7 @@ type Props = {
  * placeholder; any other photo is loaded from the URL the API gave
  * (src/lib/photos.ts). A listing without photos shows a neutral frame.
  */
-export function ListingMedia({ photo, sizes, priority, eager, zoomOnHover, alt, className }: Props) {
+export function ListingMedia({ photo, sizes, priority, eager, zoomOnHover, settle, alt, className }: Props) {
   const resolved = photo ? resolvePhoto(photo) : undefined;
 
   return (
@@ -50,6 +52,7 @@ export function ListingMedia({ photo, sizes, priority, eager, zoomOnHover, alt, 
           className={cn(
             "object-cover",
             zoomOnHover && "transition-transform duration-500 ease-standard group-hover:scale-105",
+            settle && "enter-settle",
           )}
         />
       ) : (

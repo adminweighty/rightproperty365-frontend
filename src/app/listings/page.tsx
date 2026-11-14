@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ListingGrid } from "@/components/listings/listing-card";
 import { VERIFIED_FAQ } from "@/components/listings/advertiser";
 import { SearchBar } from "@/components/listings/search-bar";
+import { Stagger } from "@/components/motion/stagger";
 import { JsonLd } from "@/components/seo/json-ld";
 import { ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
@@ -129,6 +130,8 @@ async function Results({ searchParams }: Pick<Props, "searchParams">) {
 
   return (
     <>
+      {/* The heading rises into place as the page paints: a transform in CSS, so it is never hidden. */}
+      <div className="enter-rise">
       <h1 className="text-3xl md:text-4xl">{search.heading}</h1>
       {page && (
         <p className="mt-2 text-muted" role="status">
@@ -146,6 +149,7 @@ async function Results({ searchParams }: Pick<Props, "searchParams">) {
           </Link>
         </p>
       )}
+      </div>
 
       <SearchBar
         options={options}
@@ -157,7 +161,7 @@ async function Results({ searchParams }: Pick<Props, "searchParams">) {
 
       {chips.length > 0 && (
         <nav aria-label="Filters in use" className="mt-6">
-          <ul className="flex flex-wrap items-center gap-2">
+          <Stagger as="ul" stagger={0.03} className="flex flex-wrap items-center gap-2">
             {chips.map((chip) => (
               <li key={chip.key}>
                 <Link
@@ -178,13 +182,14 @@ async function Results({ searchParams }: Pick<Props, "searchParams">) {
                 Clear all<span className="sr-only"> filters</span>
               </Link>
             </li>
-          </ul>
+          </Stagger>
         </nav>
       )}
 
       {page && page.items.length > 0 && (
         <>
-          <div className="mt-8">
+          {/* A new key for a new search, so its cards come in again after a client-side navigation. */}
+          <div key={requestedPath(params)} className="mt-8">
             <ListingGrid
               listings={page.items}
               periods={toLabels(catalogue.sets.price_periods)}
@@ -287,7 +292,7 @@ async function PopularSearches() {
       <h2 id="popular-searches" className="text-xl">
         Popular searches
       </h2>
-      <ul className="mt-4 grid gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+      <Stagger as="ul" stagger={0.02} className="mt-4 grid gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
         {loaded.data.map((link) => (
           <li key={link.path}>
             <Link href={link.path} className="text-sm text-primary-ink hover:underline">
@@ -295,7 +300,7 @@ async function PopularSearches() {
             </Link>
           </li>
         ))}
-      </ul>
+      </Stagger>
     </nav>
   );
 }

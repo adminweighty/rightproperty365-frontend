@@ -1,5 +1,6 @@
 import { ArrowRight, ShieldCheck } from "lucide-react";
 import Link from "next/link";
+import { Stagger } from "@/components/motion/stagger";
 import type { AccountRoleGroup } from "@/lib/api/auth";
 
 type Props = {
@@ -17,7 +18,7 @@ type Props = {
  */
 export function RoleGroups({ groups }: Props) {
   return (
-    <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    <Stagger as="ul" className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
       {groups.map((group) => {
         const verified = group.roles.some((role) => role.requiresVerification);
         const headingId = `roles-${group.code}`;
@@ -47,17 +48,17 @@ export function RoleGroups({ groups }: Props) {
                 )}
                 <Link
                   href={verified ? "/register" : "/listings"}
-                  className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-primary-ink hover:underline"
+                  className="group inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-primary-ink hover:underline"
                 >
                   {verified ? "Create an account" : "Browse listings"}
                   <span className="sr-only">: {group.label}</span>
-                  <ArrowRight className="size-4" aria-hidden="true" />
+                  <ArrowRight className="size-4 transition-transform duration-200 ease-standard motion-safe:group-hover:translate-x-1" aria-hidden="true" />
                 </Link>
               </div>
             </section>
           </li>
         );
       })}
-    </ul>
+    </Stagger>
   );
 }

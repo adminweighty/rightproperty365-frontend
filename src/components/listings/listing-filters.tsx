@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { StayFields } from "@/components/listings/stay-fields";
+import { MotionDetails } from "@/components/motion/motion-details";
 import { Field, fieldDescribedBy, Input } from "@/components/ui/field";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { selectGroups, selectOption, type SearchOptions } from "@/lib/search-options";
@@ -121,7 +122,7 @@ export function ListingFilterPanel({ options, defaults, open = false, errors = {
   const stayCategoryError = isStaySearch(defaults) ? errors.category : undefined;
 
   return (
-    <details
+    <MotionDetails
       id="advanced-search"
       open={open || inUse > 0 || refused}
       className="group mt-4 scroll-mt-24 border-t border-line pt-1"
@@ -137,6 +138,8 @@ export function ListingFilterPanel({ options, defaults, open = false, errors = {
         )}
       </summary>
 
+      {/* One unstyled wrapper: what `MotionDetails` opens and closes. */}
+      <div data-details-body>
       <Group legend="Property">
         <Field id="search-property-type" label="Property type">
           <SearchableSelect
@@ -287,6 +290,7 @@ export function ListingFilterPanel({ options, defaults, open = false, errors = {
           Clear filters
         </ButtonLink>
       </div>
-    </details>
+      </div>
+    </MotionDetails>
   );
 }

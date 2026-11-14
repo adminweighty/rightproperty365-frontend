@@ -1,6 +1,7 @@
 import { ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Stagger } from "@/components/motion/stagger";
 import { Container } from "@/components/ui/container";
 import { LEGAL_INDEX_PATH, formatLegalDate, legal, legalDocuments } from "@/lib/legal";
 
@@ -19,14 +20,16 @@ export const metadata: Metadata = {
 export default function LegalIndexPage() {
   return (
     <Container className="py-10 md:py-14">
+      <div className="enter-rise">
       <div className="rule-brand w-12" aria-hidden="true" />
       <h1 className="mt-4 text-3xl md:text-4xl">Legal</h1>
       <p className="mt-3 max-w-prose leading-relaxed text-muted">
         These documents set out how {legal.tradingName} works, what we ask of the people who use it, and how we
         look after personal information. Each starts with a short summary.
       </p>
+      </div>
 
-      <ul className="mt-8 grid gap-5 sm:grid-cols-2">
+      <Stagger as="ul" className="mt-8 grid gap-5 sm:grid-cols-2">
         {legalDocuments.map((document) => (
           <li key={document.key}>
             <Link
@@ -45,7 +48,7 @@ export default function LegalIndexPage() {
             </Link>
           </li>
         ))}
-      </ul>
+      </Stagger>
 
       <p className="mt-8 max-w-prose leading-relaxed text-muted">
         Questions about any of them can be sent to{" "}

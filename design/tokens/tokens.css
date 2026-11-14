@@ -49,6 +49,8 @@
   --rp-motion-duration-fast: 120ms;
   --rp-motion-duration-base: 200ms;
   --rp-motion-duration-slow: 320ms;
+  --rp-motion-duration-enter: 600ms;
+  --rp-motion-duration-emphasis: 800ms;
   --rp-motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
   --rp-motion-easing-exit: cubic-bezier(0.4, 0, 1, 1);
 

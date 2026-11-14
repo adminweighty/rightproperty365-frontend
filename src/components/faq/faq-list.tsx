@@ -4,6 +4,7 @@ import { ChevronDown, Search } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useId, useMemo, useState, useSyncExternalStore } from "react";
 import { AppLinks } from "@/components/layout/app-links";
+import { MotionDetails } from "@/components/motion/motion-details";
 import { Input } from "@/components/ui/field";
 import { faqAnswerText, type FaqBlock, type FaqCategory, type FaqInline } from "@/lib/faq";
 import { normalise } from "@/lib/searchable-select";
@@ -80,7 +81,8 @@ function openFromHash() {
  *
  * With JavaScript: a box that filters the questions by their text, and the
  * question named in the address (`/faq#why-no-phone-numbers`) opens when the
- * page loads or the hash changes.
+ * page loads or the hash changes. A click on a question opens or closes its
+ * answer with its height (`MotionDetails`), unless motion is reduced.
  *
  * Specification: design/components/README.md, "FaqList".
  */
@@ -165,18 +167,20 @@ export function FaqList({ categories, supportEmail }: Props) {
             </h2>
             <div className="mt-3 border-t border-line">
               {category.questions.map((faq) => (
-                <details key={faq.id} id={faq.id} hidden={!matches(faq.id)} className="group scroll-mt-2 border-b border-line">
+                <MotionDetails key={faq.id} id={faq.id} hidden={!matches(faq.id)} className="group scroll-mt-2 border-b border-line">
                   <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 rounded-md py-3 text-ink hover:text-primary-ink [&::-webkit-details-marker]:hidden">
                     <h3 className="font-sans text-base font-semibold tracking-normal">{faq.question}</h3>
                     <ChevronDown
-                      className="size-5 shrink-0 text-muted transition-transform duration-150 group-open:rotate-180"
+                      className="size-5 shrink-0 text-muted transition-transform duration-200 ease-standard group-open:rotate-180 group-data-closing:rotate-0"
                       aria-hidden="true"
                     />
                   </summary>
-                  <div className="max-w-prose pb-5 text-base leading-relaxed text-ink">
-                    <FaqAnswer answer={faq.answer} />
+                  <div data-details-body>
+                    <div className="max-w-prose pb-5 text-base leading-relaxed text-ink">
+                      <FaqAnswer answer={faq.answer} />
+                    </div>
                   </div>
-                </details>
+                </MotionDetails>
               ))}
             </div>
           </section>

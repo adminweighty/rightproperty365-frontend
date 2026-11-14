@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Reveal } from "@/components/motion/reveal";
 import { FaqList } from "@/components/faq/faq-list";
 import { JsonLd } from "@/components/seo/json-ld";
 import { Container } from "@/components/ui/container";
@@ -23,12 +24,14 @@ export default function FaqPage() {
   return (
     <Container className="py-10 md:py-14">
       <JsonLd data={faqJsonLd(faqCategories)} />
+      <div className="enter-rise">
       <div className="rule-brand w-12" aria-hidden="true" />
       <h1 className="mt-4 text-3xl md:text-4xl">Frequently asked questions</h1>
       <p className="mt-3 max-w-prose leading-relaxed text-muted">
         What {legal.tradingName} is, how to find a property, how to reach an agent, an owner or a business, and
         how to join as a professional.
       </p>
+      </div>
 
       <div className="mt-8 grid gap-x-12 gap-y-6 lg:grid-cols-[17rem_minmax(0,1fr)]">
         <nav
@@ -57,7 +60,7 @@ export default function FaqPage() {
         <div className="min-w-0">
           <FaqList categories={faqCategories} supportEmail={support} />
 
-          <section aria-labelledby="still-need-help" className="mt-12 rounded-lg border border-line bg-soft p-6">
+          <Reveal as="section" aria-labelledby="still-need-help" className="mt-12 rounded-lg border border-line bg-soft p-6">
             <h2 id="still-need-help" className="text-xl">
               Still need help?
             </h2>
@@ -69,7 +72,7 @@ export default function FaqPage() {
               . Tell us the email address of your account and any reference you were given, and we will get back to
               you.
             </p>
-          </section>
+          </Reveal>
         </div>
       </div>
     </Container>

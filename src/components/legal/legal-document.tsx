@@ -118,7 +118,7 @@ export function LegalDocument({ document: key, content }: Props) {
       </nav>
 
       <div className="mt-4 grid gap-x-12 gap-y-8 lg:grid-cols-[17rem_minmax(0,1fr)] print:block">
-        <header className="lg:col-span-2">
+        <header className="enter-rise lg:col-span-2">
           <div className="rule-brand w-12" aria-hidden="true" />
           <h1 className="mt-4 text-3xl md:text-4xl">{info.title}</h1>
           <p className="mt-3 text-sm text-muted">

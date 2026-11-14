@@ -8,6 +8,8 @@ import { GetForm } from "@/components/listings/get-form";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { Reveal } from "@/components/motion/reveal";
+import { Stagger } from "@/components/motion/stagger";
 import { JsonLd } from "@/components/seo/json-ld";
 import { Container } from "@/components/ui/container";
 import { ErrorState } from "@/components/ui/error-state";
@@ -125,7 +127,7 @@ function ProfilesByTrade({ groups, others }: { groups: TradeGroup[]; others: Dir
   return (
     <>
       <nav aria-label="Trades" className="mt-8">
-        <ul className="flex flex-wrap gap-2">
+        <Stagger as="ul" stagger={0.03} className="flex flex-wrap gap-2">
           {groups.map((group) => (
             <li key={group.code}>
               <a
@@ -137,14 +139,16 @@ function ProfilesByTrade({ groups, others }: { groups: TradeGroup[]; others: Dir
               </a>
             </li>
           ))}
-        </ul>
+        </Stagger>
       </nav>
 
       {groups.map((group) => (
         <section key={group.code} id={group.code} aria-labelledby={`${group.code}-heading`} className="mt-12 scroll-mt-28">
-          <h2 id={`${group.code}-heading`} className="text-2xl">
-            {group.label}
-          </h2>
+          <Reveal>
+            <h2 id={`${group.code}-heading`} className="text-2xl">
+              {group.label}
+            </h2>
+          </Reveal>
           <div className="mt-6">
             <ProfileGrid profiles={group.entries} />
           </div>
@@ -202,11 +206,13 @@ async function DirectoryList({ params, searchParams }: Pick<Props, "params" | "s
         </ol>
       </nav>
 
-      <h1 className="mt-6 text-3xl md:text-4xl">
-        {kind.label}
-        {place && ` in ${place}`}
-      </h1>
-      <p className="mt-3 max-w-2xl text-muted">{kind.description}</p>
+      <div className="enter-rise">
+        <h1 className="mt-6 text-3xl md:text-4xl">
+          {kind.label}
+          {place && ` in ${place}`}
+        </h1>
+        <p className="mt-3 max-w-2xl text-muted">{kind.description}</p>
+      </div>
       <p className="mt-2 text-sm text-muted" role="status">
         {list.total === 1 ? "1 profile" : `${list.total} profiles`}
         {hasSponsored && " · sponsored profiles are shown first"}
@@ -273,7 +279,7 @@ async function DirectoryList({ params, searchParams }: Pick<Props, "params" | "s
 
       <nav aria-label="Other professionals and businesses" className="mt-16 border-t border-line pt-10">
         <h2 className="text-xl">Other professionals and businesses</h2>
-        <ul className="mt-4 flex flex-wrap gap-2">
+        <Stagger as="ul" stagger={0.03} className="mt-4 flex flex-wrap gap-2">
           {kinds
             .filter((other) => other.code !== kind.code)
             .map((other) => (
@@ -286,7 +292,7 @@ async function DirectoryList({ params, searchParams }: Pick<Props, "params" | "s
                 </Link>
               </li>
             ))}
-        </ul>
+        </Stagger>
       </nav>
     </>
   );

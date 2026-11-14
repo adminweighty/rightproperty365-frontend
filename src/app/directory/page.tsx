@@ -2,6 +2,9 @@ import { ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ProfileGrid } from "@/components/directory/profile-card";
+import { CountUp } from "@/components/motion/count-up";
+import { Reveal } from "@/components/motion/reveal";
+import { Stagger } from "@/components/motion/stagger";
 import { JsonLd } from "@/components/seo/json-ld";
 import { Container } from "@/components/ui/container";
 import { ErrorState } from "@/components/ui/error-state";
@@ -40,14 +43,14 @@ async function Directories() {
 
   return (
     <>
-      <ul className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <Stagger as="ul" className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {kinds.map((kind) => (
           <li key={kind.code}>
             <Link
               href={`/directory/${kind.code}`}
               className="group frame-brand flex h-full flex-col rounded-lg border border-line bg-surface p-6 shadow-xs transition-shadow hover:shadow-md"
             >
-              <span className="text-4xl font-bold tabular-nums text-primary-ink">{kind.count}</span>
+              <CountUp value={kind.count} className="text-4xl font-bold text-primary-ink" />
               <span className="mt-2 text-xl font-bold text-ink group-hover:underline">{kind.label}</span>
               <span className="mt-2 text-sm leading-relaxed text-muted">{kind.description}</span>
               <span className="mt-auto flex items-center gap-1.5 pt-5 text-sm font-semibold text-primary-ink">
@@ -57,16 +60,18 @@ async function Directories() {
             </Link>
           </li>
         ))}
-      </ul>
+      </Stagger>
 
       {sponsored.length > 0 && (
         <section aria-labelledby="sponsored-heading" className="mt-16">
-          <h2 id="sponsored-heading" className="text-2xl md:text-3xl">
-            Sponsored profiles
-          </h2>
-          <p className="mt-2 text-sm text-muted">
-            These businesses pay for a featured position. Sponsorship does not change verification.
-          </p>
+          <Reveal>
+            <h2 id="sponsored-heading" className="text-2xl md:text-3xl">
+              Sponsored profiles
+            </h2>
+            <p className="mt-2 text-sm text-muted">
+              These businesses pay for a featured position. Sponsorship does not change verification.
+            </p>
+          </Reveal>
           <div className="mt-8">
             <ProfileGrid profiles={sponsored} />
           </div>
@@ -91,11 +96,13 @@ export default function DirectoryPage() {
           ]),
         }}
       />
-      <h1 className="text-3xl md:text-5xl">Find a property professional</h1>
-      <p className="mt-3 max-w-2xl text-lg text-muted">
-        The people and businesses behind property: who sells it, builds it, manages it and keeps
-        it running.
-      </p>
+      <div className="enter-rise">
+        <h1 className="text-3xl md:text-5xl">Find a property professional</h1>
+        <p className="mt-3 max-w-2xl text-lg text-muted">
+          The people and businesses behind property: who sells it, builds it, manages it and keeps
+          it running.
+        </p>
+      </div>
 
       <ApiBoundary fallback={<div aria-busy="true" aria-label="Loading professionals and businesses" className="mt-10 h-96 rounded-lg bg-sunken" />}>
         <Directories />

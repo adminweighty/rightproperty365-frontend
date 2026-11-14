@@ -57,7 +57,9 @@ Borders do most of the separating; shadows only signal that something floats.
 | fast | 120ms | Colour and border changes |
 | base | 200ms | Shadows, small movements |
 | slow | 320ms | Panels and dialogs entering |
+| enter | 600ms | Content entering the screen (a section, a card, a row of tiles) |
+| emphasis | 800ms | A drawn rule, one item that should be noticed |
 
 Easing is `ease-standard` (`cubic-bezier(0.2, 0, 0, 1)`). Animate `opacity`, `transform`, colour and shadow only. `prefers-reduced-motion` switches all transitions off globally.
 
-Motion is CSS only: hover and focus transitions, and a slight zoom of a photo when its card is hovered. Nothing animates on load or on scroll, nothing is hidden until a script runs, and there is no animation library. Add one only for an interaction that cannot be done in CSS, and keep content visible without JavaScript.
+The site moves a good deal, in two layers. Hover, focus and the first paint of a page are CSS (transitions and the `enter-rise`, `enter-settle`, `link-sweep`, `sheen` and `wobble-once` utilities in `globals.css`). Entrances as the page is scrolled, counting numbers, opening answers and the hero's parallax are GSAP (with its ScrollTrigger plugin for the parallax), used only through the components in `src/components/motion`. The rules that keep it safe are in `design/components/README.md`, "Motion": the server HTML is always fully visible, reduced motion means no movement, and what is largest on the screen when a page opens is never hidden. Distances are small (12 to 20px), items of a group follow each other by 30 to 100ms, and nothing loops.

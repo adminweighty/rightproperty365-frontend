@@ -23,9 +23,13 @@ import { VERIFIED_FAQ } from "@/components/listings/advertiser";
 import { HeroSearch } from "@/components/listings/hero-search";
 import { ListingGrid } from "@/components/listings/listing-card";
 import { ListingRail } from "@/components/listings/listing-rail";
+import { CountUp } from "@/components/motion/count-up";
+import { HeroMotion } from "@/components/motion/hero-motion";
+import { Reveal } from "@/components/motion/reveal";
+import { Stagger } from "@/components/motion/stagger";
 import { JsonLd } from "@/components/seo/json-ld";
 import { ButtonLink } from "@/components/ui/button";
-import { Container } from "@/components/ui/container";
+import { Container, containerClass } from "@/components/ui/container";
 import { ErrorState } from "@/components/ui/error-state";
 import { getDirectoryKinds, getDirectoryList } from "@/lib/api/server/directory";
 import { getTrustSummary, listListings } from "@/lib/api/server/listings";
@@ -169,6 +173,10 @@ async function readHome() {
  * panel holds the page's `h1` and the search, so the text is always on white.
  * Used for the loaded page and for its loading state, so nothing moves when
  * the content arrives.
+ *
+ * Motion (`HeroMotion`): the photograph sits in a frame a little taller than
+ * the hero, which drifts as the page scrolls; the panel rises into place as
+ * the page paints. The `h1` and the photograph themselves are never hidden.
  */
 function Hero({
   photo,
@@ -185,31 +193,36 @@ function Hero({
   busy?: boolean;
 }) {
   return (
-    <section
+    <HeroMotion
       aria-busy={busy}
       aria-label={busy ? "Loading the home page" : undefined}
       className="relative isolate overflow-hidden border-b border-line bg-sunken"
     >
-      {photo}
+      {/* Taller than the hero by 8% at each end: the room the parallax moves in. */}
+      {photo && (
+        <div data-hero-photo className="absolute inset-x-0 -inset-y-[8%] -z-10">
+          {photo}
+        </div>
+      )}
       <Container className="flex justify-center pb-8 pt-40 sm:pt-48 md:items-center md:py-16 lg:min-h-[40rem]">
-        <div className="w-full max-w-3xl rounded-xl bg-surface p-5 text-center shadow-lg sm:p-8 md:p-10">
+        <div className="enter-rise w-full max-w-3xl rounded-xl bg-surface p-5 text-center shadow-lg sm:p-8 md:p-10">
           <span aria-hidden="true" className="rule-brand mx-auto block w-12" />
-          <p className="mt-4 text-sm font-semibold text-primary-ink">
+          <p data-hero-item className="mt-4 text-sm font-semibold text-primary-ink">
             <BadgeCheck className="mr-1.5 inline size-4 align-[-0.2em]" aria-hidden="true" />
             {eyebrow}
           </p>
           <h1 className="mt-3 text-3xl leading-tight sm:text-4xl md:text-5xl">
             Find the <span className="mark-brand">right property</span> any day of the year
           </h1>
-          <p className="mx-auto mt-3 max-w-xl leading-relaxed text-muted md:text-lg">
+          <p data-hero-item className="mx-auto mt-3 max-w-xl leading-relaxed text-muted md:text-lg">
             Homes, commercial space and land from agents and owners we have checked. Send one
             enquiry and follow it until you get an answer.
           </p>
-          {children}
+          <div data-hero-item>{children}</div>
         </div>
       </Container>
       {caption}
-    </section>
+    </HeroMotion>
   );
 }
 
@@ -284,7 +297,7 @@ async function HomeContent() {
               unoptimized={!heroPhoto.bundled}
               loading="eager"
               fetchPriority="high"
-              className="-z-10 object-cover"
+              className="object-cover"
             />
           )
         }
@@ -313,21 +326,23 @@ async function HomeContent() {
       {/* Trust strip: three counts from the API. */}
       <section aria-label="RightProperty365 in numbers" className="border-b border-line">
         <Container>
-          <dl className="grid grid-cols-3 divide-x divide-line py-6 text-center md:py-8">
+          <Stagger as="dl" className="grid grid-cols-3 divide-x divide-line py-6 text-center md:py-8">
             {stats.map((stat) => (
               <div key={stat.label} className="flex flex-col-reverse px-2">
                 <dt className="mt-1 text-sm text-muted">{stat.label}</dt>
-                <dd className="text-2xl font-bold tabular-nums text-ink md:text-4xl">{stat.value}</dd>
+                <dd className="text-2xl font-bold tabular-nums text-ink md:text-4xl">
+                  <CountUp value={stat.value} />
+                </dd>
               </div>
             ))}
-          </dl>
+          </Stagger>
         </Container>
       </section>
 
       {/* Assurance: the API's own numbers, and what Verified does and does not mean. Left out when they cannot be read. */}
       {trust && trust.public_listings > 0 && (
         <section aria-labelledby="trust-heading" className="border-b border-line bg-success-soft">
-          <Container className="flex flex-col gap-3 py-5 md:flex-row md:items-center md:gap-8">
+          <Stagger className={`${containerClass} flex flex-col gap-3 py-5 md:flex-row md:items-center md:gap-8`}>
             <h2 id="trust-heading" className="flex shrink-0 items-center gap-2 font-sans text-base font-semibold tracking-normal text-ink">
               <BadgeCheck className="size-5 shrink-0 text-success" aria-hidden="true" />
               <span>
@@ -347,7 +362,7 @@ async function HomeContent() {
                 What Verified means
               </Link>
             </p>
-          </Container>
+          </Stagger>
         </section>
       )}
 
@@ -391,7 +406,7 @@ async function HomeContent() {
           />
           {countries.length > 1 && (
             <nav aria-label="Countries with listings" className="mt-6">
-              <ul className="flex flex-wrap gap-2">
+              <Stagger as="ul" stagger={0.03} className="flex flex-wrap gap-2">
                 {countries.map((country) => (
                   <li key={country.code}>
                     <Link href={listingsPath({ country: country.code })} className={chipClass}>
@@ -403,7 +418,7 @@ async function HomeContent() {
                     </Link>
                   </li>
                 ))}
-              </ul>
+              </Stagger>
             </nav>
           )}
           {cities.length > 0 && (
@@ -428,7 +443,7 @@ async function HomeContent() {
           {suburbs.length > 0 && (
             <>
               <h3 className="mt-10 text-lg">Popular suburbs</h3>
-              <ul className="mt-4 flex flex-wrap gap-2">
+              <Stagger as="ul" stagger={0.03} className="mt-4 flex flex-wrap gap-2">
                 {suburbs.map((suburb) => (
                   <li key={suburb.code}>
                     <Link href={listingsPath({ suburb: suburb.code })} className={chipClass}>
@@ -440,7 +455,7 @@ async function HomeContent() {
                     </Link>
                   </li>
                 ))}
-              </ul>
+              </Stagger>
             </>
           )}
         </Container>
@@ -466,7 +481,7 @@ async function HomeContent() {
       <section className="mt-14 border-y border-line bg-soft md:mt-20">
         <Container className="py-14 md:py-20">
           <SectionHeading title="Browse by category" />
-          <ul className="mt-8 grid gap-4 md:grid-cols-2">
+          <Stagger as="ul" className="mt-8 grid gap-4 md:grid-cols-2">
             {sets.property_categories.map((category) => {
               const Icon = categoryIcons[category.code] ?? Tag;
               // What the category covers: its property types, from the API.
@@ -487,14 +502,14 @@ async function HomeContent() {
                       {types.length > 0 && <span className="block text-sm text-muted">{sentenceList(types)}</span>}
                     </span>
                     <span className="text-lg font-bold tabular-nums text-ink">
-                      {facets.category.find((item) => item.code === category.code)?.count ?? 0}
+                      <CountUp value={facets.category.find((item) => item.code === category.code)?.count ?? 0} />
                       <span className="sr-only"> properties</span>
                     </span>
                   </Link>
                 </li>
               );
             })}
-          </ul>
+          </Stagger>
         </Container>
       </section>
 
@@ -520,14 +535,14 @@ async function HomeContent() {
           linkLabel="All professionals"
           className={advertisers.length > 0 ? "mt-14 md:mt-20" : undefined}
         />
-        <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Stagger as="ul" className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {kinds.map((kind) => (
             <li key={kind.code}>
               <Link
                 href={`/directory/${kind.code}`}
                 className="group frame-brand flex h-full items-start gap-4 rounded-lg border border-line bg-surface p-5 shadow-xs transition-shadow hover:shadow-md"
               >
-                <span className="min-w-10 text-3xl font-bold tabular-nums text-primary-ink">{kind.count}</span>
+                <CountUp value={kind.count} className="min-w-10 text-3xl font-bold text-primary-ink" />
                 <span className="min-w-0 flex-1">
                   <span className="block font-semibold text-ink group-hover:underline">{kind.label}</span>
                   <span className="mt-1 block text-sm leading-relaxed text-muted">{kind.description}</span>
@@ -535,7 +550,7 @@ async function HomeContent() {
               </Link>
             </li>
           ))}
-        </ul>
+        </Stagger>
       </Container>
 
       <section className="mt-14 border-y border-line bg-tint md:mt-20">
@@ -546,7 +561,7 @@ async function HomeContent() {
             href="/faq"
             linkLabel="Questions and answers"
           />
-          <ol className="mt-8 grid gap-6 md:grid-cols-3">
+          <Stagger as="ol" stagger={0.1} className="mt-8 grid gap-6 md:grid-cols-3">
             {steps.map((step, index) => (
               <li key={step.title} className="rounded-lg border border-line bg-surface p-6 shadow-xs">
                 <span
@@ -559,9 +574,9 @@ async function HomeContent() {
                 <p className="mt-2 leading-relaxed text-muted">{step.body}</p>
               </li>
             ))}
-          </ol>
+          </Stagger>
 
-          <ul className="mt-12 grid gap-8 md:grid-cols-3">
+          <Stagger as="ul" className="mt-12 grid gap-8 md:grid-cols-3">
             {promises.map(({ icon: Icon, title, body }) => (
               <li key={title} className="flex gap-4">
                 <Icon className="mt-1 size-6 shrink-0 text-primary-ink" aria-hidden="true" />
@@ -571,7 +586,7 @@ async function HomeContent() {
                 </div>
               </li>
             ))}
-          </ul>
+          </Stagger>
         </Container>
       </section>
 
@@ -591,7 +606,7 @@ async function HomeContent() {
             <div className="mt-8">
               <RoleGroups groups={roleGroups} />
             </div>
-            <div className="mt-6 flex flex-col items-start gap-5 rounded-xl border border-line bg-soft p-6 md:flex-row md:items-center md:justify-between md:p-8">
+            <Reveal className="mt-6 flex flex-col items-start gap-5 rounded-xl border border-line bg-soft p-6 md:flex-row md:items-center md:justify-between md:p-8">
               <div>
                 <h3 className="text-xl">Work in property?</h3>
                 <p className="mt-1 max-w-2xl leading-relaxed text-muted">
@@ -604,7 +619,7 @@ async function HomeContent() {
                 Register as a professional
                 <ArrowRight className="size-4" aria-hidden="true" />
               </ButtonLink>
-            </div>
+            </Reveal>
           </section>
         </Container>
       )}

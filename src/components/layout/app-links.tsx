@@ -1,4 +1,5 @@
 import { siAppgallery, siApple, siGoogleplay } from "simple-icons";
+import { Stagger } from "@/components/motion/stagger";
 import { buttonClasses } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { APP_LINKS_PLACEHOLDER_NOTE, appLinks, appLinksArePlaceholders, type AppLink } from "@/lib/app-links";
@@ -44,14 +45,14 @@ function StoreIcon({ store }: { store: AppLink["store"] }) {
 export function AppLinks({ note = true, className }: Props) {
   return (
     <div className={className}>
-      <ul className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+      <Stagger as="ul" className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         {appLinks.map((link) => (
           <li key={link.store} className="flex">
             <a
               href={link.url}
               target="_blank"
               rel="noopener"
-              className={cn(buttonClasses("secondary", "md"), "h-auto! min-h-11 w-full justify-start! gap-2.5 whitespace-normal py-2 text-left sm:w-auto")}
+              className={cn(buttonClasses("secondary", "md"), "sheen h-auto! min-h-11 w-full justify-start! gap-2.5 whitespace-normal py-2 text-left sm:w-auto")}
             >
               <StoreIcon store={link.store} />
               <span>
@@ -61,7 +62,7 @@ export function AppLinks({ note = true, className }: Props) {
             </a>
           </li>
         ))}
-      </ul>
+      </Stagger>
       {note && appLinksArePlaceholders && (
         <p className="mt-2 text-sm leading-relaxed text-muted">{APP_LINKS_PLACEHOLDER_NOTE}</p>
       )}

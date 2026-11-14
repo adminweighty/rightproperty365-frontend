@@ -1,6 +1,7 @@
 import Image, { type StaticImageData } from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { Stagger } from "@/components/motion/stagger";
 import { cn } from "@/lib/cn";
 
 type Props = {
@@ -50,10 +51,13 @@ export function PhotoTile({ href, title, count, photo }: Props) {
  * A row of photo tiles: it scrolls sideways (with snapping) below `lg` and is
  * a four-column grid from `lg`. Scrolling is native, so it needs no
  * JavaScript, and the links inside it keep it reachable from the keyboard.
+ * The tiles grow into place one after another when the row is scrolled to.
  */
 export function PhotoTileRow({ className, children }: { className?: string; children: ReactNode }) {
   return (
-    <ul
+    <Stagger
+      as="ul"
+      from="scale"
       className={cn(
         "-mx-4 flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-px-4 px-4 py-1 [scrollbar-width:thin] md:-mx-8 md:scroll-px-8 md:px-8",
         "lg:mx-0 lg:grid lg:grid-cols-4 lg:gap-6 lg:overflow-visible lg:p-0",
@@ -61,6 +65,6 @@ export function PhotoTileRow({ className, children }: { className?: string; chil
       )}
     >
       {children}
-    </ul>
+    </Stagger>
   );
 }

@@ -3,7 +3,8 @@ import { Fragment } from "react";
 import { AppLinks } from "@/components/layout/app-links";
 import { Logo } from "@/components/layout/logo";
 import { professionalsLink, type NavItem } from "@/components/layout/nav-items";
-import { Container } from "@/components/ui/container";
+import { Stagger } from "@/components/motion/stagger";
+import { Container, containerClass } from "@/components/ui/container";
 import { getDirectoryKinds } from "@/lib/api/server/directory";
 import { load } from "@/lib/api/server/load";
 import { getListingCountries } from "@/lib/api/server/reference";
@@ -91,7 +92,8 @@ async function DirectoryLinks() {
 export function SiteFooter() {
   return (
     <footer data-site-footer className="mt-20 border-t border-line bg-soft md:mt-24">
-      <Container className="grid gap-x-8 gap-y-10 py-12 sm:grid-cols-2 md:py-16 lg:grid-cols-[1.5fr_1fr_1fr_1fr_1fr]">
+      {/* The columns come in one after another when the footer is reached. */}
+      <Stagger className={`${containerClass} grid gap-x-8 gap-y-10 py-12 sm:grid-cols-2 md:py-16 lg:grid-cols-[1.5fr_1fr_1fr_1fr_1fr]`}>
         <div className="max-w-sm sm:col-span-2 lg:col-span-1">
           <Logo />
           <p className="mt-4 text-sm leading-relaxed text-muted">
@@ -124,7 +126,7 @@ export function SiteFooter() {
             <CountryLinks />
           </ApiBoundary>
         </nav>
-      </Container>
+      </Stagger>
       {/* A row of its own, so the three store buttons sit side by side on wider screens. */}
       <div className="border-t border-line">
         <Container className="py-6">

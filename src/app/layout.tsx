@@ -4,6 +4,7 @@ import { AuthProvider } from "@/components/auth/auth-provider";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { TestSiteBanner } from "@/components/layout/test-site-banner";
+import { SiteMotion } from "@/components/motion/site-motion";
 import { env } from "@/lib/env";
 import "./globals.css";
 
@@ -55,6 +56,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             {children}
           </main>
           <SiteFooter />
+          <SiteMotion />
         </AuthProvider>
       </body>
     </html>

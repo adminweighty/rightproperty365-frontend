@@ -1,5 +1,6 @@
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { Reveal } from "@/components/motion/reveal";
 import { cn } from "@/lib/cn";
 
 type Props = {
@@ -16,13 +17,14 @@ type Props = {
 
 /**
  * The heading of a landing-page row: a short logo-colour rule, an `h2`, an
- * optional sentence, and an optional "View all" link at the right.
+ * optional sentence, and an optional "View all" link at the right. It rises
+ * in when it is scrolled to, and its rule is drawn from left to right.
  */
 export function SectionHeading({ id, title, note, href, linkLabel, className }: Props) {
   return (
-    <div className={cn("flex items-end justify-between gap-4", className)}>
+    <Reveal className={cn("flex items-end justify-between gap-4", className)}>
       <div className="min-w-0">
-        <span aria-hidden="true" className="rule-brand block w-12" />
+        <span aria-hidden="true" data-draw className="rule-brand block w-12" />
         <h2 id={id} className="mt-4 text-2xl md:text-3xl">
           {title}
         </h2>
@@ -31,12 +33,15 @@ export function SectionHeading({ id, title, note, href, linkLabel, className }: 
       {href && linkLabel && (
         <Link
           href={href}
-          className="inline-flex min-h-11 shrink-0 items-center gap-1.5 text-sm font-semibold text-primary-ink hover:underline"
+          className="group inline-flex min-h-11 shrink-0 items-center gap-1.5 text-sm font-semibold text-primary-ink"
         >
-          {linkLabel}
-          <ArrowRight className="hidden size-4 sm:block" aria-hidden="true" />
+          <span className="link-sweep pb-0.5">{linkLabel}</span>
+          <ArrowRight
+            className="hidden size-4 transition-transform duration-200 ease-standard motion-safe:group-hover:translate-x-1 sm:block"
+            aria-hidden="true"
+          />
         </Link>
       )}
-    </div>
+    </Reveal>
   );
 }

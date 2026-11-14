@@ -7,6 +7,8 @@ import { StayCalendar, StayProvider } from "@/components/availability/stay-calen
 import { AdvertiserBlock, AdvertiserCompact } from "@/components/listings/advertiser";
 import { ListingFacts, ListingGrid, ListingPrice } from "@/components/listings/listing-card";
 import { ListingMedia } from "@/components/listings/listing-media";
+import { Reveal } from "@/components/motion/reveal";
+import { Stagger } from "@/components/motion/stagger";
 import { PropertyRequestForm } from "@/components/requests/property-request-form";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
@@ -224,10 +226,11 @@ async function ListingContent({ params }: Pick<Props, "params">) {
         photo={cover}
         sizes="(min-width: 1280px) 1136px, 100vw"
         priority
+        settle
         className="mt-6 aspect-[16/9] rounded-xl md:aspect-[21/9]"
       />
       {morePhotos.length > 0 && (
-        <ul aria-label="More photos" className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <Stagger as="ul" from="scale" aria-label="More photos" className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
           {morePhotos.map((photo) => (
             <li key={photo.url}>
               <ListingMedia
@@ -237,7 +240,7 @@ async function ListingContent({ params }: Pick<Props, "params">) {
               />
             </li>
           ))}
-        </ul>
+        </Stagger>
       )}
 
       <StayScope calendar={calendar}>
@@ -259,41 +262,45 @@ async function ListingContent({ params }: Pick<Props, "params">) {
           {/* On a phone the side panel is far below: say who advertises it here as well. */}
           <AdvertiserCompact advertiser={advertiser} className="mt-4 lg:hidden" />
           <ListingPrice listing={listing} periods={periods} className="mt-6 text-4xl" />
-          <div className="mt-6 border-y border-line py-4">
+          <Reveal className="mt-6 border-y border-line py-4">
             <ListingFacts listing={listing} />
-          </div>
+          </Reveal>
 
-          <h2 className="mt-10 text-2xl">About this property</h2>
-          <p className="mt-3 max-w-prose whitespace-pre-line leading-relaxed text-muted">
-            {listing.description}
-          </p>
+          <Reveal>
+            <h2 className="mt-10 text-2xl">About this property</h2>
+            <p className="mt-3 max-w-prose whitespace-pre-line leading-relaxed text-muted">
+              {listing.description}
+            </p>
+          </Reveal>
 
           {listing.features.length > 0 && (
             <>
               <h2 className="mt-10 text-2xl">Features</h2>
-              <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+              <Stagger as="ul" stagger={0.03} className="mt-4 grid gap-3 sm:grid-cols-2">
                 {listing.features.map((feature) => (
                   <li key={feature.code} className="flex items-center gap-2.5 text-ink">
                     <Check className="size-4 shrink-0 text-primary-ink" aria-hidden="true" />
                     {feature.label}
                   </li>
                 ))}
-              </ul>
+              </Stagger>
             </>
           )}
 
           {calendar && (
-            <StayCalendar
-              listingTitle={listing.title}
-              nextAvailable={listing.availability?.next_available ?? null}
-              formId="contact-heading"
-            />
+            <Reveal>
+              <StayCalendar
+                listingTitle={listing.title}
+                nextAvailable={listing.availability?.next_available ?? null}
+                formId="contact-heading"
+              />
+            </Reveal>
           )}
 
           <p className="mt-10 text-sm text-subtle">Listing reference {listing.reference}</p>
         </div>
 
-        <aside aria-labelledby="contact-heading">
+        <Reveal as="aside" aria-labelledby="contact-heading">
           <Card className="lg:sticky lg:top-24">
             {/* Names and profile links only. Phone numbers and email addresses are never shown. */}
             <section aria-labelledby="advertiser-heading" className="mb-6 border-b border-line pb-6">
@@ -313,15 +320,17 @@ async function ListingContent({ params }: Pick<Props, "params">) {
               />
             </div>
           </Card>
-        </aside>
+        </Reveal>
       </div>
       </StayScope>
 
       {similar.length > 0 && (
         <section aria-labelledby="similar-heading" className="mt-16 border-t border-line pt-12">
-          <h2 id="similar-heading" className="text-2xl md:text-3xl">
-            Similar properties
-          </h2>
+          <Reveal>
+            <h2 id="similar-heading" className="text-2xl md:text-3xl">
+              Similar properties
+            </h2>
+          </Reveal>
           <div className="mt-8">
             <ListingGrid listings={similar} periods={periods} />
           </div>

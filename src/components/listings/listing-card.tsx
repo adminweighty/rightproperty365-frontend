@@ -2,6 +2,7 @@ import { Bath, BedDouble, MapPin, Maximize2, Moon, Users } from "lucide-react";
 import Link from "next/link";
 import { AdvertiserCompact } from "@/components/listings/advertiser";
 import { ListingMedia } from "@/components/listings/listing-media";
+import { Stagger } from "@/components/motion/stagger";
 import type { Listing } from "@/lib/api/types";
 import { formatArea, formatMoney, pricePeriodLabel } from "@/lib/format";
 import { shortPlace } from "@/lib/places";
@@ -131,7 +132,7 @@ type CardProps = {
 export function ListingCard({ listing, isNew, periods, stay, photoLoading }: CardProps) {
   const place = shortPlace(listing);
   return (
-    <article className="group frame-brand flex flex-col overflow-hidden rounded-lg border border-line bg-surface shadow-xs transition-shadow duration-200 hover:shadow-md focus-within:shadow-md">
+    <article className="group frame-brand flex flex-col overflow-hidden rounded-lg border border-line bg-surface shadow-xs transition-[box-shadow,translate] duration-200 ease-standard hover:shadow-md focus-within:shadow-md">
       <div className="relative">
         <ListingMedia
           photo={listing.photos[0]}
@@ -144,7 +145,7 @@ export function ListingCard({ listing, isNew, periods, stay, photoLoading }: Car
         <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
           <span className={`${tag} bg-primary text-on-primary`}>{listing.deal.label}</span>
           {isNew && <span className={`${tag} bg-surface text-ink`}>New</span>}
-          {listing.featured && <span className={`${tag} bg-brand-accent text-brand-deep`}>Featured</span>}
+          {listing.featured && <span className={`${tag} sheen bg-brand-accent text-brand-deep`}>Featured</span>}
         </div>
       </div>
 
@@ -176,11 +177,19 @@ export function ListingCard({ listing, isNew, periods, stay, photoLoading }: Car
 
 type GridProps = { listings: Listing[]; periods?: PeriodLabels; stay?: StayQuery };
 
+/** A card rises a little under the pointer. The `li` is what is hovered, so the card does not move out from under it. */
+export const cardLift = "motion-safe:[&:hover>article]:-translate-y-1";
+
+/**
+ * The cards come in row by row as they are scrolled to. The first row only
+ * moves and never fades: its photos load first and are the largest thing on
+ * the screen of a results page.
+ */
 export function ListingGrid({ listings, periods, stay }: GridProps) {
   return (
-    <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    <Stagger as="ul" solid={3} className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {listings.map((listing, index) => (
-        <li key={listing.id} className="flex [&>article]:w-full">
+        <li key={listing.id} className={`flex [&>article]:w-full ${cardLift}`}>
           <ListingCard
             listing={listing}
             periods={periods}
@@ -190,6 +199,6 @@ export function ListingGrid({ listings, periods, stay }: GridProps) {
           />
         </li>
       ))}
-    </ul>
+    </Stagger>
   );
 }

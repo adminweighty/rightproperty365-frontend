@@ -9,10 +9,14 @@ import { ButtonLink } from "@/components/ui/button";
  * White, sticky, 64px. Logo, inline navigation from `lg`, the session control
  * and, below `lg`, the menu button. The bar never wraps: the logo is the one
  * part that may shrink on the narrowest phones.
+ *
+ * Once the page has been scrolled (`data-scrolled`, set by `SiteMotion`) the
+ * bar gains a shadow and the logo is drawn slightly smaller. Its height does
+ * not change, so nothing under it moves.
  */
 export function SiteHeader() {
   return (
-    <header data-site-header className="sticky top-0 z-40 border-b border-line bg-surface">
+    <header data-site-header className="group/header sticky top-0 z-40 border-b border-line bg-surface transition-shadow duration-200 ease-standard data-scrolled:shadow-md">
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-3 focus:z-50 focus:rounded-md focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:shadow-md"
@@ -21,7 +25,7 @@ export function SiteHeader() {
       </a>
       <div className="mx-auto flex h-16 w-full max-w-[75rem] items-center gap-2 px-3 sm:gap-4 sm:px-4 md:px-8">
         <Link href="/" aria-label="RightProperty365 home" className="min-w-0 shrink rounded-md">
-          <Logo className="h-6 max-w-full sm:h-8" />
+          <Logo className="h-6 max-w-full origin-left transition-transform duration-200 ease-standard motion-safe:group-data-scrolled/header:scale-90 sm:h-8" />
         </Link>
 
         <nav aria-label="Main" className="ml-2 hidden lg:block">
@@ -30,9 +34,9 @@ export function SiteHeader() {
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className="rounded-md px-3 py-2 text-sm font-semibold text-ink decoration-line-accent decoration-2 underline-offset-8 transition-colors hover:text-primary-ink hover:underline"
+                  className="rounded-md px-3 py-2 text-sm font-semibold text-ink transition-colors hover:text-primary-ink"
                 >
-                  {item.label}
+                  <span className="link-sweep pb-1.5">{item.label}</span>
                 </Link>
               </li>
             ))}

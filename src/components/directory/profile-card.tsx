@@ -1,5 +1,6 @@
 import { BadgeCheck, MapPin } from "lucide-react";
 import Link from "next/link";
+import { Stagger } from "@/components/motion/stagger";
 import { Badge } from "@/components/ui/badge";
 import { LogoMark } from "@/components/ui/logo-mark";
 import type { DirectoryProfile, Logo, ProfileRef } from "@/lib/api/types";
@@ -31,7 +32,7 @@ export function ProfileCard({ profile }: { profile: DirectoryProfile }) {
   return (
     <article
       className={cn(
-        "group relative flex h-full flex-col rounded-lg border border-line bg-surface p-5 shadow-xs transition-shadow hover:shadow-md focus-within:shadow-md",
+        "group relative flex h-full flex-col rounded-lg border border-line bg-surface p-5 shadow-xs transition-[box-shadow,translate] duration-200 ease-standard hover:shadow-md focus-within:shadow-md",
         // Sponsored profiles keep the brand outline; others show it on hover.
         profile.sponsored ? "frame-brand-on" : "frame-brand",
       )}
@@ -73,7 +74,7 @@ export function ProfileCard({ profile }: { profile: DirectoryProfile }) {
           </Badge>
         )}
         {profile.verified && (
-          <Badge tone="success">
+          <Badge tone="success" className="sheen">
             <BadgeCheck className="size-3.5" aria-hidden="true" />
             Verified
           </Badge>
@@ -86,13 +87,13 @@ export function ProfileCard({ profile }: { profile: DirectoryProfile }) {
 
 export function ProfileGrid({ profiles }: { profiles: DirectoryProfile[] }) {
   return (
-    <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    <Stagger as="ul" className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
       {profiles.map((profile) => (
-        <li key={`${profile.kind}/${profile.slug}`}>
+        <li key={`${profile.kind}/${profile.slug}`} className="motion-safe:[&:hover>article]:-translate-y-1">
           <ProfileCard profile={profile} />
         </li>
       ))}
-    </ul>
+    </Stagger>
   );
 }
 
@@ -102,10 +103,10 @@ export function ProfileGrid({ profiles }: { profiles: DirectoryProfile[] }) {
  */
 export function ProfileRefGrid({ profiles, person }: { profiles: ProfileRef[]; person?: boolean }) {
   return (
-    <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <Stagger as="ul" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {profiles.map((profile) => (
-        <li key={`${profile.kind}/${profile.slug}`}>
-          <article className="group frame-brand relative flex min-h-20 items-center gap-4 rounded-lg border border-line bg-surface p-4 shadow-xs transition-shadow hover:shadow-md focus-within:shadow-md">
+        <li key={`${profile.kind}/${profile.slug}`} className="motion-safe:[&:hover>article]:-translate-y-1">
+          <article className="group frame-brand relative flex min-h-20 items-center gap-4 rounded-lg border border-line bg-surface p-4 shadow-xs transition-[box-shadow,translate] duration-200 ease-standard hover:shadow-md focus-within:shadow-md">
             <ProfileAvatar name={profile.name} logo={profile.logo} person={person} className="size-12 text-base" />
             <div className="min-w-0 flex-1">
               <h3 className="font-sans text-base font-semibold tracking-normal text-ink">
@@ -123,6 +124,6 @@ export function ProfileRefGrid({ profiles, person }: { profiles: ProfileRef[]; p
           </article>
         </li>
       ))}
-    </ul>
+    </Stagger>
   );
 }

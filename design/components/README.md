@@ -251,7 +251,8 @@ The top of the landing page: a wide property photograph with a white panel centr
 - The photograph is the cover photo of a featured listing (the newest listing when none is featured), from the API. It fills the section, is loaded eagerly with high fetch priority, and is decorative (`alt=""`). From `xl` a small white caption at the bottom right gives that listing's price, title and suburb and links to it.
 - The panel (`surface`, `rounded-xl`, `shadow-lg`, 768px at most) holds a short `rule-brand`, one line that says what the site is, the page's `h1` with one phrase underlined in turquoise (`mark-brand`), one sentence, and `HeroSearch`. All text is on white, so its contrast never depends on the photo.
 - On phones the panel sits low so the photo shows above it; from `md` it is centred, and from `lg` the section is at least 640px tall.
-- The loading state is the same frame with the same heading and a block the height of the search, so nothing moves when the page arrives. There is no slideshow and nothing auto-plays.
+- The loading state is the same frame with the same heading and a block the height of the search, so nothing moves when the page arrives. There is no slideshow and nothing loops.
+- Motion (`HeroMotion`, see "Motion"): the photograph sits in a frame 8% taller than the hero at each end; the frame drifts down as the page scrolls (parallax) and eases into a 4% zoom over the first seconds. The panel rises 16px into place as the page paints. The `h1` and the photograph are never hidden or faded.
 - A page has at most one hero. Other pages start with a plain `h1` on white.
 
 ## HeroSearch (`listings/hero-search.tsx`)
@@ -297,7 +298,7 @@ A photo with a title and a count, for places and collections: "Explore by city" 
 A slim band under the hero with three counts from the API: properties listed, cities and towns, professionals and businesses.
 
 - A `dl` in three equal columns divided by hairlines. The number is `ink`, weight 700, tabular; the label is `muted`.
-- The numbers are rendered by the server and do not animate. Only show a count the API returns.
+- The numbers are rendered by the server, and that is what is shown without JavaScript. With it, each counts up from zero once, the first time the strip is on screen (`CountUp`); its width does not change while it counts. Only show a count the API returns.
 
 ## Tiles (`app/page.tsx`, `app/directory/page.tsx`)
 
@@ -346,7 +347,8 @@ A month calendar of nights. One component for the visitor's availability calenda
 
 - White, sticky, 64px tall, with a hairline under it and the 3px logo-colour band along its top. It begins with a "Skip to content" link.
 - Left to right: the logo on white (`Logo` default tone), the main navigation, then at the right the session control (`AccountMenu`: "Sign in" and "Sign up" for a signed-out visitor) and, below `lg`, the menu button (`SiteMenu`).
-- The main navigation (`layout/nav-items.ts`) shows inline from `lg`. Links are `ink`, weight 600, and take a turquoise underline on hover.
+- The main navigation (`layout/nav-items.ts`) shows inline from `lg`. Links are `ink`, weight 600, and take a turquoise underline that grows from the left on hover and keyboard focus (`link-sweep`).
+- Once the page has been scrolled the bar gains `shadow-md` and the logo is drawn at 90%. The bar stays 64px tall, so nothing under it moves.
 - **The bar is one row at every width and never wraps or scrolls sideways.** The logo is the one part that may shrink: 24px tall on phones, 32px from `sm`. Do not add items to the bar; add them to the navigation list, which moves into the menu on small screens.
 - The header shows no market or currency. Prices carry their currency code, and the footer lists the markets.
 - Without JavaScript the session control cannot load, so plain "Sign in" and "Sign up" links are rendered in a `noscript`.
@@ -386,6 +388,7 @@ An inline message about the result of an action, placed next to what it describe
 The frame for sign-in, registration and account recovery: a 448px white card centred on the white page with one `h1`, an optional description, the form, and one secondary link below the card.
 
 - One task per screen. No marketing content, no navigation beyond the single secondary link.
+- The card rises 16px into place as the page paints (`enter-rise`). It is a CSS transform: the form is never hidden and can be typed in from the first moment. Nothing inside the form is animated.
 - Password fields use `autoComplete="current-password"` or `"new-password"` so password managers work. Never block paste.
 - The password rule (10 characters minimum) is shown as a hint before submission, not only as an error after it.
 - Registration and password-reset confirmations must not reveal whether an address has an account. Say "If this address can be registered…" and "If an account exists…".
@@ -611,7 +614,7 @@ The layout of the four legal pages under `/legal`: Privacy Policy, Terms and Con
 
 - **Content is data.** `src/lib/faq.ts` holds categories of `{ id, question, answer }`. An answer is structured rich text (paragraphs and short lists of text and links), rendered as elements and never as raw HTML. The same data makes the `FAQPage` structured data. The shape is plain JSON so the questions can move to the API later without changing the page.
 - **Page:** a short `rule-brand`, the `h1`, one sentence, then a "Topics" `nav` (anchor links to each category with its number of questions; above the list on phones, a sticky column from `lg`) and the list. It ends with a `soft` "Still need help?" panel with the support address from `src/lib/legal.ts`.
-- **Categories** are `section`s with an `h2`. **Each question is a native `<details>`**: the `<summary>` holds the question as an `h3` and a chevron that turns when open, is at least 48px tall, the whole row is the target, and it takes the global focus outline. It opens with a click, Enter or Space and needs no JavaScript. Every answer is in the HTML.
+- **Categories** are `section`s with an `h2`. **Each question is a native `<details>`**: the `<summary>` holds the question as an `h3` and a chevron that turns when open, is at least 48px tall, the whole row is the target, and it takes the global focus outline. It opens with a click, Enter or Space and needs no JavaScript. Every answer is in the HTML. With JavaScript the answer opens and closes with its height (`MotionDetails`, see "Motion"); with reduced motion it opens at once.
 - A question's `id` is its address: `/faq#why-no-phone-numbers`. With JavaScript the question named in the address is opened on load and when the hash changes; without it the browser scrolls to the closed question. Do not change an id once published.
 - **"Search the questions"** (with JavaScript only; its space is reserved so nothing moves): a search field that filters the questions as you type, by the words of the question, its answer and its category, ignoring case and accents. A polite `role="status"` says how many match ("3 questions match."). With none: a dashed empty state, "No questions match", with the support address. Categories with no match are hidden.
 - **Answers** are 2 to 4 sentences, at most `max-w-prose` wide, with underlined links to the page that does the thing. Answer from what is built today: never offer a feature that does not exist, and never give a time we cannot keep (verification says "we email you when a decision is made").
@@ -635,6 +638,60 @@ Wraps every public component that reads the API through `load()`.
 - Do not wrap API-backed public content in a plain `<Suspense>`: React moves the finished content of a boundary into a hidden element and reveals it with a script, so a visitor without JavaScript sees only the fallback.
 - A page whose content also reads `params` or `searchParams` exports `instant = false`. See README, "Builds and the API".
 - The fallback still matters: it is what a build without the API stores and shows first. Match the content's size.
+
+## Motion (`components/motion`, `app/globals.css`)
+
+The site moves a lot, and none of it is allowed to cost anything: not content, not speed, not accessibility. GSAP 3 (with `@gsap/react` for `useGSAP`) animates what enters as the page is scrolled, what counts and what opens; its ScrollTrigger plugin ties the hero's parallax to the scroll position; CSS does hover, focus and the first paint. An entrance starts when the browser reports that the element is on screen (IntersectionObserver), not from a measured scroll position, so it cannot be missed at the end of a page or go stale when the page changes height. GSAP is not MIT-licensed: both packages are under GSAP's own "Standard no charge" licence (https://gsap.com/standard-license), which the package describes as free of charge, commercial use included. Only the core and ScrollTrigger are imported.
+
+**Rules. They are not negotiable.**
+
+- **The server HTML is fully visible.** No element is hidden in markup or in CSS for a script to reveal. Hidden starting states are set from JavaScript, in a layout effect, and removed when the animation ends. If the script fails, everything is simply there.
+- **Nothing that has been seen is hidden again.** When a page is loaded from the server, whatever is already on screen when the script starts is left alone; only what is still below the screen is prepared for an entrance. After a client-side navigation the script runs before the first paint, so everything may enter. This is why a first load is calmer than moving between pages.
+- **`prefers-reduced-motion: reduce` means no movement at all.** Every GSAP animation is created inside `gsap.matchMedia()` under `(prefers-reduced-motion: no-preference)`; the CSS utilities are inside the same media query. Content just appears.
+- **Largest Contentful Paint is protected.** The hero's `h1` and photograph, a listing's main photo and the first row of listing cards never start invisible. They move with `transform` only, or what surrounds them moves.
+- **`transform` and `opacity` only**, so nothing shifts. The one exception is the height of an opening answer (`MotionDetails`), which follows a click.
+- **Sideways movement only inside a row that already scrolls sideways** (`ListingRail`). Anywhere else it could widen the page on a phone.
+- **Forms are not animated.** A panel that holds a form may enter once; moving focus into anything that is still entering finishes it at once. No transform is left on an element afterwards, so drop-down lists and sticky panels inside it are positioned as before.
+- GSAP is imported only by `components/motion/gsap.ts`, which registers the plugins once, and only client components import that file. Server components use the motion components as wrappers around their own content; pages stay server components.
+- **Print shows everything.** Elements still waiting to enter carry `data-motion`, and the print stylesheet shows them.
+- Short and small: 0.3 to 0.8s, 12 to 20px, the `standard` easing from the tokens, 30 to 100ms between the items of a group. Nothing loops.
+
+**Components**
+
+| Component | What it does |
+| --- | --- |
+| `Reveal` | Fades its content in and raises it 20px when it comes on screen. `as` picks the element, `from` is `up`, `scale` or `fade`. A descendant marked `data-draw` (the `rule-brand` of a heading) is drawn from left to right. |
+| `Stagger` | The same for the direct children of a grid, row or list, one after another. Children that come on screen together enter together, so a long grid animates row by row. `from="right"` is for `ListingRail` only; `solid={3}` keeps the first three children from fading (the first row of listing cards). |
+| `CountUp` | A whole number that counts up from zero the first time it is on screen. Figure spaces and tabular digits keep its width. |
+| `HeroMotion` | The hero `section`: parallax and a slow settle on the frame marked `data-hero-photo`; elements marked `data-hero-item` rise in after a client-side navigation. |
+| `MotionDetails` | A native `<details>` whose body (one unstyled element marked `data-details-body`) opens and closes with its height. It carries `data-closing` while it closes. |
+| `SiteMotion` | Once, in the root layout. Marks the header `data-scrolled`, and has ScrollTrigger measure again whenever the page changes height (a navigation, streamed content, an opened answer). |
+| `useReveal` | The hook behind `Reveal` and `Stagger`, for a client component that already owns the element (`ListingRail`). |
+
+**CSS utilities** (no JavaScript; all inside the reduced-motion query)
+
+| Utility | What it does |
+| --- | --- |
+| `enter-rise` | Rises 16px into place as the page paints. For what is on screen when a page opens: the hero panel, a page's heading, the auth card, a profile's header. |
+| `enter-settle` | A photo eases back from a 5% zoom inside its frame: the main photo of a listing. |
+| `link-sweep` | An underline in the accent colour that grows from the left on hover and focus. Put it on the text, inside the link. |
+| `sheen` | A highlight that crosses the element once when it, or the `group` it is in, is hovered: the "Featured" tag, the "Verified" badge of a profile card, the app-store buttons. |
+| `wobble-once` | An icon tilts once shortly after the page paints: the flask of the test-site notice. |
+
+Cards (`ListingCard`, `ProfileCard`) rise 4px under the pointer. The hover is read from the `li` around the card (`cardLift`), so the card does not move out from under the pointer.
+
+**Where it is used**
+
+- **Every page:** header shadow and underlines; footer columns and app-store buttons come in one after another when the footer is reached.
+- **Landing page:** hero (above); the stat strip counts up; the assurance band, every `SectionHeading` (with its rule drawn), the listing rails (cards slide in from the right), the featured grid, country and suburb chips, city tiles (grow in), category and professional tiles (with their counts counting up), "How it works" steps and promises, the role groups and the closing panel.
+- **Search results:** the heading rises; filter chips, listing cards row by row (the first row moves but does not fade), popular searches; the advanced search panel opens and closes with its height.
+- **Listing:** the main photo settles; more photos grow in; facts, description, features, the calendar, the side panel with the advertiser and the request form, and "Similar properties" enter as they are reached.
+- **Professionals:** headings rise; tiles, trade chips, profile cards, a profile's services, areas, agents and listings enter as they are reached; a profile's header rises.
+- **FAQ:** the heading rises; answers open and close with their height; "Still need help?" enters.
+- **Legal:** headings rise and the index cards come in. The text of a document does not move.
+- **Sign-in, registration, account recovery:** the card rises. **Not found:** the message rises.
+
+**Adding motion to something new.** Wrap it in `Reveal` or `Stagger` from a server component; do not make the page a client component and do not import GSAP anywhere else. If it is on screen when its page opens, use `enter-rise` instead. If it holds a photo that loads with priority, do not fade it. When the same component shows a new set of items after a client-side navigation (search results), give its wrapper a `key` that changes with them, so the entrance runs again.
 
 ## Not built yet
 

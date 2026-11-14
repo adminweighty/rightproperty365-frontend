@@ -5,6 +5,8 @@ import { notFound } from "next/navigation";
 import { ProfileAvatar, ProfileGrid, ProfileRefGrid } from "@/components/directory/profile-card";
 import { ProfileEnquiryForm } from "@/components/directory/profile-enquiry-form";
 import { ListingGrid } from "@/components/listings/listing-card";
+import { Reveal } from "@/components/motion/reveal";
+import { Stagger } from "@/components/motion/stagger";
 import { JsonLd } from "@/components/seo/json-ld";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
@@ -123,7 +125,7 @@ async function ProfileContent({ params }: Pick<Props, "params">) {
         </ol>
       </nav>
 
-      <header className="mt-6 overflow-hidden rounded-xl border border-line bg-surface shadow-xs">
+      <header className="enter-rise mt-6 overflow-hidden rounded-xl border border-line bg-surface shadow-xs">
         <div aria-hidden="true" className="rule-brand rounded-none" />
         <div aria-hidden="true" className="h-20 bg-tint md:h-24" />
         <div className="flex flex-col gap-5 px-6 pb-6 md:flex-row md:items-end md:px-8">
@@ -184,7 +186,7 @@ async function ProfileContent({ params }: Pick<Props, "params">) {
             <h2 className="mt-10 text-2xl">Services</h2>
           )}
           {profile.offerings.length > 0 ? (
-            <ul className="mt-4 grid gap-4 sm:grid-cols-2">
+            <Stagger as="ul" className="mt-4 grid gap-4 sm:grid-cols-2">
               {profile.offerings.map((offering) => (
                 <li key={offering.name} className="rounded-lg border border-line bg-surface p-5">
                   <h3 className="flex items-center gap-2.5 font-sans text-base font-semibold tracking-normal">
@@ -194,33 +196,33 @@ async function ProfileContent({ params }: Pick<Props, "params">) {
                   <p className="mt-2 text-sm leading-relaxed text-muted">{offering.description}</p>
                 </li>
               ))}
-            </ul>
+            </Stagger>
           ) : (
-            <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+            <Stagger as="ul" stagger={0.03} className="mt-4 grid gap-3 sm:grid-cols-2">
               {profile.services.map((service) => (
                 <li key={service} className="flex items-center gap-2.5 text-ink">
                   <Check className="size-4 shrink-0 text-primary-ink" aria-hidden="true" />
                   {service}
                 </li>
               ))}
-            </ul>
+            </Stagger>
           )}
 
           {profile.areas.length > 0 && (
             <>
               <h2 className="mt-10 text-2xl">Areas covered</h2>
-              <ul className="mt-4 flex flex-wrap gap-2">
+              <Stagger as="ul" stagger={0.03} className="mt-4 flex flex-wrap gap-2">
                 {profile.areas.map((area) => (
                   <li key={area}>
                     <Badge tone="primary">{area}</Badge>
                   </li>
                 ))}
-              </ul>
+              </Stagger>
             </>
           )}
         </div>
 
-        <aside aria-labelledby="enquiry-heading">
+        <Reveal as="aside" aria-labelledby="enquiry-heading">
           <Card className="lg:sticky lg:top-24">
             <h2 id="enquiry-heading" className="text-2xl">
               Send an enquiry
@@ -247,14 +249,16 @@ async function ProfileContent({ params }: Pick<Props, "params">) {
               </ButtonLink>
             )}
           </Card>
-        </aside>
+        </Reveal>
       </div>
 
       {agents.length > 0 && (
         <section aria-labelledby="team-heading" className="mt-16 border-t border-line pt-12">
-          <h2 id="team-heading" className="text-2xl md:text-3xl">
-            Agents at {profile.name}
-          </h2>
+          <Reveal>
+            <h2 id="team-heading" className="text-2xl md:text-3xl">
+              Agents at {profile.name}
+            </h2>
+          </Reveal>
           <div className="mt-8">
             {team.length === agents.length ? (
               <ProfileGrid profiles={team} />
@@ -271,9 +275,11 @@ async function ProfileContent({ params }: Pick<Props, "params">) {
           aria-labelledby="listings-heading"
           className="mt-16 scroll-mt-24 border-t border-line pt-12"
         >
-          <h2 id="listings-heading" className="text-2xl md:text-3xl">
-            {listings.length === 1 ? "1 property" : `${listings.length} properties`} from {profile.name}
-          </h2>
+          <Reveal>
+            <h2 id="listings-heading" className="text-2xl md:text-3xl">
+              {listings.length === 1 ? "1 property" : `${listings.length} properties`} from {profile.name}
+            </h2>
+          </Reveal>
           <div className="mt-8">
             <ListingGrid listings={listings} periods={toLabels(catalogue.sets.price_periods)} />
           </div>

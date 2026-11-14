@@ -4,11 +4,15 @@ import { Container } from "@/components/ui/container";
 
 type Props = { title: string; description?: string; footer?: ReactNode; children: ReactNode };
 
-/** Narrow, centred card used by every sign-in and account-recovery screen. */
+/**
+ * Narrow, centred card used by every sign-in and account-recovery screen. It
+ * rises into place as the page paints (`enter-rise`: a transform in CSS, so
+ * the form is never hidden and is ready to type in from the start).
+ */
 export function AuthShell({ title, description, footer, children }: Props) {
   return (
     <Container className="flex justify-center py-12 md:py-20">
-      <div className="w-full max-w-md">
+      <div className="enter-rise w-full max-w-md">
         <Card className="p-6 sm:p-8">
           <h1 className="text-3xl">{title}</h1>
           {description && <p className="mt-2 leading-relaxed text-muted">{description}</p>}
