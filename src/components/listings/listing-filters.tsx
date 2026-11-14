@@ -2,8 +2,9 @@ import { SlidersHorizontal } from "lucide-react";
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
-import { Field, fieldDescribedBy, Input, Select } from "@/components/ui/field";
-import { optionText, type OptionGroup, type SearchOptions } from "@/lib/search-options";
+import { Field, fieldDescribedBy, Input } from "@/components/ui/field";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { selectGroups, type SearchOptions } from "@/lib/search-options";
 import type { ListingFilters } from "@/lib/seo";
 
 type Props = {
@@ -14,18 +15,6 @@ type Props = {
   /** The API's message for a parameter it refused, by parameter name. */
   errors?: Record<string, string>;
 };
-
-function GroupedOptions({ groups }: { groups: OptionGroup[] }) {
-  return groups.map((group) => (
-    <optgroup key={group.label} label={group.label}>
-      {group.options.map((option) => (
-        <option key={option.value} value={option.value}>
-          {optionText(option)}
-        </option>
-      ))}
-    </optgroup>
-  ));
-}
 
 /** A named group of filters: a fieldset whose legend is the group's heading. */
 function Group({ legend, children }: { legend: string; children: ReactNode }) {
@@ -130,10 +119,12 @@ export function ListingFilterPanel({ options, defaults, open = false, errors = {
 
       <Group legend="Property">
         <Field id="search-property-type" label="Property type">
-          <Select id="search-property-type" name="property_type" defaultValue={defaults.property_type ?? ""}>
-            <option value="">Any property type</option>
-            <GroupedOptions groups={options.propertyTypes} />
-          </Select>
+          <SearchableSelect
+            id="search-property-type"
+            name="property_type"
+            defaultValue={defaults.property_type ?? ""}
+            options={[{ value: "", label: "Any property type" }, ...selectGroups(options.propertyTypes)]}
+          />
         </Field>
         <NumberField name="bedrooms_min" label="Bedrooms, at least" step={1} max={50} {...shared} />
         <NumberField name="bedrooms_max" label="Bedrooms, at most" step={1} max={50} {...shared} />
@@ -152,25 +143,21 @@ export function ListingFilterPanel({ options, defaults, open = false, errors = {
 
       <Group legend="More">
         <Field id="search-listed-within" label="Listed">
-          <Select id="search-listed-within" name="listed_within_days" defaultValue={defaults.listed_within_days ?? ""}>
-            <option value="">At any time</option>
-            {options.listedWithin.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </Select>
+          <SearchableSelect
+            id="search-listed-within"
+            name="listed_within_days"
+            defaultValue={defaults.listed_within_days === undefined ? "" : String(defaults.listed_within_days)}
+            options={[{ value: "", label: "At any time" }, ...options.listedWithin.map(({ value, label }) => ({ value, label }))]}
+          />
         </Field>
 
         <Field id="search-advertiser" label="Advertised by">
-          <Select id="search-advertiser" name="advertiser_type" defaultValue={defaults.advertiser_type ?? ""}>
-            <option value="">Anyone</option>
-            {options.advertisers.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </Select>
+          <SearchableSelect
+            id="search-advertiser"
+            name="advertiser_type"
+            defaultValue={defaults.advertiser_type ?? ""}
+            options={[{ value: "", label: "Anyone" }, ...options.advertisers.map(({ value, label }) => ({ value, label }))]}
+          />
         </Field>
 
         <Field id="search-reference" label="Listing reference" error={errors.reference ? `Listing reference ${errors.reference}.` : undefined}>
@@ -187,22 +174,15 @@ export function ListingFilterPanel({ options, defaults, open = false, errors = {
 
         <Field id="search-sort" label="Sort by">
           {/* The API's default order is the empty option, so it adds nothing to the address. */}
-          <Select id="search-sort" name="sort" defaultValue={defaults.sort === defaultSort ? "" : (defaults.sort ?? "")}>
-            {options.sorts
-              .filter((option) => option.value === defaultSort)
-              .map((option) => (
-                <option key={option.value} value="">
-                  {option.label}
-                </option>
-              ))}
-            {options.sorts
-              .filter((option) => option.value !== defaultSort)
-              .map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-          </Select>
+          <SearchableSelect
+            id="search-sort"
+            name="sort"
+            defaultValue={defaults.sort === defaultSort ? "" : (defaults.sort ?? "")}
+            options={[
+              ...options.sorts.filter((option) => option.value === defaultSort).map(({ label }) => ({ value: "", label })),
+              ...options.sorts.filter((option) => option.value !== defaultSort).map(({ value, label }) => ({ value, label })),
+            ]}
+          />
         </Field>
 
         <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm text-ink sm:col-span-2 lg:col-span-4">

@@ -7,7 +7,8 @@ import { AppointmentCard, type AppointmentAction } from "@/components/appointmen
 import { RequireAuth } from "@/components/auth/require-auth";
 import { Alert } from "@/components/ui/alert";
 import { Button, ButtonLink } from "@/components/ui/button";
-import { Field, Input, Select } from "@/components/ui/field";
+import { Field, Input } from "@/components/ui/field";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
   acceptMyAppointment,
   actOnReceivedAppointment,
@@ -306,24 +307,20 @@ function Received() {
 
       <form onSubmit={applyFilters} aria-label="Filter appointments" className="mt-6 grid gap-4 rounded-xl border border-line bg-surface p-4 shadow-xs sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1fr_auto] lg:items-end">
         <Field id="appointments-status" label="Status">
-          <Select id="appointments-status" name="status" defaultValue="">
-            <option value="">Any status</option>
-            {statusOptions.map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </Select>
+          <SearchableSelect
+            id="appointments-status"
+            name="status"
+            defaultValue=""
+            options={[{ value: "", label: "Any status" }, ...statusOptions.map(([value, label]) => ({ value, label }))]}
+          />
         </Field>
         <Field id="appointments-type" label="Type">
-          <Select id="appointments-type" name="type" defaultValue="">
-            <option value="">Any type</option>
-            {typeOptions.map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </Select>
+          <SearchableSelect
+            id="appointments-type"
+            name="type"
+            defaultValue=""
+            options={[{ value: "", label: "Any type" }, ...typeOptions.map(([value, label]) => ({ value, label }))]}
+          />
         </Field>
         <Field id="appointments-from" label="From">
           <Input id="appointments-from" name="from" type="date" />

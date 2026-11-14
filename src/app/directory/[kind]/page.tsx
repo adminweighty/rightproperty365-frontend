@@ -5,7 +5,8 @@ import { notFound } from "next/navigation";
 import { ProfileGrid } from "@/components/directory/profile-card";
 import { GetForm } from "@/components/listings/get-form";
 import { Button, ButtonLink } from "@/components/ui/button";
-import { Field, Select } from "@/components/ui/field";
+import { Field } from "@/components/ui/field";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { JsonLd } from "@/components/seo/json-ld";
 import { Container } from "@/components/ui/container";
 import { ErrorState } from "@/components/ui/error-state";
@@ -198,24 +199,26 @@ async function DirectoryList({ params, searchParams }: Pick<Props, "params" | "s
         className="mt-6 grid gap-4 rounded-xl border border-line bg-surface p-4 shadow-xs sm:grid-cols-[1fr_1fr_auto] sm:items-end"
       >
         <Field id="directory-country" label="Country">
-          <Select id="directory-country" name="country" defaultValue={filters.country ?? ""}>
-            <option value="">Any country</option>
-            {catalogue.markets.map((market) => (
-              <option key={market.code} value={market.code}>
-                {market.name}
-              </option>
-            ))}
-          </Select>
+          <SearchableSelect
+            id="directory-country"
+            name="country"
+            defaultValue={filters.country ?? ""}
+            options={[
+              { value: "", label: "Any country" },
+              ...catalogue.markets.map((market) => ({ value: market.code, label: market.name })),
+            ]}
+          />
         </Field>
         <Field id="directory-region" label="Region or province">
-          <Select id="directory-region" name="region" defaultValue={filters.region ?? ""}>
-            <option value="">Any region</option>
-            {regions.map((region) => (
-              <option key={region.code} value={region.code}>
-                {region.label}
-              </option>
-            ))}
-          </Select>
+          <SearchableSelect
+            id="directory-region"
+            name="region"
+            defaultValue={filters.region ?? ""}
+            options={[
+              { value: "", label: "Any region" },
+              ...regions.map((region) => ({ value: region.code, label: region.label })),
+            ]}
+          />
         </Field>
         <div className="flex gap-3">
           <Button type="submit">Apply</Button>

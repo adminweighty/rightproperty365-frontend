@@ -18,7 +18,8 @@ import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Field, fieldDescribedBy, Input, Select, Textarea } from "@/components/ui/field";
+import { Field, fieldDescribedBy, Input, Textarea } from "@/components/ui/field";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import type { ApiFailure } from "@/lib/api/http";
 import {
   listMyApplications,
@@ -342,14 +343,10 @@ function Details({ requirement, lists }: Props) {
                     {spec.kind === "textarea" ? (
                       <Textarea {...common} maxLength={spec.maxLength} rows={5} />
                     ) : spec.kind === "city" || spec.kind === "trade" || spec.kind === "agency" ? (
-                      <Select {...common}>
-                        <option value="">Choose…</option>
-                        {options.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </Select>
+                      <SearchableSelect
+                        {...common}
+                        options={[{ value: "", label: "Choose…" }, ...options.map(({ value, label }) => ({ value, label }))]}
+                      />
                     ) : (
                       <Input
                         {...common}

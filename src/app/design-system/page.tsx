@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
-import { Field, Input, Select, Textarea } from "@/components/ui/field";
+import { Field, Input, Textarea } from "@/components/ui/field";
+import { SearchableSelect, type SelectItem } from "@/components/ui/searchable-select";
 import { ErrorState } from "@/components/ui/error-state";
 import { Pagination } from "@/components/ui/pagination";
 import { listListings } from "@/lib/api/server/listings";
@@ -48,6 +49,20 @@ const typeScale = [
   ["text-sm", "Supporting text", "text-sm text-muted"],
   ["text-xs", "Labels and badges", "text-xs text-muted"],
 ] as const;
+
+/** A long, grouped list for the SearchableSelect example: the runtime's time zones under their region. */
+const timeZones: SelectItem[] = (() => {
+  const regions = new Map<string, { value: string; label: string }[]>();
+  for (const zone of Intl.supportedValuesOf("timeZone")) {
+    const [region, ...rest] = zone.split("/");
+    if (rest.length === 0) continue;
+    const items = regions.get(region) ?? [];
+    items.push({ value: zone, label: rest.join(", ").replaceAll("_", " ") });
+    regions.set(region, items);
+  }
+  return [{ value: "", label: "Any time zone" }, ...[...regions].map(([label, options]) => ({ label, options }))];
+})();
+const timeZoneCount = timeZones.reduce((sum, item) => sum + ("options" in item ? item.options.length : 0), 0);
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -175,10 +190,14 @@ export default function DesignSystemPage() {
               <Input id="ds-error" defaultValue="not-an-email" aria-invalid aria-describedby="ds-error-error" />
             </Field>
             <Field id="ds-select" label="Select">
-              <Select id="ds-select" defaultValue="rent">
-                <option value="sale">For sale</option>
-                <option value="rent">To rent</option>
-              </Select>
+              <SearchableSelect
+                id="ds-select"
+                defaultValue="rent"
+                options={[
+                  { value: "sale", label: "For sale" },
+                  { value: "rent", label: "To rent" },
+                ]}
+              />
             </Field>
             <Field id="ds-disabled" label="Disabled" optional>
               <Input id="ds-disabled" disabled defaultValue="Read only" />
@@ -186,6 +205,105 @@ export default function DesignSystemPage() {
             <Field id="ds-textarea" label="Textarea" className="sm:col-span-2">
               <Textarea id="ds-textarea" defaultValue="Longer answers go here." />
             </Field>
+          </div>
+        </Section>
+
+        <Section title="Searchable select">
+          <p className="max-w-2xl text-muted">
+            Every drop-down is a <code>SearchableSelect</code>: a native select in the HTML that becomes a
+            text field with a list once the page is interactive. Type to filter, use the arrow keys, Enter
+            to choose, Escape to close.
+          </p>
+          <div className="mt-6 grid max-w-2xl gap-5 sm:grid-cols-2">
+            <Field id="ds-ss-any" label="With an “any” choice" hint="An empty option adds the clear button.">
+              <SearchableSelect
+                id="ds-ss-any"
+                defaultValue="harare"
+                aria-describedby="ds-ss-any-hint"
+                options={[
+                  { value: "", label: "Any city or town" },
+                  { value: "harare", label: "Harare", secondary: "(6)" },
+                  { value: "bulawayo", label: "Bulawayo", secondary: "(3)" },
+                  { value: "mutare", label: "Mutare", secondary: "(0)" },
+                ]}
+              />
+            </Field>
+            <Field id="ds-ss-grouped" label="Grouped">
+              <SearchableSelect
+                id="ds-ss-grouped"
+                defaultValue=""
+                options={[
+                  { value: "", label: "Any property type" },
+                  {
+                    label: "Residential",
+                    options: [
+                      { value: "house", label: "House" },
+                      { value: "flat", label: "Flat or apartment" },
+                      { value: "townhouse", label: "Townhouse" },
+                    ],
+                  },
+                  {
+                    label: "Commercial",
+                    options: [
+                      { value: "office", label: "Office" },
+                      { value: "shop", label: "Shop", disabled: true },
+                      { value: "warehouse", label: "Warehouse", keywords: ["storage", "industrial"] },
+                    ],
+                  },
+                ]}
+              />
+            </Field>
+            <Field
+              id="ds-ss-long"
+              label="Long list"
+              hint={`${timeZoneCount} time zones under their region. The first 100 matches are shown until you type.`}
+            >
+              <SearchableSelect id="ds-ss-long" defaultValue="" aria-describedby="ds-ss-long-hint" options={timeZones} />
+            </Field>
+            <Field id="ds-ss-error" label="With an error" error="City or town is not a city of that region.">
+              <SearchableSelect
+                id="ds-ss-error"
+                defaultValue="mutare"
+                aria-invalid
+                aria-describedby="ds-ss-error-error"
+                options={[
+                  { value: "", label: "Any city or town" },
+                  { value: "harare", label: "Harare" },
+                  { value: "mutare", label: "Mutare" },
+                ]}
+              />
+            </Field>
+            <Field id="ds-ss-disabled" label="Disabled">
+              <SearchableSelect
+                id="ds-ss-disabled"
+                disabled
+                defaultValue="email"
+                options={[
+                  { value: "email", label: "Email" },
+                  { value: "phone", label: "Phone" },
+                ]}
+              />
+            </Field>
+            <form className="flex flex-col gap-3">
+              <Field id="ds-ss-required" label="Required" hint="Submitting without a choice shows the browser’s message.">
+                <SearchableSelect
+                  id="ds-ss-required"
+                  name="contact"
+                  required
+                  defaultValue=""
+                  aria-describedby="ds-ss-required-hint"
+                  options={[
+                    { value: "", label: "Choose…" },
+                    { value: "email", label: "Email" },
+                    { value: "phone", label: "Phone" },
+                    { value: "whatsapp", label: "WhatsApp" },
+                  ]}
+                />
+              </Field>
+              <Button type="submit" variant="secondary" className="self-start">
+                Check
+              </Button>
+            </form>
           </div>
         </Section>
 

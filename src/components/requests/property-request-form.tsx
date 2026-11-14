@@ -6,7 +6,8 @@ import Link from "next/link";
 import { useAuth } from "@/components/auth/auth-provider";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Field, fieldDescribedBy, Input, Select, Textarea } from "@/components/ui/field";
+import { Field, fieldDescribedBy, Input, Textarea } from "@/components/ui/field";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
   submitPropertyRequest,
   type ApiFailure,
@@ -149,18 +150,15 @@ export function PropertyRequestForm({
       className="flex flex-col gap-4"
     >
       <Field id="request_type" label="What would you like to do?" error={errors.request_type}>
-        <Select
+        <SearchableSelect
           id="request_type"
           name="request_type"
           value={requestType}
-          onChange={(event) => setRequestType(event.target.value)}
-        >
-          {requestTypes.map((type) => (
-            <option key={type.value} value={type.value}>
-              {type.label}
-            </option>
-          ))}
-        </Select>
+          onValueChange={setRequestType}
+          aria-invalid={Boolean(errors.request_type)}
+          aria-describedby={fieldDescribedBy("request_type", { error: errors.request_type })}
+          options={requestTypes.map(({ value, label }) => ({ value, label }))}
+        />
       </Field>
 
       {slotTypes.includes(requestType) && (
@@ -218,18 +216,15 @@ export function PropertyRequestForm({
       )}
 
       <Field id="preferred_contact_method" label="How should they reply?" error={errors.preferred_contact_method}>
-        <Select
+        <SearchableSelect
           id="preferred_contact_method"
           name="preferred_contact_method"
           value={contactMethod}
-          onChange={(event) => setContactMethod(event.target.value)}
-        >
-          {contactMethods.map((method) => (
-            <option key={method.value} value={method.value}>
-              {method.label}
-            </option>
-          ))}
-        </Select>
+          onValueChange={setContactMethod}
+          aria-invalid={Boolean(errors.preferred_contact_method)}
+          aria-describedby={fieldDescribedBy("preferred_contact_method", { error: errors.preferred_contact_method })}
+          options={contactMethods.map(({ value, label }) => ({ value, label }))}
+        />
       </Field>
 
       <Field

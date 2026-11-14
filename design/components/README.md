@@ -30,7 +30,7 @@ Shared rules:
 - While an action is in flight: `disabled`, `aria-busy`, and a label that says what is happening ("Sending…").
 - Icons sit before the label at 16px and are `aria-hidden`. Icon-only buttons need an `aria-label`.
 
-## Field, Input, Select, Textarea (`ui/field.tsx`)
+## Field, Input, Textarea (`ui/field.tsx`)
 
 `Field` renders the label, the control, and a hint or an error.
 
@@ -39,6 +39,57 @@ Shared rules:
 - Errors replace the hint, sit under the control, and say how to fix the problem. The control gets `aria-invalid` and `aria-describedby` pointing at the error.
 - Controls are 44px tall with 16px text and a `control` border that meets 3:1.
 - Use the right `type`, `autoComplete` and `inputMode` so phones show the right keyboard.
+- There is no plain `Select`. Every drop-down is a `SearchableSelect`.
+
+## SearchableSelect (`ui/searchable-select.tsx`, `lib/searchable-select.ts`)
+
+The drop-down: a list of options from which one is chosen, that can be searched by typing. It is used for **every** drop-down, including lists of two or three options, so that all of them look and behave the same.
+
+**When to use.** One choice from a list: a country, a property type, a status, a contact method. Not for several choices (checkboxes), not for two or three choices that should all be visible at once (radio buttons, as in the hero's "For sale" / "To rent" tabs), and not for free text with suggestions: the value is always one of the options.
+
+**Without JavaScript** it is a native `<select>` with the same `name`, options and `<optgroup>`s, rendered by the server. Every GET form therefore submits the same address with JavaScript off, and the HTML holds every option.
+
+**With JavaScript** the native select stays in the page as the form control, and a text field with a list is drawn over it:
+
+- The select keeps its `name`, `required` and `disabled`, so it is what the form submits, what `FormData` reads and what the browser validates. It is invisible, takes no clicks, is out of the tab order (`tabindex="-1"`) and hidden from assistive technology (`aria-hidden`). It fills the same box as the text field, so the browser's "Please select an item" message appears on the field, and focus moves to the text field. A hidden input was not used because it cannot be `required` and would duplicate the value for visitors without JavaScript.
+- Choosing an option sets the select and fires its `change` event, so a form's own `onChange` still runs. The text field has no `name` and is never submitted.
+- The field's `id` moves from the select to the text field, so the `<label>` (or `Field`) names the text field. The select and the upgraded field are both 44px tall and full width: nothing moves when the page becomes interactive.
+
+**Anatomy**
+
+- The field: a text input with `role="combobox"`, showing the selected option's text ("Harare (6)"). At its right, a chevron; or, when the list has an "any" option (value `""`) and something else is chosen, a 44px clear button named "Clear" plus the label ("Clear Country").
+- The list: a white panel with a `line-strong` border and `shadow-lg`, as wide as the field, under it, or over it when there is more room there (the on-screen keyboard, the bottom of the screen). At most 320px tall; it scrolls inside. It never makes the page scroll sideways.
+- Options are at least 44px tall and wrap long text. The label is `ink`; secondary text such as a count is `muted`. The selected option is weight 600 with a tick. The active option (the one Enter will take) has a `primary-soft` fill and a 3px `primary` bar at its left, so it is not shown by colour alone.
+- Group headings (`muted`, weight 600, sentence case) are not options and cannot be chosen. A heading stays while any of its options match; typing a heading's words finds its options ("commercial" finds every commercial type).
+- "No matches" when nothing fits what was typed.
+- Lists are rendered 100 options at a time. While more matches exist, the list ends with "Keep typing to narrow the list"; scrolling to the end or arrowing past the last option renders the next 100, and End renders them all, so every option is reachable.
+
+**States:** default, hover (border `ink`), focus (the global outline and a `focus` border), open, invalid (`danger` border, `aria-invalid`, the error linked with `aria-describedby`), disabled (`sunken`, 60% opacity, cannot be opened), disabled option (`subtle`, skipped by the arrow keys).
+
+**Keyboard**
+
+| Key | Does |
+| --- | --- |
+| Type | Opens the list and filters it. The first match becomes active. Matching ignores case and accents, looks anywhere in the label, secondary text, keywords and group heading, and needs every word typed. |
+| Down, Up | Open the list on the selected option; then move the active option. They stop at the ends. Alt+Down opens without moving. |
+| Home, End | First and last option, while the list is open. |
+| Enter | Chooses the active option and closes. With the list closed, submits the form, as in any text field. |
+| Escape | Closes the list. Pressed again, discards what was typed and shows the selected option. |
+| Tab | Moves on. It chooses the active option only if the arrow keys were used to reach it; otherwise the selection is unchanged. |
+
+Leaving the field without choosing discards what was typed. Focus stays in the text field throughout: the active option is announced through `aria-activedescendant`.
+
+**Pointer and touch.** A click or tap on the field opens the list and selects its text, so typing replaces it. A click on an option chooses it. The same searchable list is used on phones, by decision: the native picker is not searchable, and country and city lists are long. The text is 16px, so iOS does not zoom.
+
+**Accessibility.** The WAI-ARIA "editable combobox with list autocomplete" pattern: `role="combobox"`, `aria-expanded`, `aria-controls`, `aria-autocomplete="list"`, `aria-activedescendant`; the list is a `role="listbox"` named after the field's label, groups are `role="group"` named by their heading, options are `role="option"` with `aria-selected`. A polite `role="status"` says how many options match what was typed ("3 options", "No matches").
+
+**Use**
+
+- Give it an `id` (the one its `Field` or `<label htmlFor>` uses), a `name`, and `options`: a list of `{ value, label, secondary?, keywords?, disabled? }` and groups `{ label, options }`. `selectOption` and `selectGroups` in `lib/search-options.ts` turn the search forms' counted options into these.
+- Uncontrolled with `defaultValue`, or controlled with `value` and `onValueChange`. An uncontrolled field follows `defaultValue` when it changes.
+- Pass `aria-invalid` and `aria-describedby` as for any control.
+- Option lists still come from the API (README, "No lists in code").
+- The logic (matching, grouping, the keyboard state machine) is in `lib/searchable-select.ts` and is checked by `npm test`.
 
 ## Badge (`ui/badge.tsx`)
 
@@ -80,7 +131,7 @@ A horizontal row of listing cards under a `SectionHeading`: "New listings", one 
 
 The listing search on results pages: a white card with a `line` border. A GET form (`GetForm`) that works without JavaScript and produces shareable URLs.
 
-- First row: buy or rent, category, keyword and the "Search" button. Each control has a screen-reader label. On phones it stacks to one column; from `lg` it is a single row.
+- First row: buy or rent, category, keyword and the "Search" button. Each control has a screen-reader label. Every drop-down in the form is a `SearchableSelect`. On phones it stacks to one column; from `lg` it is a single row.
 - Then a `fieldset` with the legend "Location" (`LocationFields`), always visible, and under it the advanced search panel (`ListingFilterPanel`).
 - **Every option list is a prop** (`options`, built on the server by `buildSearchOptions` from the API's reference data, markets and search facets). The component contains no list of its own.
 - An option shows how many listings it has for the current search: "Harare (12)". The count is in the option text, so it is read out with the option. A value with no listings shows "(0)" and stays selectable. Regions show a count only once a country is chosen, because the API counts regions within a country.
@@ -89,11 +140,11 @@ The listing search on results pages: a white card with a `line` border. A GET fo
 
 ## LocationFields (`listings/location-fields.tsx`)
 
-The four location selects: Country, Region or province, City or town, Suburb. Each is an ordinary `<select>` named for the API's parameter, with a visible label.
+The four location selects: Country, Region or province, City or town, Suburb. Each is a `SearchableSelect` named for the API's parameter, with a visible label.
 
 - Countries are the API's markets; regions, cities and suburbs are reference sets in which each item names the place it is in.
-- **Without JavaScript** every option is present, grouped with `<optgroup>` under its parent (regions under their country, cities under their region, suburbs under their city). Any combination can be submitted; one that does not fit comes back with the API's message beside the control.
-- **With JavaScript** the selects depend on each other: a country narrows the regions, a region narrows the cities, a city narrows the suburbs, and a choice that no longer fits is cleared. The narrowing starts after the page has loaded, so the HTML always holds the full lists.
+- **Without JavaScript** each is a native `<select>` and every option is present, grouped with `<optgroup>` under its parent (regions under their country, cities under their region, suburbs under their city). Any combination can be submitted; one that does not fit comes back with the API's message beside the control.
+- **With JavaScript** the selects depend on each other: a country narrows the regions, a region narrows the cities, a city narrows the suburbs, and a choice that no longer fits is cleared. Each list can be searched by typing. The narrowing starts after the page has loaded, so the HTML always holds the full lists.
 - Nothing is fetched in the browser.
 
 ## ListingFilterPanel (`listings/listing-filters.tsx`)
@@ -102,7 +153,7 @@ The advanced search, inside the `SearchBar` form.
 
 - A native `<details id="advanced-search">` with the summary "Advanced search" / "Hide advanced search", so it opens with a click, Enter or Space and needs no JavaScript. The summary is 44px tall and shows how many of its filters are in use. It starts open when one is in use, when the API refused one, or when the address has `advanced=1` (the hero's "Advanced search" link).
 - Three groups, each a `fieldset` whose `legend` is the heading: **Property** (property type; bedrooms, bathrooms, floor area and land area, each "at least" and "at most"), **Price** (lowest and highest, in the chosen country's currency, named in the label), **More** (listed in the last 24 hours, 7, 14, 30 or 90 days; advertised by a Real Estate Agency or a private owner; listing reference; sort order; "Only listings with photos"), then **Features** as checkboxes.
-- Every control has a visible label (`Field`). Ranges are two number inputs, not a list of ranges. Areas are in square metres, said in the label.
+- Every control has a visible label (`Field`). Property type, "Listed", "Advertised by" and "Sort by" are `SearchableSelect`s. Ranges are two number inputs, not a list of ranges. Areas are in square metres, said in the label.
 - Features are the twelve most common in the result, plus any that are ticked. Each label row is 44px tall and the whole row is the target.
 - Sort order starts on the API's default (newest first, or best match when there is a keyword), which adds nothing to the address. The others are oldest first, price lowest or highest first, and largest first.
 - A maximum below its minimum, or any other value the API refuses, is reported under that control in the API's words.
@@ -169,7 +220,7 @@ The top of the landing page: a wide property photograph with a white panel centr
 The landing-page search, inside the hero's white panel.
 
 - One tab per deal type (the API's labels, "For sale" and "To rent" today), centred, sits above Location, property type, highest price, bedrooms and the primary "Search" button.
-- **Location is one select** covering every kind of place: countries, then regions or provinces, then cities and towns, then suburbs under their city, each under an `<optgroup>`. It is sent as `location=region:harare`, which the results page reads as that filter; the address people share from the results is the plain one (`?region=harare`).
+- **Location is one `SearchableSelect`** covering every kind of place: countries, then regions or provinces, then cities and towns, then suburbs under their city, each under a group heading (an `<optgroup>` without JavaScript). Typing "borrow" finds Borrowdale; typing "suburbs of harare" lists them. It is sent as `location=region:harare`, which the results page reads as that filter; the address people share from the results is the plain one (`?region=harare`).
 - Under the form, an "Advanced search" link goes to `/listings?advanced=1#advanced-search`, the results page with the advanced search open. The tabs are native radio buttons in a `fieldset`, so arrow keys switch between them and the choice is sent as the `deal` parameter.
 - Like `SearchBar`, it is a GET form to `/listings` whose option lists are a prop built from the API: it works without JavaScript and produces a shareable URL.
 - The selected tab is shown by text colour and a 3px indigo underline, not colour alone. Tabs are 48px tall. The focus outline is drawn on the tab label.
@@ -226,7 +277,7 @@ The only route by which a customer contacts an advertiser. It posts to the Right
 - Field errors returned by the API appear under the matching control.
 - A retry of unchanged content reuses the same idempotency key; any edit starts a new request.
 - Consent is an unticked checkbox that names who the details are shared with.
-- The request types and contact methods are props from the API's reference data, in the API's order; the first of each is selected. The business enquiry form on a directory profile (`directory/profile-enquiry-form.tsx`) takes its contact methods the same way.
+- The request types and contact methods are props from the API's reference data, in the API's order; the first of each is selected. Both are `SearchableSelect`s, as are the service and contact method of the business enquiry form. The business enquiry form on a directory profile (`directory/profile-enquiry-form.tsx`) takes its contact methods the same way.
 
 ## SiteHeader (`layout/site-header.tsx`)
 
@@ -339,7 +390,7 @@ The list of customer requests routed to the signed-in person: an Estate Agent's 
 
 Viewings and consultations. The mobile app is the main place for them; the web pages are simple but complete enough to act on, because the API's emails link to them.
 
-- **`/account/appointments`** (anyone signed in): "Upcoming" and "Past" as two links (`?when=past`), the current one filled and marked `aria-current`. **`/agent/appointments`** (professionals): a filter row (status, type, from and to dates) above the list. The API decides who may read the professional list: a 403 shows the "You do not have access" state with a link to the person's own appointments.
+- **`/account/appointments`** (anyone signed in): "Upcoming" and "Past" as two links (`?when=past`), the current one filled and marked `aria-current`. **`/agent/appointments`** (professionals): a filter row (status and type, each a `SearchableSelect`, and from and to dates) above the list. The API decides who may read the professional list: a 403 shows the "You do not have access" state with a link to the person's own appointments.
 - **AppointmentCard**: type and status badges (the API's `status_label`: Requested, Confirmed, Reschedule Requested, Completed, No Show, Cancelled) and the reference; the date and time as the card's heading; the listing (linked) and the professional's public profile (linked); where to meet; the customer's note; the reason when cancelled.
 - **Times are shown in the appointment's own time zone, and the zone is named**: "Tue, 24 November 2026 at 10:00 (Africa/Harare time)". A new time is typed in that zone too (the label says so) and sent to the API in UTC.
 - A proposed new time is a highlighted line that says who proposed it and, for the proposer, that it is waiting for the other person.
@@ -367,7 +418,7 @@ Viewings and consultations. The mobile app is the main place for them; the web p
 `/onboarding/<role>`: one application. Which details and documents it has, and which are required, come from `GET /v1/onboarding/requirements`; cities, trades and agencies come from reference data. The component holds only how each detail is labelled (`onboarding/fields.ts`); a detail it does not know falls back to a text field.
 
 - Order: a link back to the hub, the role as `h1` with the status badge, one sentence on what an approval leads to, any notice (see below), then two cards, "Details" and "Documents", then the actions.
-- Details use `Field`. Optional ones are marked "(optional)"; required ones carry `aria-required`. Lists (areas, services) are one text field with "Separate with commas".
+- Details use `Field`. Optional ones are marked "(optional)"; required ones carry `aria-required`. Lists (areas, services) are one text field with "Separate with commas". City, trade and agency are `SearchableSelect`s that start on "Choose…".
 - **Private details say so.** The phone number's hint says it is used only by the verification team and is never shown publicly; the registration number likewise. In read-only views they carry a "Private" badge.
 - Actions: "Save draft" (secondary; saves the details and says "Draft saved. Nothing has been sent for review yet.") and "Submit for review" (primary; saves, then submits).
 - When submitting fails, every missing detail gets its message under its control and every missing document under its row, one summary `Alert` appears above the buttons, and focus moves to the first problem. The API's "is required" is rewritten to say what to do ("Enter business name before you submit.").
@@ -392,7 +443,7 @@ One row per document type in an application.
 `/admin/verifications`: applications waiting for a platform administrator. Shown only to an administrator session (`AdminGate`); customers get the "You do not have access" state.
 
 - Status tabs are links in a `nav` (Under Review first, the default), each with its count as text inside the link and `aria-current="page"` on the current one. The current tab is filled, not only coloured.
-- A GET form filters by role (the roles come from the API) and searches applicant, email or business. Status, filters and page live in the address, so a view can be bookmarked.
+- A GET form filters by role (a `SearchableSelect`; the roles come from the API) and searches applicant, email or business. Status, filters and page live in the address, so a view can be bookmarked.
 - Each row is a card that is one link (the applicant's name, stretched): role and status badges, submitted time, applicant name and email, the business name or "Joining <agency>", and the number of documents. Oldest submission first, as the API returns them.
 - States: loading skeleton, error with "Try again", empty ("No applications are waiting for review." or "No applications match those filters" with "Clear filters"), and `Pagination`.
 
@@ -415,7 +466,7 @@ One row per document type in an application.
 Every directory the API lists has a tile on `/directory`, a list at `/directory/<kind>` and a profile page per entry. Nothing in these pages names a directory: Solicitors appeared when the API added the kind.
 
 - `ProfileCard`: avatar with initials (round for a person, square for a business), name, one line under it, tagline, then city, listing count, "Verified" and "Sponsored" badges. The line under the name is the agent's specialism when the API sends one ("Sales Agent", "Lettings Agent"), otherwise the profile's role line or trade, followed by the agency for an agent.
-- A directory list has a small GET form above it: Country and Region or province, "Apply" and, when a filter is in use, "Clear". A filtered list has its own address (`/directory/agencies?region=bulawayo`), is `noindex`, and says "No profiles match those filters." when empty.
+- A directory list has a small GET form above it: Country and Region or province (each a `SearchableSelect`), "Apply" and, when a filter is in use, "Clear". A filtered list has its own address (`/directory/agencies?region=bulawayo`), is `noindex`, and says "No profiles match those filters." when empty.
 - Profile page: breadcrumb, a header with the directory's singular label, trade or specialism, "Verified" and "Sponsored" badges, then About, Services (offerings with descriptions when the API has them), Areas covered, and the enquiry card. A law firm, an agency and a plumber use the same page.
 - Contact is enquiry-only on every kind. No phone number, email or address is shown.
 - Structured data picks a schema.org type per kind code (`profileEntityType` in `src/lib/seo.ts`): agencies `RealEstateAgent`, agents `Person`, solicitors `LegalService`, anything else `Organization`.

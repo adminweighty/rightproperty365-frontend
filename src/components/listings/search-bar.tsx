@@ -3,9 +3,10 @@ import { GetForm } from "@/components/listings/get-form";
 import { ListingFilterPanel } from "@/components/listings/listing-filters";
 import { LocationFields } from "@/components/listings/location-fields";
 import { Button } from "@/components/ui/button";
-import { Input, Select } from "@/components/ui/field";
+import { Input } from "@/components/ui/field";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { cn } from "@/lib/cn";
-import { optionText, type SearchOptions } from "@/lib/search-options";
+import { selectOption, type SearchOptions } from "@/lib/search-options";
 import type { ListingFilters } from "@/lib/seo";
 
 type Props = {
@@ -42,27 +43,23 @@ export function SearchBar({ options, defaults = {}, advanced, errors = {}, class
           <label htmlFor="search-deal" className="sr-only">
             Buy or rent
           </label>
-          <Select id="search-deal" name="deal" defaultValue={defaults.deal ?? ""}>
-            <option value="">Buy or rent</option>
-            {options.deals.map((option) => (
-              <option key={option.value} value={option.value}>
-                {optionText(option)}
-              </option>
-            ))}
-          </Select>
+          <SearchableSelect
+            id="search-deal"
+            name="deal"
+            defaultValue={defaults.deal ?? ""}
+            options={[{ value: "", label: "Buy or rent" }, ...options.deals.map((option) => selectOption(option))]}
+          />
         </div>
         <div>
           <label htmlFor="search-category" className="sr-only">
             Property category
           </label>
-          <Select id="search-category" name="category" defaultValue={defaults.category ?? ""}>
-            <option value="">Any category</option>
-            {options.categories.map((option) => (
-              <option key={option.value} value={option.value}>
-                {optionText(option)}
-              </option>
-            ))}
-          </Select>
+          <SearchableSelect
+            id="search-category"
+            name="category"
+            defaultValue={defaults.category ?? ""}
+            options={[{ value: "", label: "Any category" }, ...options.categories.map((option) => selectOption(option))]}
+          />
         </div>
         <div>
           <label htmlFor="search-q" className="sr-only">

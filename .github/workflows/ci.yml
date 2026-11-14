@@ -26,5 +26,6 @@ jobs:
           npm run tokens
           git diff --exit-code design/tokens/tokens.css
       - run: npm run lint
+      - run: npm test
       - run: npm run typecheck
       - run: npm run build

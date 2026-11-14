@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
-import { Field, fieldDescribedBy, Select } from "@/components/ui/field";
-import { optionText, type CountedOption, type OptionGroup } from "@/lib/search-options";
+import { Field, fieldDescribedBy } from "@/components/ui/field";
+import { SearchableSelect, type SelectItem } from "@/components/ui/searchable-select";
+import { selectOption, type CountedOption, type OptionGroup } from "@/lib/search-options";
 
 type Values = { country: string; region: string; city: string; suburb: string };
 
@@ -20,36 +21,22 @@ type Props = {
 
 const noop = () => () => {};
 
-/** Options under a heading per parent, so the list reads well when it is not narrowed. */
-function Grouped({ options, parents }: { options: CountedOption[]; parents: CountedOption[] }) {
+/** The "any" choice, then options under a heading per parent, so the list reads well when it is not narrowed. */
+function grouped(any: string, options: CountedOption[], parents: CountedOption[]): SelectItem[] {
   const groups = parents
-    .map((parent) => ({ parent, items: options.filter((option) => option.parent === parent.value) }))
-    .filter((group) => group.items.length > 0);
+    .map((parent) => ({
+      label: parent.label,
+      options: options.filter((option) => option.parent === parent.value).map((option) => selectOption(option)),
+    }))
+    .filter((group) => group.options.length > 0);
   const loose = options.filter((option) => !parents.some((parent) => parent.value === option.parent));
-  return (
-    <>
-      {groups.map(({ parent, items }) => (
-        <optgroup key={parent.value} label={parent.label}>
-          {items.map((option) => (
-            <option key={option.value} value={option.value}>
-              {optionText(option)}
-            </option>
-          ))}
-        </optgroup>
-      ))}
-      {loose.map((option) => (
-        <option key={option.value} value={option.value}>
-          {optionText(option)}
-        </option>
-      ))}
-    </>
-  );
+  return [{ value: "", label: any }, ...groups, ...loose.map((option) => selectOption(option))];
 }
 
 /**
  * The four location selects of the listing search: country, region or
- * province, city or town, suburb. They are ordinary selects named for the
- * API's parameters.
+ * province, city or town, suburb. Each is a `SearchableSelect` over an ordinary select
+ * named for the API's parameter.
  *
  * Without JavaScript every option is present, grouped under its parent, and a
  * combination that does not fit (a city outside the chosen region) comes back
@@ -108,63 +95,51 @@ export function LocationFields({ countries, regions, cities, suburbs, defaults, 
   return (
     <>
       <Field id="search-country" label="Country" error={countryError}>
-        <Select
+        <SearchableSelect
           id="search-country"
           name="country"
           value={values.country}
-          onChange={(event) => change("country", event.target.value)}
+          onValueChange={(value) => change("country", value)}
           aria-invalid={Boolean(countryError)}
           aria-describedby={fieldDescribedBy("search-country", { error: countryError })}
-        >
-          <option value="">Any country</option>
-          {countries.map((option) => (
-            <option key={option.value} value={option.value}>
-              {optionText(option)}
-            </option>
-          ))}
-        </Select>
+          options={grouped("Any country", countries, [])}
+        />
       </Field>
 
       <Field id="search-region" label="Region or province" error={regionError}>
-        <Select
+        <SearchableSelect
           id="search-region"
           name="region"
           value={values.region}
-          onChange={(event) => change("region", event.target.value)}
+          onValueChange={(value) => change("region", value)}
           aria-invalid={Boolean(regionError)}
           aria-describedby={fieldDescribedBy("search-region", { error: regionError })}
-        >
-          <option value="">Any region</option>
-          <Grouped options={shownRegions} parents={narrowing && values.country ? [] : countries} />
-        </Select>
+          options={grouped("Any region", shownRegions, narrowing && values.country ? [] : countries)}
+        />
       </Field>
 
       <Field id="search-city" label="City or town" error={cityError}>
-        <Select
+        <SearchableSelect
           id="search-city"
           name="city"
           value={values.city}
-          onChange={(event) => change("city", event.target.value)}
+          onValueChange={(value) => change("city", value)}
           aria-invalid={Boolean(cityError)}
           aria-describedby={fieldDescribedBy("search-city", { error: cityError })}
-        >
-          <option value="">Any city or town</option>
-          <Grouped options={shownCities} parents={narrowing && values.region ? [] : regions} />
-        </Select>
+          options={grouped("Any city or town", shownCities, narrowing && values.region ? [] : regions)}
+        />
       </Field>
 
       <Field id="search-suburb" label="Suburb" error={suburbError}>
-        <Select
+        <SearchableSelect
           id="search-suburb"
           name="suburb"
           value={values.suburb}
-          onChange={(event) => change("suburb", event.target.value)}
+          onValueChange={(value) => change("suburb", value)}
           aria-invalid={Boolean(suburbError)}
           aria-describedby={fieldDescribedBy("search-suburb", { error: suburbError })}
-        >
-          <option value="">Any suburb</option>
-          <Grouped options={shownSuburbs} parents={narrowing && values.city ? [] : cities} />
-        </Select>
+          options={grouped("Any suburb", shownSuburbs, narrowing && values.city ? [] : cities)}
+        />
       </Field>
     </>
   );

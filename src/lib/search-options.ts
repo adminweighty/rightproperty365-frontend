@@ -7,6 +7,7 @@ import type {
   ReferenceItem,
   ReferenceSets,
 } from "@/lib/api/types";
+import type { SelectGroup, SelectOption } from "@/lib/searchable-select";
 import { formatMoney } from "@/lib/format";
 import { advertiserTypes, listedWithinChoices, listingSorts, type ListingFilters } from "@/lib/seo";
 
@@ -165,3 +166,14 @@ export function buildSearchOptions(
 /** "Harare (12)". The count is left out when it is not known. */
 export const optionText = ({ label, count }: CountedOption) =>
   count === undefined ? label : `${label} (${count})`;
+
+/** A counted option for `SearchableSelect`: the count becomes its secondary text, "Harare (12)". */
+export const selectOption = ({ value, label, count }: CountedOption, prefix = ""): SelectOption => ({
+  value: `${prefix}${value}`,
+  label,
+  secondary: count === undefined ? undefined : `(${count})`,
+});
+
+/** Groups of counted options for `SearchableSelect`. */
+export const selectGroups = (groups: OptionGroup[], prefix = ""): SelectGroup[] =>
+  groups.map((group) => ({ label: group.label, options: group.options.map((option) => selectOption(option, prefix)) }));

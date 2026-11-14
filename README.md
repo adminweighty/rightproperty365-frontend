@@ -116,6 +116,7 @@ At run time, a page that cannot reach the API shows an error state with a "Try a
 | `npm run build` | Production build (standalone output in `.next/standalone`) |
 | `npm run start` | Serve the production build |
 | `npm run lint` | ESLint |
+| `npm test` | Checks the logic of the searchable select (Node's test runner; needs Node 22.18 or later) |
 | `npm run typecheck` | Generate route types and run `tsc` |
 | `npm run tokens` | Regenerate `design/tokens/tokens.css` and check colour contrast |
 
@@ -139,7 +140,7 @@ src/app/                Routes (App Router)
   agent/appointments/   Appointments received by a professional or their organisation
   design-system/        Live token and component reference (not indexed)
 src/components/
-  ui/                   Primitives: Button, Field, Input, Select, Badge, Card, Container,
+  ui/                   Primitives: Button, Field, Input, SearchableSelect, Badge, Card, Container,
                         Alert, ErrorState, Pagination
   layout/               Header, menu for small screens, footer, logo, market list
   landing/              Landing-page section heading, photo tiles and role groups
@@ -158,6 +159,7 @@ src/lib/
   seo.ts                Search parameters, indexing rules, structured data (docs/seo.md)
   roles.ts              Groups the API's account roles under their headings
   search-options.ts     Option lists for the search forms, from reference data and facets
+  searchable-select.ts  Matching, grouping and keyboard logic of the searchable select
   filter-chips.ts       The filters of a search as removable chips
   photos.ts             Maps API photo file names to the bundled images
   env.ts, format.ts     Public config and formatting helpers
@@ -172,6 +174,7 @@ src/lib/
 - **Money is a decimal string plus an ISO 4217 code**, formatted for display only.
 - **Public content is HTML first.** A public component that reads the API sits inside `ApiBoundary`, never a plain `<Suspense>`, and a public page that reads `params` or `searchParams` exports `instant = false` (see "Builds and the API"). Signed-in screens keep request-time data behind `<Suspense>`.
 - **No lists in code.** A drop-down, filter or label for a value the API returns comes from the API's reference data. Add a row in the database, not an array in the app.
+- **Every drop-down is a `SearchableSelect`** (`src/components/ui/searchable-select.tsx`): a native select in the HTML, searchable by typing once the page is interactive. Do not render a bare `<select>`.
 - **WCAG 2.2 AA** is required. See `design/guidelines/accessibility.md`.
 
 ## Branches

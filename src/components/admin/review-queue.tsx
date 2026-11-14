@@ -8,7 +8,8 @@ import { AdminGate } from "@/components/admin/admin-gate";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
-import { Input, Select } from "@/components/ui/field";
+import { Input } from "@/components/ui/field";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Pagination } from "@/components/ui/pagination";
 import type { OnboardingStatus } from "@/lib/api/auth";
 import type { ApiFailure } from "@/lib/api/http";
@@ -138,14 +139,12 @@ function Queue({ roles }: Props) {
           <label htmlFor="queue-role" className="sr-only">
             Role
           </label>
-          <Select id="queue-role" name="role" defaultValue={role} key={role}>
-            <option value="">Any role</option>
-            {roles.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </Select>
+          <SearchableSelect
+            id="queue-role"
+            name="role"
+            defaultValue={role}
+            options={[{ value: "", label: "Any role" }, ...roles.map(({ value, label }) => ({ value, label }))]}
+          />
         </div>
         <div>
           <label htmlFor="queue-q" className="sr-only">

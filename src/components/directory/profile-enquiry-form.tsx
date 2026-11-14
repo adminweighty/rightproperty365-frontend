@@ -5,7 +5,8 @@ import { useRef, useState, type FormEvent } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Field, fieldDescribedBy, Input, Select, Textarea } from "@/components/ui/field";
+import { Field, fieldDescribedBy, Input, Textarea } from "@/components/ui/field";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
   submitBusinessEnquiry,
   type BusinessEnquiryReceipt,
@@ -126,14 +127,14 @@ export function ProfileEnquiryForm({ kind, slug, name, services, contactMethods 
     >
       {services.length > 0 && (
         <Field id="enquiry-service" label="What do you need?" optional error={errors.service}>
-          <Select id="enquiry-service" name="service" defaultValue="">
-            <option value="">Not sure yet</option>
-            {services.map((service) => (
-              <option key={service} value={service}>
-                {service}
-              </option>
-            ))}
-          </Select>
+          <SearchableSelect
+            id="enquiry-service"
+            name="service"
+            defaultValue=""
+            aria-invalid={Boolean(errors.service)}
+            aria-describedby={fieldDescribedBy("enquiry-service", { error: errors.service })}
+            options={[{ value: "", label: "Not sure yet" }, ...services.map((service) => ({ value: service, label: service }))]}
+          />
         </Field>
       )}
 
@@ -175,18 +176,15 @@ export function ProfileEnquiryForm({ kind, slug, name, services, contactMethods 
         label="How should they reply?"
         error={errors.preferred_contact_method}
       >
-        <Select
+        <SearchableSelect
           id="enquiry-contact-method"
           name="preferred_contact_method"
           value={contactMethod}
-          onChange={(event) => setContactMethod(event.target.value)}
-        >
-          {contactMethods.map((method) => (
-            <option key={method.value} value={method.value}>
-              {method.label}
-            </option>
-          ))}
-        </Select>
+          onValueChange={setContactMethod}
+          aria-invalid={Boolean(errors.preferred_contact_method)}
+          aria-describedby={fieldDescribedBy("enquiry-contact-method", { error: errors.preferred_contact_method })}
+          options={contactMethods.map(({ value, label }) => ({ value, label }))}
+        />
       </Field>
 
       <Field id="enquiry-phone" label="Phone number" optional={!phoneRequired} hint={phoneHint} error={errors.phone}>

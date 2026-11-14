@@ -1,26 +1,19 @@
 import type { ComponentProps, ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
-const control =
+/** The look of every form control: border, text, hover, focus, invalid and disabled. */
+export const controlClass =
   "w-full rounded-md border border-control bg-surface px-3 text-base text-ink " +
   "placeholder:text-subtle transition-colors duration-150 " +
   "hover:border-ink focus-visible:border-focus " +
   "aria-invalid:border-danger disabled:cursor-not-allowed disabled:bg-sunken disabled:opacity-60";
 
 export function Input({ className, ...props }: ComponentProps<"input">) {
-  return <input className={cn(control, "h-11", className)} {...props} />;
+  return <input className={cn(controlClass, "h-11", className)} {...props} />;
 }
 
 export function Textarea({ className, rows = 4, ...props }: ComponentProps<"textarea">) {
-  return <textarea rows={rows} className={cn(control, "py-2.5 leading-relaxed", className)} {...props} />;
-}
-
-export function Select({ className, children, ...props }: ComponentProps<"select">) {
-  return (
-    <select className={cn(control, "h-11 pr-8", className)} {...props}>
-      {children}
-    </select>
-  );
+  return <textarea rows={rows} className={cn(controlClass, "py-2.5 leading-relaxed", className)} {...props} />;
 }
 
 type FieldProps = {

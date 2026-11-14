@@ -2,9 +2,10 @@ import { Search, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
 import { GetForm } from "@/components/listings/get-form";
 import { Button } from "@/components/ui/button";
-import { Input, Select } from "@/components/ui/field";
+import { Input } from "@/components/ui/field";
+import { SearchableSelect, type SelectItem } from "@/components/ui/searchable-select";
 import { cn } from "@/lib/cn";
-import { optionText, type SearchOptions } from "@/lib/search-options";
+import { selectGroups, selectOption, type SearchOptions } from "@/lib/search-options";
 
 type Props = {
   /** Every list in the form, built from the API by `buildSearchOptions`. */
@@ -22,6 +23,17 @@ type Props = {
  * come from the API.
  */
 export function HeroSearch({ options, className }: Props) {
+  // One list of every kind of place. The value says which kind: "region:harare".
+  const places = (label: string, kind: string, items: SearchOptions["countries"]): SelectItem[] =>
+    items.length > 0 ? [{ label, options: items.map((option) => selectOption(option, `${kind}:`)) }] : [];
+  const locations: SelectItem[] = [
+    { value: "", label: "Any location" },
+    ...places("Country", "country", options.countries),
+    ...places("Region or province", "region", options.regions),
+    ...places("City or town", "city", options.cities),
+    ...selectGroups(options.suburbs, "suburb:").map((group) => ({ ...group, label: `Suburbs of ${group.label}` })),
+  ];
+
   return (
     <GetForm
       action="/listings"
@@ -55,58 +67,18 @@ export function HeroSearch({ options, className }: Props) {
           <label htmlFor="hero-location" className="sr-only">
             Location: country, region, city or suburb
           </label>
-          <Select id="hero-location" name="location" defaultValue="">
-            <option value="">Any location</option>
-            <optgroup label="Country">
-              {options.countries.map((option) => (
-                <option key={option.value} value={`country:${option.value}`}>
-                  {optionText(option)}
-                </option>
-              ))}
-            </optgroup>
-            {options.regions.length > 0 && (
-              <optgroup label="Region or province">
-                {options.regions.map((option) => (
-                  <option key={option.value} value={`region:${option.value}`}>
-                    {optionText(option)}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-            <optgroup label="City or town">
-              {options.cities.map((option) => (
-                <option key={option.value} value={`city:${option.value}`}>
-                  {optionText(option)}
-                </option>
-              ))}
-            </optgroup>
-            {options.suburbs.map((group) => (
-              <optgroup key={group.label} label={`Suburbs of ${group.label}`}>
-                {group.options.map((option) => (
-                  <option key={option.value} value={`suburb:${option.value}`}>
-                    {optionText(option)}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </Select>
+          <SearchableSelect id="hero-location" name="location" defaultValue="" options={locations} />
         </div>
         <div>
           <label htmlFor="hero-property-type" className="sr-only">
             Property type
           </label>
-          <Select id="hero-property-type" name="property_type" defaultValue="">
-            <option value="">Any property type</option>
-            {options.propertyTypes.map((group) => (
-              <optgroup key={group.label} label={group.label}>
-                {group.options.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {optionText(option)}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </Select>
+          <SearchableSelect
+            id="hero-property-type"
+            name="property_type"
+            defaultValue=""
+            options={[{ value: "", label: "Any property type" }, ...selectGroups(options.propertyTypes)]}
+          />
         </div>
         <div>
           <label htmlFor="hero-max-price" className="sr-only">
@@ -126,14 +98,15 @@ export function HeroSearch({ options, className }: Props) {
           <label htmlFor="hero-bedrooms" className="sr-only">
             Bedrooms
           </label>
-          <Select id="hero-bedrooms" name="bedrooms_min" defaultValue="">
-            <option value="">Any bedrooms</option>
-            {options.bedrooms.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label} bedrooms
-              </option>
-            ))}
-          </Select>
+          <SearchableSelect
+            id="hero-bedrooms"
+            name="bedrooms_min"
+            defaultValue=""
+            options={[
+              { value: "", label: "Any bedrooms" },
+              ...options.bedrooms.map((option) => ({ value: option.value, label: `${option.label} bedrooms` })),
+            ]}
+          />
         </div>
         <Button type="submit">
           <Search className="size-4" aria-hidden="true" />
