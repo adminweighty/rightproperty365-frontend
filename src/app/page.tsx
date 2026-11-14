@@ -19,6 +19,7 @@ import { ProfileGrid } from "@/components/directory/profile-card";
 import { PhotoTile, PhotoTileRow } from "@/components/landing/photo-tile";
 import { RoleGroups } from "@/components/landing/role-groups";
 import { SectionHeading } from "@/components/landing/section-heading";
+import { VERIFIED_FAQ } from "@/components/listings/advertiser";
 import { HeroSearch } from "@/components/listings/hero-search";
 import { ListingGrid } from "@/components/listings/listing-card";
 import { ListingRail } from "@/components/listings/listing-rail";
@@ -27,7 +28,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { ErrorState } from "@/components/ui/error-state";
 import { getDirectoryKinds, getDirectoryList } from "@/lib/api/server/directory";
-import { listListings } from "@/lib/api/server/listings";
+import { getTrustSummary, listListings } from "@/lib/api/server/listings";
 import { load } from "@/lib/api/server/load";
 import { getCatalogue } from "@/lib/api/server/reference";
 import { toLabels, type FacetCount, type Listing } from "@/lib/api/types";
@@ -73,7 +74,7 @@ const promises = [
   {
     icon: ShieldCheck,
     title: "Verified advertisers",
-    body: "Real Estate Agencies, Landlords and Property Sellers (Vendors) are checked before their listings go live.",
+    body: "Every agent, agency, company and owner is verified before their listings appear, and their listings come down if they are no longer verified.",
   },
   {
     icon: RefreshCw,
@@ -118,7 +119,7 @@ async function readHome() {
   // The first category in the API's order leads the page; the rest share a row.
   const [mainCategory, ...otherCategories] = sets.property_categories;
 
-  const [newest, featured, dealRows, otherRows, kinds] = await Promise.all([
+  const [newest, featured, dealRows, otherRows, kinds, trust] = await Promise.all([
     listListings({ page_size: RAIL_SIZE }),
     listListings({ featured: true, page_size: 6 }),
     Promise.all(
@@ -133,6 +134,8 @@ async function readHome() {
     ),
     Promise.all(otherCategories.map(({ code }) => listListings({ category: code, page_size: RAIL_SIZE }))),
     getDirectoryKinds(),
+    // The assurance is left out when its numbers cannot be read; the page does not fail for it.
+    getTrustSummary().catch(() => null),
   ]);
   if (!newest) throw new Error("The listing search refused an unfiltered request.");
 
@@ -157,6 +160,7 @@ async function readHome() {
     otherRow: { title: sentenceList(otherCategories.map(({ label }) => label)), listings: others },
     kinds,
     advertisers,
+    trust,
   };
 }
 
@@ -241,7 +245,8 @@ async function HomeContent() {
     );
   }
 
-  const { catalogue, newest, featured, dealRows, otherRow, kinds, advertisers } = loaded.data;
+  const { catalogue, newest, featured, dealRows, otherRow, kinds, advertisers, trust } = loaded.data;
+  const verifiedAdvertisers = trust ? trust.verified_advertisers.organisations + trust.verified_advertisers.direct_owners : 0;
   const { sets } = catalogue;
   const { facets } = newest;
   const newIds = newest.items.slice(0, 6).map((listing) => listing.id);
@@ -318,6 +323,33 @@ async function HomeContent() {
           </dl>
         </Container>
       </section>
+
+      {/* Assurance: the API's own numbers, and what Verified does and does not mean. Left out when they cannot be read. */}
+      {trust && trust.public_listings > 0 && (
+        <section aria-labelledby="trust-heading" className="border-b border-line bg-success-soft">
+          <Container className="flex flex-col gap-3 py-5 md:flex-row md:items-center md:gap-8">
+            <h2 id="trust-heading" className="flex shrink-0 items-center gap-2 font-sans text-base font-semibold tracking-normal text-ink">
+              <BadgeCheck className="size-5 shrink-0 text-success" aria-hidden="true" />
+              <span>
+                {plural(trust.public_listings, "listing", "listings")}
+                {trust.listings_from_verified_advertisers === trust.public_listings
+                  ? " · all from verified agents, agencies and owners"
+                  : ` · ${trust.listings_from_verified_advertisers} from verified agents, agencies and owners`}
+                <span className="block text-sm font-normal text-muted">
+                  {plural(verifiedAdvertisers, "verified professional or owner", "verified professionals and owners")}
+                </span>
+              </span>
+            </h2>
+            <p className="text-sm leading-relaxed text-ink">
+              Verified means we reviewed the documents of whoever advertises a property before their listings
+              appeared. It is a check of the advertiser, not an inspection of the property.{" "}
+              <Link href={VERIFIED_FAQ} className="font-medium text-primary-ink underline underline-offset-2 hover:no-underline">
+                What Verified means
+              </Link>
+            </p>
+          </Container>
+        </section>
+      )}
 
       {newest.items.length > 0 ? (
         <Container className="pt-14 md:pt-20">

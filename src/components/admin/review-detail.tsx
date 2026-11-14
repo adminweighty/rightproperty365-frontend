@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { fieldDisplay, fieldSpec, shownDetailNames, type FieldLists } from "@/components/onboarding/fields";
+import { PrivateImage } from "@/components/ui/private-image";
+import { LOGO_DOCUMENT } from "@/lib/logo-rules";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink, buttonClasses } from "@/components/ui/button";
@@ -367,6 +369,14 @@ function Review({ id, requirements, lists, directoryLabels, organisationKindLabe
                         </Badge>
                       )}
                     </div>
+                    {/* The logo is an image and will be public: the reviewer sees it, not only its file name. */}
+                    {file && type.code === LOGO_DOCUMENT && (
+                      <PrivateImage
+                        src={adminDocumentUrl(application.id, file.id)}
+                        alt={`The logo uploaded by the applicant, ${file.file_name}`}
+                        className="mt-3 size-28"
+                      />
+                    )}
                     {file && (
                       <div className="mt-3 flex flex-wrap items-center gap-3">
                         <p className="flex min-w-0 flex-1 basis-48 items-start gap-2 text-sm">

@@ -93,7 +93,10 @@ export const faqCategories: FaqCategory[] = [
         question: "What does “Verified” mean?",
         answer: [
           p(
-            "A Verified badge means our team reviewed the documents we ask for when a professional or business joins, such as proof of identity and business registration, and approved the application.",
+            "A Verified badge means our team reviewed the documents we ask for when a professional, a business or an owner joins, such as proof of identity and business registration, and approved the application.",
+          ),
+          p(
+            "The badge is shown beside the name of whoever advertises a property, on listings and on profiles. It is about them, not about one property.",
           ),
           p(
             "It is not a guarantee. We have not inspected the property, confirmed who owns it, or promised how anyone will behave. Make your own checks before you pay or sign anything. The ",
@@ -468,6 +471,34 @@ export const faqCategories: FaqCategory[] = [
             "Be wary of a price far below similar properties, and of pressure to pay quickly.",
             "Meet in a safe place, and take someone with you to a viewing if you can.",
             "Get agreements and receipts in writing.",
+          ),
+        ],
+      },
+      {
+        id: "are-all-listings-verified",
+        question: "Are all listings verified?",
+        answer: [
+          p(
+            "Everyone who advertises on RightProperty365 is verified before their listings appear: every Estate Agent, Real Estate Agency, company and owner. A listing is shown only while whoever advertises it is verified. ",
+            link("What “Verified” means", "/faq#what-verified-means"),
+            ".",
+          ),
+          p(
+            "That is a check of the advertiser, not of each property. We do not inspect properties, and a listing is not a guarantee of the property, its title, its price or the deal. Make your own checks, and have a Solicitor check title and ownership before you buy.",
+          ),
+        ],
+      },
+      {
+        id: "agent-loses-verification",
+        question: "What happens if an agent loses verification?",
+        answer: [
+          p(
+            "Their listings are removed from the site and from search results, and stay off until they are verified again. The same applies to an agency, a company or an owner.",
+          ),
+          p(
+            "If you think someone who is shown as Verified should not be, tell us at ",
+            support,
+            ".",
           ),
         ],
       },

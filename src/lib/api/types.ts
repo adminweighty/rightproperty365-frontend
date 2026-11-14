@@ -29,8 +29,38 @@ export type Money = { amount: string; currency: string };
 
 export type Photo = { url: string; alt: string; width: number; height: number };
 
+/**
+ * A logo or profile photo. `url` is a path relative to the API's origin
+ * (`/v1/directory/agencies/sample-estates/logo?v=…`): see `logoUrl`.
+ */
+export type Logo = { url: string; width: number; height: number };
+
 /** A public reference to a directory profile. Never contact details. */
-export type ProfileRef = { kind: string; slug: string; name: string; verified: boolean };
+export type ProfileRef = {
+  kind: string;
+  slug: string;
+  name: string;
+  verified: boolean;
+  /** Optional: API builds before 0.17 do not send it. */
+  logo?: Logo | null;
+};
+
+/**
+ * Who to show for a listing, ready to render: the agency, company or owner
+ * (`display`) and the assigned agent (`agent_display`).
+ */
+export type AdvertiserDisplay = {
+  name: string;
+  /** The agent's name beside an agency. */
+  secondary_name?: string | null;
+  /** A title: "Real Estate Agency", "Host", "Landlord", "Property Seller (Vendor)", "Estate Agent". */
+  role_label: string;
+  logo: Logo | null;
+  /** Show the Verified badge only when this is true. */
+  verified: boolean;
+  /** The public profile under Professionals. Null for a direct owner. */
+  profile: { kind: string; slug: string } | null;
+};
 
 export type ListingAdvertiser = {
   type: "agency" | "private_seller";
@@ -38,6 +68,27 @@ export type ListingAdvertiser = {
   verified: boolean;
   agency: ProfileRef | null;
   agent: ProfileRef | null;
+  /** Optional: API builds before 0.17 send neither; see `advertiserDisplay`. */
+  display?: AdvertiserDisplay;
+  agent_display?: AdvertiserDisplay | null;
+};
+
+/** What RightProperty365 has checked about a listing and whoever advertises it. */
+export type ListingVerification = {
+  advertiser_verified: boolean;
+  advertiser_verified_at: string | null;
+  /** Recorded by staff. There is no review workflow yet: never claim it to visitors. */
+  listing_reviewed: boolean;
+  listing_reviewed_at: string | null;
+};
+
+/** The numbers behind the assurance on the landing page (`GET /v1/trust/summary`). */
+export type TrustSummary = {
+  verified_advertisers: { organisations: number; direct_owners: number };
+  public_listings: number;
+  listings_from_verified_advertisers: number;
+  listings_reviewed: number;
+  generated_at: string;
 };
 
 export type Listing = {
@@ -81,6 +132,8 @@ export type Listing = {
   updated_at: string;
   /** Short stays only: what the listing says about its calendar. Null for everything else. */
   availability?: ListingAvailability | null;
+  /** Optional: API builds before 0.17 do not send it. */
+  verification?: ListingVerification;
 };
 
 export type ListingAvailability = {
@@ -227,7 +280,7 @@ export type DirectoryProfile = {
   /** Paid placement. Always labelled "Sponsored" wherever it is shown. */
   sponsored: boolean;
   since: number | null;
-  logo: Photo | null;
+  logo: Logo | null;
   region?: Place | null;
   country?: CountryRef;
   /** Agent profiles only: the agency they work for. */

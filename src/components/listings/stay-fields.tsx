@@ -1,15 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { Field, fieldDescribedBy, Input } from "@/components/ui/field";
-import { addDays, isNight, MAX_STAY_NIGHTS } from "@/lib/nights";
+import { addDays, isNight, MAX_STAY_NIGHTS, todayIn } from "@/lib/nights";
+
+const noop = () => () => {};
 
 type Props = {
   defaults: { check_in?: string; check_out?: string; guests_min?: number };
   /** The API's message for a parameter it refused, by parameter name. */
   errors?: Record<string, string>;
-  /** The earliest night the date boxes accept. */
-  today: string;
 };
 
 /** The API names parameters by their code; a visitor knows them by their label. */
@@ -24,7 +24,10 @@ const inWords = (message: string) =>
  * nights later) and each is required once the other is set: both or neither.
  * The API checks the same rules, and its message is shown under the control.
  */
-export function StayFields({ defaults, errors = {}, today }: Props) {
+export function StayFields({ defaults, errors = {} }: Props) {
+  // The earliest "today" anywhere on Earth, so the boxes never refuse a night that some listing can still
+  // take. Read in the browser: the server’s page must not depend on the clock.
+  const today = useSyncExternalStore(noop, () => todayIn("Etc/GMT+12"), () => undefined);
   const [checkIn, setCheckIn] = useState(defaults.check_in ?? "");
   const [checkOut, setCheckOut] = useState(defaults.check_out ?? "");
   const checkInError = errors.check_in ? `First night ${inWords(errors.check_in)}.` : undefined;
@@ -53,7 +56,7 @@ export function StayFields({ defaults, errors = {}, today }: Props) {
           id="search-check-out"
           name="check_out"
           type="date"
-          min={addDays(isNight(checkIn) ? checkIn : today, 1)}
+          min={isNight(checkIn) ? addDays(checkIn, 1) : today && addDays(today, 1)}
           max={isNight(checkIn) ? addDays(checkIn, MAX_STAY_NIGHTS) : undefined}
           value={checkOut}
           onChange={(event) => setCheckOut(event.target.value)}

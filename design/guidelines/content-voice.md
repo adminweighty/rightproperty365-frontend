@@ -49,6 +49,23 @@ Role names are titles, written with capitals wherever they appear, including the
 - The platform administrator titles are the one list written in the app (`platformRoleLabels` in `src/lib/api/auth.ts`), because the API has no labels for them.
 - A role name describes who someone is, not what the product does. Do not promise a feature next to it that is not built (creating listings, appointments, bookings).
 
+## What we may say about verification
+
+The enforced fact is this, and only this: **every agent, agency, company and owner is verified by RightProperty365 before their listings appear, and listings from anyone who is no longer verified are removed.** Verification is a review of the documents they sent us.
+
+| Say | Never say |
+| --- | --- |
+| All listings are from verified agents, agencies and owners | All listings are verified; verified listings; every listing is checked |
+| Verified (beside a name, only when the API says so) | Verified (beside a property, a price or a photo); Trusted; Approved |
+| We reviewed the documents of whoever advertises a property | We inspected, visited, valued or confirmed the property |
+| It is a check of the advertiser, not an inspection of the property | Guaranteed; safe; risk-free; title checked; scam-free |
+| Not verified (when the API says so) | Nothing, or a greyed-out badge |
+
+- The Verified badge belongs to a person or a business, never to a listing. It is drawn only from the API's `verified` flag.
+- Staff can record that a listing was reviewed, but there is no review workflow yet. Do not show that record or count it to visitors, and do not write that listings are individually reviewed.
+- Numbers about verification come from the API (`GET /v1/trust/summary`). No number is written in the app, and no claim is made when the numbers cannot be read.
+- Every place that says "verified" is one click from what it means and does not mean (`/faq#what-verified-means`). The Terms say verification is a review of documents and not a warranty; nothing in the interface may say more than they do.
+
 ## Legal and trust wording
 
 Wording for consent, privacy notices, lease documents, payment status and verification is controlled per market and needs sign-off before release. Use the approved text; do not rewrite it for tone.

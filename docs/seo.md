@@ -97,6 +97,8 @@ Titles, headings, canonicals and structured data are built from what the API ret
 - The property's `PostalAddress` has the suburb and city as `addressLocality` (whichever the listing names), the region or province as `addressRegion` when there is one, and the country code as `addressCountry`.
 - The property is `House` or `Apartment` when the listing has a bedroom count (a home) and `Place` otherwise (commercial property and land), because `floorSize` and bedroom counts are only valid on accommodation types.
 - The `Offer` sits on the listing, not the property. Rentals use a `UnitPriceSpecification` per month, short stays per night (`unitCode` `DAY`). The availability calendar is not marked up: it is the host's guide, not an offer of specific nights.
+- The `Offer` names who offers it (`offeredBy`): the agency or company as a `RealEstateAgent` with its profile address, its logo (an absolute address on the API) and its agent as `employee`; a direct owner as a `Person` by name. No telephone, email or street address. Verification is not marked up: schema.org has no honest property for it.
+- A profile's main entity carries its `logo` (an organisation) or `image` (a person) when it has one.
 - Google has **no rich result for real-estate listings**. This markup helps machines understand the page; it will not add stars or prices to results. `BreadcrumbList` and `Organization` are supported Google features.
 - Deliberately not used: `Product` for property, `FAQPage`, and `WebSite` `SearchAction` (Google retired the sitelinks search box in November 2024).
 - The type of a profile's main entity is chosen by directory kind code in one map (`profileEntityType` in `src/lib/seo.ts`). A directory the API adds later is an `Organization` until it is given a type there. `LegalService` is a `LocalBusiness`, so a law firm carries its city as an address; a street address, phone number and email are never published (the enquiry-only rule).
@@ -119,7 +121,7 @@ Titles, headings, canonicals and structured data are built from what the API ret
 - **The sitemap is one file.** It holds every public listing and profile. Split it with `generateSitemaps` before it nears 50,000 URLs.
 - **Suburb and property-type pages are not indexed** (see the rules above), and there is no `hreflang` for other countries.
 - **Lists of professionals are not paginated.** A list page shows every profile (the API is read 48 at a time, up to 480). Add `Pagination` before a list grows past that.
-- **Profiles** have no logos, photos, reviews or street addresses yet, so they cannot qualify for Google's local business features.
+- **Profiles** have logos but no photos, reviews or street addresses, so they cannot qualify for Google's local business features.
 - **Not measured:** Core Web Vitals on a deployed site (targets: LCP 2.5s, INP 200ms, CLS 0.1), and validation in Google's Rich Results Test or Search Console.
 
 ## Checking a change

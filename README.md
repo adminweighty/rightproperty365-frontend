@@ -53,6 +53,10 @@ Everything the site lists comes from the Go API (`api/openapi.yaml` in the backe
 | A request to stay (dates and guests; not a booking), with every other customer request | `POST /v1/property-requests` |
 | Suggestions when a keyword search finds nothing | `GET /v1/listings/suggest` |
 | Directories with counts (Real Estate Agencies, Estate Agents, Solicitors and the rest), directory lists, profiles, the footer's directory links | `GET /v1/directory`, `/v1/directory/{kind}`, `/v1/directory/{kind}/{slug}` |
+| Who advertises a listing (name, title, logo, whether they are verified) and when they were verified | `advertiser.display`, `advertiser.agent_display` and `verification` of a listing |
+| Logos of agencies, businesses and agents, loaded by the visitor's browser | `GET /v1/directory/{kind}/{slug}/logo` (the public API address in front of the path the API gives) |
+| The numbers of the assurance band on the landing page | `GET /v1/trust/summary` |
+| "Your public profile" on the account page: upload or remove a logo | `GET /v1/me/profiles`, `PUT` and `DELETE /v1/me/profiles/{kind}/{slug}/logo` |
 | Sitemap; which listings and profiles are prerendered | `GET /v1/sitemap` |
 | "Your listings" and the lister's availability calendar of a short stay (read and changed in the browser with the session): nights booked, blocked or available with a private note, and the stay rules | `GET /v1/me/listings`, `GET` and `PUT /v1/me/listings/{id}/availability`, `PATCH /v1/me/listings/{id}/stay-rules` |
 | Appointments: a person's own, and those a professional received (read in the browser with the session) | `GET /v1/me/appointments`, `GET /v1/inbox/appointments`, `GET /v1/inbox/summary` and their action routes |
@@ -66,6 +70,8 @@ How it is wired:
 - **One currency per search.** The price filters and the price range are in the chosen `currency`, else the chosen country's, else the only currency of the results. With several and nothing chosen the API sends no price range and lists the currencies; the form then asks for one (`design/components/README.md`, "ListingFilterPanel").
 - **Codes are checked against the reference data** before they are sent to the API, which answers 400 for a code it does not know. Whether places fit together (a suburb in its city, a city in its region) and whether a maximum is above its minimum is left to the API: its 400 names the parameter, and the search form shows that message beside the control.
 - **Photos.** The API returns a photo as `/assets/images/<file>.jpg` with alt text and size. Object storage and uploads are not built, so those files are the ones bundled from `src/assets/images`. `src/lib/photos.ts` maps the file name to the bundled import, which keeps hashed URLs, responsive sizes and blur placeholders. A photo that is not bundled is loaded from the URL the API gave, unoptimised, at the API's width and height.
+- **Logos are plain `<img>` elements**, not `next/image`: they come from the API, whose origin is set per environment at build time, so it cannot be listed in `images.remotePatterns` for every build. The address is `NEXT_PUBLIC_API_URL` plus the path the API gives (never the internal `API_URL`). Without a logo, or when it does not load, initials are shown (`LogoMark`).
+- **Only verified advertisers have public listings**; the API hides the rest. The site says exactly that and no more: see "What we may say about verification" in `design/guidelines/content-voice.md`.
 - **Role names come from the API.** Account roles with their groups and descriptions (`account_roles`), organisation kinds (`organisation_kinds`), the title of a membership (`role_label` in `GET /v1/me`), an agent's specialism and the wording of an application's status (`status_label`) are shown as sent. They are titles: see `design/guidelines/content-voice.md`, "Role names".
 - **Not in the reference data**, so still labelled in code: the sort orders, advertiser types and "listed in the last N days" choices of the listing search (enums and a number of that endpoint) and the titles of platform administrator roles (an enum of the identity API). The main navigation and the landing page's marketing copy are written in the app.
 
@@ -122,7 +128,7 @@ At run time, a page that cannot reach the API shows an error state with a "Try a
 | `npm run build` | Production build (standalone output in `.next/standalone`) |
 | `npm run start` | Serve the production build |
 | `npm run lint` | ESLint |
-| `npm test` | Checks the pure logic in `scripts/*.test.mjs`: the searchable select, the location lines and the nights of a short stay (Node's test runner; needs Node 22.18 or later) |
+| `npm test` | Checks the pure logic in `scripts/*.test.mjs`: the searchable select, the location lines, the nights of a short stay and logos (Node's test runner; needs Node 22.18 or later) |
 | `npm run typecheck` | Generate route types and run `tsc` |
 | `npm run tokens` | Regenerate `design/tokens/tokens.css` and check colour contrast |
 
@@ -154,7 +160,7 @@ src/components/
   layout/               Header, menu for small screens, footer, logo
   landing/              Landing-page section heading, photo tiles and role groups
   api-boundary.tsx      Wrapper for public components that read the API
-  listings/             Listing card, media, search bar, location selects, stay dates, advanced search panel, hero search
+  listings/             Listing card, the advertiser (logo, name, Verified), media, search bar, location selects, stay dates, advanced search panel, hero search
   availability/         NightCalendar (the month grid) and the availability calendar of a short-stay listing
   directory/            Profile card, enquiry form
   requests/             Property request form
@@ -169,6 +175,7 @@ src/lib/
   seo.ts                Search parameters, indexing rules, structured data (docs/seo.md)
   countries.ts          Which country names take "the" in a sentence
   places.ts             A location line from whatever a listing or profile names
+  logos.ts, logo-rules.ts  Logo addresses, the initials shown without one, what an uploaded logo must be
   nights.ts             Nights of a short stay: dates, ranges, "today" in a time zone, the rules of a stay
   stay-calendar.ts      The public calendar as the listing page hands it to the browser
   legal.ts              Every business fact the legal pages state (docs/legal.md)

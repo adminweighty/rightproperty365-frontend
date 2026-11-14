@@ -108,7 +108,9 @@ The page-width wrapper. Full-width bands (`bg-soft` or `bg-tint` with `border-y 
 The unit of search results.
 
 - Photo-led: a 4:3 photo fills the top of the card and zooms slightly on hover.
-- Order under the photo: price, the facts line, title, location. Price comes first and is the most prominent text (24px, weight 700).
+- Order under the photo: price, title, location, then a bottom row above a hairline: the facts line on the left and **the advertiser at the far right** (`AdvertiserCompact`: logo or initials, name, the Verified mark). Price comes first and is the most prominent text (24px, weight 700).
+- Where the facts and the advertiser do not fit side by side (a narrow card, a short stay's longer facts line) the advertiser drops to its own line, still at the right. A long name is cut with an ellipsis and carries the whole name as its `title`. Nothing leaves the card at 320px.
+- The advertiser on a card is text and an image, never a link: the whole card stays one link.
 - The facts line (`ListingFacts`) is bedrooms, bathrooms and area on one line: an indigo icon, the value in `ink` weight 600, the unit in `muted`. Missing values are left out rather than shown as a dash.
 - **A short stay** leads the facts line with how many it sleeps ("Sleeps 8") and ends it with its shortest stay ("2 nights minimum") in place of the area. Its price says "per night".
 - Tags on the photo, top left: the status tag (the deal type, "For sale" or "To rent") in `primary` with white text, then "New" on white, then "Featured" in `brand-accent` with `brand-deep` text. Tags are text on a solid fill, never text on the photo itself. Sponsored placements must be labelled.
@@ -120,6 +122,36 @@ The unit of search results.
 - **A place line is built from what the listing names** (`lib/places.ts`). The suburb and the region can be missing, and a city can be free text typed by the lister (a country with no reference places): a card without a suburb shows city and country ("Grand Baie, Mauritius"), and a listing that names no place has no place line. Never print an empty part, "null" or a doubled comma. A free-text place is plain text: it has no code, so it is never a link or a filter.
 - Deal, suburb, city and price come from the API. What a rental is charged per ("per month", "per night") is the label of the API's `price_periods` set, passed in as `periods`. The card has no text of its own apart from "Featured", "New", "Sleeps" and "nights minimum".
 - On results found with stay dates or guests, the link to a short stay carries them (`?check_in=…&check_out=…&guests=…`), so its request form starts from them. The listing's canonical address stays the plain one.
+
+## Advertiser: LogoMark, VerifiedMark, AdvertiserCompact, AdvertiserBlock (`ui/logo-mark.tsx`, `listings/advertiser.tsx`)
+
+Who advertises a listing, with the status that matters most: whether RightProperty365 has verified them. Built from the API's `advertiser.display` (the agency, company or owner) and `advertiser.agent_display` (the assigned agent).
+
+- **LogoMark.** A fixed square box. With a logo: the image, `object-contain` on white with a hairline, `loading="lazy"`, explicit width and height, and the alt text "<name> logo". Without one, or when the image does not load: up to two initials on a soft token colour chosen from the name, so one name always has the same colour. The initials are decorative (`aria-hidden`): the name is always written beside them and must not be read twice. Businesses get a rounded square, people a circle.
+- **A plain `<img>`, not `next/image`.** The file is served by the API (`GET /v1/directory/<kind>/<slug>/logo?v=…`, public, cacheable, the `v` changes with the logo). The API's origin is a build-time setting that differs per environment and is missing in CI, so it cannot be listed in `images.remotePatterns` once for every build. The address is the API's path behind the **public** API address (`NEXT_PUBLIC_API_URL`), also in HTML rendered on the server, because the visitor's browser fetches it (`logoUrl` in `lib/logos.ts`).
+- **VerifiedMark.** A tick and the word "Verified" in the success colour, only when the API says `verified: true`. Otherwise the words "Not verified" in a neutral colour. Never draw the badge from anything but that flag, and never use colour or the icon without the word.
+- **AdvertiserCompact** (cards; the listing page under the title on phones): logo at 32px, the name, the Verified mark under it. Screen readers hear "Advertised by <name>".
+- **AdvertiserBlock** (the listing page, at the top of the side panel, above the request form): the heading "Advertised by"; the agency, company or owner with a 56px logo, the name as a link to its profile under Professionals, its title from the API ("Real Estate Agency", "Host") and the Verified mark; under it the assigned agent with their own photo or initials, name (a link), title ("Estate Agent", "Sales Agent", "Lettings Agent") and their own Verified mark; then "Verified on 14 November 2026." and the link "What does Verified mean?" to the FAQ. A direct owner is their own name with "Landlord" or "Property Seller (Vendor)" and no link, because they have no public profile.
+- No phone number, email address or address, here or anywhere public. Contact is the request form.
+
+## Trust strip and assurance lines (`app/page.tsx`, `app/listings/page.tsx`)
+
+What the site may say about verification, with real numbers. The rule is in `design/guidelines/content-voice.md`, "What we may say about verification".
+
+- **Landing page**, under the stat strip: a band on the soft success colour with a tick, "24 listings · all from verified agents, agencies and owners", "28 verified professionals and owners" under it, and one sentence: "Verified means we reviewed the documents of whoever advertises a property before their listings appeared. It is a check of the advertiser, not an inspection of the property." with the link "What Verified means". The numbers are the API's (`GET /v1/trust/summary`); "all" is written only when the API's two listing counts are equal, and the band is left out when the summary cannot be read.
+- **Search results**, under the count: "All listings are from verified agents, agencies and owners." with the same link.
+- **Listing page**: "What does Verified mean?" under the advertiser.
+- Never: "verified listing", "inspected", "guaranteed", "approved property", or a count of "listings reviewed".
+
+## Logo upload (`onboarding/document-uploader.tsx`, `auth/profile-logos.tsx`, `ui/private-image.tsx`)
+
+A logo or profile photo is the one thing an applicant uploads that becomes public.
+
+- **In the onboarding form** the optional "Logo or profile photo" row is a document row with three differences: a warning-toned note with an eye icon, "**This one is public.** Once your application is approved it is shown on your profile and beside your name on your listings. Your other documents stay private."; it takes images only (PNG or JPEG, up to 2 MB, 128 to 4096 pixels on each side, said under the button); and after an upload it shows the picture itself at 96px, not only a file name.
+- **On the account page**, "Your public profile" lists each profile the API returns for the person (`GET /v1/me/profiles`) with its logo or initials, the Verified mark, a link to the public profile, "Upload a new logo" and "Remove logo". Removing asks first, in place ("Remove the logo of …?" with "Yes, remove it" and "Keep it"); there is no dialog component. Results are said in a live region under the buttons; a refusal is said in the API's terms ("The image must be between 128x128 and 4096x4096 pixels.", "Only the owner or a manager of this business can change its logo."). The block is absent for someone with no profile.
+- A wrong file type or size is caught before anything is sent, in the same place. The API checks again by content.
+- **For the reviewer** the logo document is shown as an image above its file name, because approving the application publishes it.
+- `PrivateImage` shows an image that needs the session (an uploaded document): it is fetched with the cookie and shown from memory, with a line of text in its place if it cannot be read.
 
 ## ListingRail (`listings/listing-rail.tsx`)
 
@@ -524,7 +556,7 @@ One row per document type in an application.
 
 Every kind the API lists has a tile on `/directory`, a list at `/directory/<kind>` and a profile page per entry. Nothing in these pages names a kind: Solicitors appeared when the API added it. Breadcrumbs read Home, Professionals, the kind, the profile.
 
-- `ProfileCard`: avatar with initials (round for a person, square for a business), name, one line under it, tagline, then city, listing count, "Verified" and "Sponsored" badges. The line under the name is the agent's specialism when the API sends one ("Sales Agent", "Lettings Agent"), otherwise the profile's role line or trade, followed by the agency for an agent.
+- `ProfileCard`: the logo or photo (`LogoMark`; initials without one, round for a person, square for a business; an agent without a photo carries their agency’s logo, named as the agency’s in its alt text), name, one line under it, tagline, then city, listing count, "Verified" and "Sponsored" badges. The line under the name is the agent's specialism when the API sends one ("Sales Agent", "Lettings Agent"), otherwise the profile's role line or trade, followed by the agency for an agent.
 - A list has a small GET form above it: Country and Region or province (each a `SearchableSelect`), "Apply" and, when a filter is in use, "Clear". The heading is the kind's label alone ("Solicitors"); a chosen region or country is added ("Solicitors in the United Kingdom"). A filtered list has its own address (`/directory/agencies?region=bulawayo`), is `noindex`, and says "No profiles match those filters." when empty.
 - Profile page: breadcrumb, a header with the kind's singular label, trade or specialism, "Verified" and "Sponsored" badges, then About, Services (offerings with descriptions when the API has them), Areas covered, and the enquiry card. A law firm, an agency and a plumber use the same page.
 - Contact is enquiry-only on every kind. No phone number, email or address is shown.

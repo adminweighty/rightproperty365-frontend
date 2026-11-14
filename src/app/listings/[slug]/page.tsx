@@ -1,9 +1,10 @@
-import { BadgeCheck, Check, ChevronRight, MapPin } from "lucide-react";
+import { Check, ChevronRight, MapPin } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { StayCalendar, StayProvider } from "@/components/availability/stay-calendar";
+import { AdvertiserBlock, AdvertiserCompact } from "@/components/listings/advertiser";
 import { ListingFacts, ListingGrid, ListingPrice } from "@/components/listings/listing-card";
 import { ListingMedia } from "@/components/listings/listing-media";
 import { PropertyRequestForm } from "@/components/requests/property-request-form";
@@ -26,7 +27,6 @@ import {
   listingSeoDescription,
   listingSeoTitle,
   listingsPath,
-  profilePath,
   SHORT_STAY,
 } from "@/lib/seo";
 import { ApiBoundary } from "@/components/api-boundary";
@@ -184,8 +184,6 @@ async function ListingContent({ params }: Pick<Props, "params">) {
   const { listing } = lookup;
   const { advertiser } = listing;
   const [cover, ...morePhotos] = listing.photos;
-  // The agent for an agency listing; the seller's own name for a private sale.
-  const contact = advertiser.agent ?? advertiser.agency;
   const place = fullPlace(listing);
   const periods = toLabels(catalogue.sets.price_periods);
   const calendar = availability ? toStayCalendarData(availability) : null;
@@ -258,6 +256,8 @@ async function ListingContent({ params }: Pick<Props, "params">) {
               {place}
             </p>
           )}
+          {/* On a phone the side panel is far below: say who advertises it here as well. */}
+          <AdvertiserCompact advertiser={advertiser} className="mt-4 lg:hidden" />
           <ListingPrice listing={listing} periods={periods} className="mt-6 text-4xl" />
           <div className="mt-6 border-y border-line py-4">
             <ListingFacts listing={listing} />
@@ -295,33 +295,13 @@ async function ListingContent({ params }: Pick<Props, "params">) {
 
         <aside aria-labelledby="contact-heading">
           <Card className="lg:sticky lg:top-24">
+            {/* Names and profile links only. Phone numbers and email addresses are never shown. */}
+            <section aria-labelledby="advertiser-heading" className="mb-6 border-b border-line pb-6">
+              <AdvertiserBlock advertiser={advertiser} verification={listing.verification} headingId="advertiser-heading" />
+            </section>
             <h2 id="contact-heading" className="scroll-mt-24 text-2xl">
               {calendar ? "Ask the host" : `Contact the ${advertiser.type === "agency" ? "agent" : "seller"}`}
             </h2>
-            {/* Profile links only. Phone numbers and email addresses are never shown. */}
-            <p className="mt-2 flex flex-wrap items-center gap-1.5 text-sm text-muted">
-              {contact ? (
-                <Link href={profilePath(contact)} className="font-semibold text-primary-ink hover:underline">
-                  {contact.name}
-                </Link>
-              ) : (
-                <span className="font-semibold text-ink">{advertiser.name}</span>
-              )}
-              {advertiser.agent && advertiser.agency && (
-                <>
-                  <span aria-hidden="true">·</span>
-                  <Link href={profilePath(advertiser.agency)} className="text-primary-ink hover:underline">
-                    {advertiser.agency.name}
-                  </Link>
-                </>
-              )}
-              {advertiser.verified && (
-                <Badge tone="success">
-                  <BadgeCheck className="size-3.5" aria-hidden="true" />
-                  Verified
-                </Badge>
-              )}
-            </p>
             <div className="mt-6">
               <PropertyRequestForm
                 listingId={listing.id}

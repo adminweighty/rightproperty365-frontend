@@ -1,9 +1,10 @@
 "use client";
 
-import { CircleCheck, FileText, Upload } from "lucide-react";
+import { CircleCheck, Eye, FileText, Upload } from "lucide-react";
 import { useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonClasses } from "@/components/ui/button";
+import { PrivateImage } from "@/components/ui/private-image";
 import {
   DOCUMENT_ACCEPT,
   DOCUMENT_MAX_BYTES,
@@ -14,6 +15,7 @@ import {
   uploadDocument,
   type OnboardingDocument,
 } from "@/lib/api/onboarding";
+import { LOGO_ACCEPT, LOGO_DOCUMENT, LOGO_FORMATS_NOTE, logoProblem } from "@/lib/logo-rules";
 
 type Props = {
   /** The account role code the application is for. */
@@ -33,7 +35,8 @@ type Props = {
 type Notice = { tone: "status" | "alert"; text: string };
 
 /** Checks a file before it is sent. The API checks again, by content. */
-function problemWith(file: File): string | null {
+function problemWith(file: File, isLogo: boolean): string | null {
+  if (isLogo) return logoProblem(file);
   if (file.size > DOCUMENT_MAX_BYTES) {
     return `${file.name} is ${formatFileSize(file.size)}. Choose a file of 10 MB or less.`;
   }
@@ -48,15 +51,20 @@ function problemWith(file: File): string | null {
  * One document of an onboarding application: what is asked for, the file that
  * is attached, and the controls to upload, replace or remove it. Each row
  * uploads on its own, so one slow file does not hold up the rest.
+ *
+ * The logo is the one document that becomes public. Its row says so, takes
+ * images only and shows the picture that was uploaded, so it is not mistaken
+ * for the private documents around it.
  */
 export function DocumentUploader({ role, type, document: attached, editable, error, onChanged }: Props) {
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState<"uploading" | "removing" | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const id = `doc-${type.code}`;
+  const isLogo = type.code === LOGO_DOCUMENT;
 
   async function upload(file: File) {
-    const problem = problemWith(file);
+    const problem = problemWith(file, isLogo);
     if (problem) {
       setNotice({ tone: "alert", text: problem });
       return;
@@ -116,6 +124,23 @@ export function DocumentUploader({ role, type, document: attached, editable, err
         )}
       </div>
 
+      {isLogo && (
+        <p className="mt-3 flex items-start gap-2 rounded-md bg-warning-soft p-3 text-sm leading-relaxed text-ink">
+          <Eye className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
+          <span>
+            <span className="font-semibold">This one is public.</span> Once your application is approved it is shown on
+            your profile and beside your name on your listings. Your other documents stay private.
+          </span>
+        </p>
+      )}
+      {isLogo && attached && (
+        <PrivateImage
+          src={documentUrl(role, attached.id)}
+          alt={`The logo you uploaded, ${attached.file_name}`}
+          className="mt-3 size-24"
+        />
+      )}
+
       {attached && (
         <p className="mt-3 flex items-start gap-2 text-sm text-ink">
           <FileText className="mt-0.5 size-4 shrink-0 text-muted" aria-hidden="true" />
@@ -133,7 +158,7 @@ export function DocumentUploader({ role, type, document: attached, editable, err
             <input
               ref={input}
               type="file"
-              accept={DOCUMENT_ACCEPT}
+              accept={isLogo ? LOGO_ACCEPT : DOCUMENT_ACCEPT}
               tabIndex={-1}
               aria-hidden="true"
               className="sr-only"
@@ -182,7 +207,7 @@ export function DocumentUploader({ role, type, document: attached, editable, err
       {/* One live region per row: progress and results are announced, problems interrupt. */}
       <div id={`${id}-notice`} className="mt-2 text-sm">
         <p role="status" className="text-muted">
-          {problem ? "" : (notice?.text ?? (editable && !attached ? "PDF, JPEG or PNG, up to 10 MB." : ""))}
+          {problem ? "" : (notice?.text ?? (editable && !attached ? (isLogo ? LOGO_FORMATS_NOTE : "PDF, JPEG or PNG, up to 10 MB.") : ""))}
         </p>
         <p role="alert" className="text-danger">
           {problem ?? ""}

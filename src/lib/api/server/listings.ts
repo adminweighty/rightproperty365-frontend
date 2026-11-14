@@ -6,6 +6,7 @@ import type {
   ListingSuggestion,
   PublicAvailability,
   SitemapEntries,
+  TrustSummary,
 } from "@/lib/api/types";
 import { addDays, todayIn } from "@/lib/nights";
 import { apiGet, queryString } from "./client";
@@ -71,6 +72,19 @@ export async function suggestListings(q: string): Promise<ListingSuggestion[]> {
     [400],
   );
   return status === 200 ? data.suggestions : [];
+}
+
+/**
+ * How many advertisers are verified and how many listings are public, for the
+ * assurance on the landing page. Null from an API build that has no such
+ * endpoint: the page then says nothing rather than guess.
+ */
+export async function getTrustSummary(): Promise<TrustSummary | null> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("listings", "directory");
+  const { status, data } = await apiGet<TrustSummary>("/v1/trust/summary", [404]);
+  return status === 200 ? data : null;
 }
 
 /** Slugs of every public listing and profile, for the sitemap and prerendering. */

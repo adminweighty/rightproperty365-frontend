@@ -15,8 +15,6 @@ type Props = {
   open?: boolean;
   /** The API's message for a parameter it refused, by parameter name. */
   errors?: Record<string, string>;
-  /** The earliest night the stay dates accept (`YYYY-MM-DD`). */
-  today: string;
 };
 
 /** A named group of filters: a fieldset whose legend is the group's heading. */
@@ -74,7 +72,7 @@ function NumberField({ name, label, defaults, errors, hint, step = "any", max }:
  * Every list comes from the API. The number beside an option is how many
  * listings it has for the current search.
  */
-export function ListingFilterPanel({ options, defaults, open = false, errors = {}, today }: Props) {
+export function ListingFilterPanel({ options, defaults, open = false, errors = {} }: Props) {
   const keys: (keyof ListingFilters)[] = [
     "property_type",
     "check_in",
@@ -164,7 +162,6 @@ export function ListingFilterPanel({ options, defaults, open = false, errors = {
             key={[defaults.check_in, defaults.check_out, defaults.guests_min].join("|")}
             defaults={defaults}
             errors={errors}
-            today={today}
           />
           <p className="text-sm leading-relaxed text-muted sm:col-span-2 lg:col-span-4">
             {stayCategoryError ? (

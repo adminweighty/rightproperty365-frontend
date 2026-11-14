@@ -1,40 +1,26 @@
 import { BadgeCheck, MapPin } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import type { DirectoryProfile, ProfileRef } from "@/lib/api/types";
+import { LogoMark } from "@/components/ui/logo-mark";
+import type { DirectoryProfile, Logo, ProfileRef } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
 import { profilePlace } from "@/lib/places";
 import { profilePath } from "@/lib/seo";
 
-export const initials = (name: string) =>
-  name
-    .split(" ")
-    .filter((word) => word.toLowerCase() !== "and")
-    .map((word) => word[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-
 type AvatarProps = {
   name: string;
+  /** The profile’s logo or photo. Without one, or when it does not load, the initials are shown. */
+  logo?: Logo | null;
+  /** Whose logo it is when it is not the profile’s own. */
+  logoOf?: string;
   /** People get a round avatar, businesses a rounded square. */
   person?: boolean;
   className?: string;
 };
 
-export function ProfileAvatar({ name, person, className }: AvatarProps) {
-  return (
-    <span
-      aria-hidden="true"
-      className={cn(
-        "flex shrink-0 items-center justify-center bg-primary-soft font-bold text-primary-ink",
-        person ? "rounded-full" : "rounded-md",
-        className ?? "size-14 text-lg",
-      )}
-    >
-      {initials(name)}
-    </span>
-  );
+/** A profile’s logo or photo, or its initials: see `LogoMark`. */
+export function ProfileAvatar({ name, logo, logoOf, person, className }: AvatarProps) {
+  return <LogoMark name={name} logo={logo} logoOf={logoOf} person={person} className={className} />;
 }
 
 const cardLink =
@@ -51,8 +37,13 @@ export function ProfileCard({ profile }: { profile: DirectoryProfile }) {
       )}
     >
       <div className="flex items-start gap-4">
-        {/* A profile that works for an agency is a person. */}
-        <ProfileAvatar name={profile.name} person={profile.agency !== null} />
+        {/* A profile that works for an agency is a person; without a photo of their own they carry the agency’s logo. */}
+        <ProfileAvatar
+          name={profile.name}
+          logo={profile.logo ?? profile.agency?.logo}
+          logoOf={profile.logo ? undefined : profile.agency?.name}
+          person={profile.agency !== null && Boolean(profile.logo)}
+        />
         <div className="min-w-0 flex-1">
           <h3 className="font-sans text-base font-semibold tracking-normal text-ink">
             <Link href={profilePath(profile)} className={cardLink}>
@@ -115,7 +106,7 @@ export function ProfileRefGrid({ profiles, person }: { profiles: ProfileRef[]; p
       {profiles.map((profile) => (
         <li key={`${profile.kind}/${profile.slug}`}>
           <article className="group frame-brand relative flex min-h-20 items-center gap-4 rounded-lg border border-line bg-surface p-4 shadow-xs transition-shadow hover:shadow-md focus-within:shadow-md">
-            <ProfileAvatar name={profile.name} person={person} className="size-12 text-base" />
+            <ProfileAvatar name={profile.name} logo={profile.logo} person={person} className="size-12 text-base" />
             <div className="min-w-0 flex-1">
               <h3 className="font-sans text-base font-semibold tracking-normal text-ink">
                 <Link href={profilePath(profile)} className={cardLink}>

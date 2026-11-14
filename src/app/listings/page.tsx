@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ListingGrid } from "@/components/listings/listing-card";
+import { VERIFIED_FAQ } from "@/components/listings/advertiser";
 import { SearchBar } from "@/components/listings/search-bar";
 import { JsonLd } from "@/components/seo/json-ld";
 import { ButtonLink } from "@/components/ui/button";
@@ -14,7 +15,6 @@ import { getAllCountries, getCatalogue } from "@/lib/api/server/reference";
 import { X } from "lucide-react";
 import { toLabels } from "@/lib/api/types";
 import { activeFilterChips } from "@/lib/filter-chips";
-import { todayIn } from "@/lib/nights";
 import { buildSearchOptions } from "@/lib/search-options";
 import { listingsCollectionJsonLd, listingsPath, parseListingsSearch } from "@/lib/seo";
 import { ApiBoundary } from "@/components/api-boundary";
@@ -138,11 +138,18 @@ async function Results({ searchParams }: Pick<Props, "searchParams">) {
         </p>
       )}
 
+      {page && page.total > 0 && (
+        <p className="mt-1 text-sm text-muted">
+          All listings are from verified agents, agencies and owners.{" "}
+          <Link href={VERIFIED_FAQ} className="font-medium text-primary-ink underline underline-offset-2 hover:no-underline">
+            What Verified means
+          </Link>
+        </p>
+      )}
+
       <SearchBar
         options={options}
         defaults={search.filters}
-        // The earliest "today" anywhere, so the date boxes never refuse a night that some listing can still take.
-        today={todayIn("Etc/GMT+12")}
         advanced={search.advanced}
         errors={errors}
         className="mt-8"

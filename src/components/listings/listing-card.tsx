@@ -1,5 +1,6 @@
 import { Bath, BedDouble, MapPin, Maximize2, Moon, Users } from "lucide-react";
 import Link from "next/link";
+import { AdvertiserCompact } from "@/components/listings/advertiser";
 import { ListingMedia } from "@/components/listings/listing-media";
 import type { Listing } from "@/lib/api/types";
 import { formatArea, formatMoney, pricePeriodLabel } from "@/lib/format";
@@ -109,7 +110,10 @@ type CardProps = { listing: Listing; isNew?: boolean; periods?: PeriodLabels; st
 
 /**
  * A listing in a grid or a row: a large photo with the status tag on it, then
- * price, the facts line, title and place. The place is whatever the listing
+ * price, title and place, and a bottom row with the facts on the left and, at
+ * the far right, who advertises it: logo, name and the Verified mark. Where
+ * the two do not fit side by side the advertiser drops below, still on the
+ * right. The advertiser is text and an image, not a link: the card is one link. The place is whatever the listing
  * names (suburb and city, or city and country); a listing that names none has
  * no place line.
  */
@@ -133,8 +137,7 @@ export function ListingCard({ listing, isNew, periods, stay }: CardProps) {
 
       <div className="flex flex-1 flex-col gap-2 p-5">
         <ListingPrice listing={listing} periods={periods} className="text-2xl" />
-        <ListingFacts listing={listing} />
-        <h3 className="mt-1 font-sans text-base font-medium tracking-normal text-ink">
+        <h3 className="font-sans text-base font-medium tracking-normal text-ink">
           {/* The stretched link makes the whole card one target. */}
           <Link
             href={listingHref(listing, stay)}
@@ -149,6 +152,10 @@ export function ListingCard({ listing, isNew, periods, stay }: CardProps) {
             {place}
           </p>
         )}
+        <div className="mt-auto flex flex-wrap items-end justify-between gap-x-4 gap-y-3 border-t border-line pt-3">
+          <ListingFacts listing={listing} />
+          <AdvertiserCompact advertiser={listing.advertiser} className="ml-auto" />
+        </div>
       </div>
     </article>
   );

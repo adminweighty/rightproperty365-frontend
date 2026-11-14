@@ -129,7 +129,10 @@ async function ProfileContent({ params }: Pick<Props, "params">) {
         <div className="flex flex-col gap-5 px-6 pb-6 md:flex-row md:items-end md:px-8">
           <ProfileAvatar
             name={profile.name}
-            person={agency !== null}
+            // An agent without a photo carries the agency’s logo.
+            logo={profile.logo ?? agency?.logo}
+            logoOf={profile.logo ? undefined : agency?.name}
+            person={agency !== null && Boolean(profile.logo)}
             className="-mt-10 size-24 text-3xl ring-4 ring-surface md:-mt-12 md:size-28"
           />
           <div className="min-w-0 flex-1 md:pt-5">

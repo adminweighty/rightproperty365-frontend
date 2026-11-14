@@ -14,6 +14,7 @@ import type {
 } from "@/lib/api/types";
 import { env } from "@/lib/env";
 import { formatMoney, pricePeriodLabel } from "@/lib/format";
+import { logoUrl } from "@/lib/logos";
 import { isNight } from "@/lib/nights";
 import { coverPhoto } from "@/lib/photos";
 import { joinPlaces, shortPlace } from "@/lib/places";
@@ -550,7 +551,7 @@ function offerJsonLd(listing: Listing): JsonLd {
   // A price per month or per night is a lease; a price with no period is a sale.
   const isRental = listing.price_period !== null;
   const perNight = listing.price_period === "night";
-  const agency = listing.advertiser.agency;
+  const { agency, agent, display } = listing.advertiser;
   return {
     "@type": "Offer",
     url: absoluteUrl(listingPath(listing)),
@@ -569,13 +570,16 @@ function offerJsonLd(listing: Listing): JsonLd {
           },
         }
       : { price, priceCurrency: listing.price.currency }),
-    ...(listing.advertiser.type === "agency" && {
-      offeredBy: {
-        "@type": "RealEstateAgent",
-        name: listing.advertiser.name,
-        ...(agency && { url: absoluteUrl(profilePath(agency)) }),
-      },
-    }),
+    // Who offers it: the agency or company (with its logo and its agent), or the owner by name.
+    offeredBy: {
+      "@type": listing.advertiser.type === "agency" ? "RealEstateAgent" : "Person",
+      name: display?.name ?? listing.advertiser.name,
+      ...(agency && { url: absoluteUrl(profilePath(agency)) }),
+      ...(display?.logo && { logo: logoUrl(display.logo) }),
+      ...(agent && {
+        employee: { "@type": "Person", name: agent.name, url: absoluteUrl(profilePath(agent)) },
+      }),
+    },
   };
 }
 
@@ -681,6 +685,8 @@ export function profileJsonLd(profile: DirectoryProfile, kind: DirectoryKindInfo
     url,
     name: profile.name,
     description: profile.description,
+    // schema.org: `logo` belongs to an organisation, `image` to anything.
+    ...(profile.logo && { [profileEntityType(profile.kind) === "Person" ? "image" : "logo"]: logoUrl(profile.logo) }),
     areaServed: profile.areas.map((name) => ({ "@type": "Place", name })),
   };
 

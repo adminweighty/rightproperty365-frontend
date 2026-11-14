@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
+import { ProfileLogos } from "@/components/auth/profile-logos";
 import { RequireAuth } from "@/components/auth/require-auth";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -184,6 +185,8 @@ function Details({ user, roleLabels, organisationKindLabels }: Props & { user: U
           </ul>
         </Card>
       </div>
+
+      <ProfileLogos className="mt-6" />
 
       <div className="mt-8 flex flex-wrap gap-3">
         {hasOnboardingToDo(user) && <ButtonLink href="/onboarding">Complete your profile</ButtonLink>}
