@@ -11,7 +11,7 @@ Inter is the brand typeface: the logo wordmark is Inter Display Bold. The brand 
 
 Fonts are self-hosted at build time by `next/font`, so no request leaves for a font CDN at runtime. Each has a system fallback stack in `tokens.json`.
 
-Hierarchy comes from weight and size, not from a second typeface. `h1` to `h3` are weight 700 with -0.02em tracking (set globally). Small headings inside components use weight 600 with normal tracking.
+Hierarchy comes from weight and size, not from a second typeface. `h1` to `h3` are weight 700 with -0.02em tracking (set globally). Small headings inside components use weight 600 with normal tracking. Prices are weight 700; buttons and navigation are weight 600.
 
 ## Scale
 
@@ -19,15 +19,15 @@ The scale is Tailwind's default, in rem so it respects the reader's browser sett
 
 | Class | Size | Use |
 | --- | --- | --- |
-| `text-6xl` | 60px | Home hero on desktop |
-| `text-4xl` | 36px | Page title, hero on mobile, detail price |
-| `text-3xl` | 30px | Section title |
+| `text-5xl` | 48px | Home hero on desktop, the directory title |
+| `text-4xl` | 36px | Page title, detail price |
+| `text-3xl` | 30px | Section title, hero on phones |
 | `text-2xl` | 24px | Sub-section, card price |
 | `text-xl` | 20px | Card heading |
 | `text-lg` | 18px | Lead paragraph |
 | `text-base` | 16px | Body, inputs |
 | `text-sm` | 14px | Supporting text, labels, buttons |
-| `text-xs` | 12px | Badges only |
+| `text-xs` | 12px | Badges and the tags on photos only |
 
 ## Rules
 

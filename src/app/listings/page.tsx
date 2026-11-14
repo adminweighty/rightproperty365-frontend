@@ -106,7 +106,7 @@ async function Results({ searchParams }: Pick<Props, "searchParams">) {
         </p>
       )}
 
-      <SearchBar options={options} defaults={search.filters} className="mt-8 shadow-xs" />
+      <SearchBar options={options} defaults={search.filters} className="mt-8" />
 
       {page && page.items.length > 0 && (
         <>
@@ -147,7 +147,7 @@ async function Results({ searchParams }: Pick<Props, "searchParams">) {
                               : { suburb: suggestion.value },
                           )
                     }
-                    className="flex min-h-11 items-center rounded-full border border-line bg-surface px-4 text-sm font-medium text-ink transition-colors hover:bg-primary-soft"
+                    className="flex min-h-11 items-center rounded-full border border-line-strong bg-surface px-4 text-sm font-medium text-ink transition-colors hover:border-primary hover:bg-primary-soft hover:text-primary-ink"
                   >
                     {suggestion.label}
                   </Link>

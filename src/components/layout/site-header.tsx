@@ -1,45 +1,36 @@
 import Link from "next/link";
-import { Suspense } from "react";
 import { AccountMenu } from "@/components/auth/account-menu";
-import { HeaderScrollWatcher } from "@/components/layout/header-scroll-watcher";
 import { Logo } from "@/components/layout/logo";
-import { ActiveMarketLabel } from "@/components/layout/market-info";
-import { Container } from "@/components/ui/container";
+import { navItems, professionalsLink } from "@/components/layout/nav-items";
+import { SiteMenu } from "@/components/layout/site-menu";
+import { ButtonLink } from "@/components/ui/button";
 
-const navItems = [
-  { href: "/listings?deal=sale", label: "Buy" },
-  { href: "/listings?deal=rent", label: "Rent" },
-  { href: "/listings?category=commercial", label: "Commercial" },
-  { href: "/listings?category=land", label: "Land" },
-  { href: "/directory/agencies", label: "Agents" },
-  { href: "/directory", label: "Directory" },
-];
-
+/**
+ * White, sticky, 64px. Logo, inline navigation from `lg`, the session control
+ * and, below `lg`, the menu button. The bar never wraps: the logo is the one
+ * part that may shrink on the narrowest phones.
+ */
 export function SiteHeader() {
   return (
-    <header
-      data-site-header
-      className="sticky top-0 z-40 border-b border-line bg-page/90 backdrop-blur transition-colors duration-300"
-    >
-      <HeaderScrollWatcher />
+    <header data-site-header className="sticky top-0 z-40 border-b border-line bg-surface">
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-3 focus:z-50 focus:rounded-md focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:shadow-md"
       >
         Skip to content
       </a>
-      <Container className="flex h-16 items-center gap-6">
-        <Link href="/" aria-label="RightProperty365 home" data-overlay-part className="rounded-md">
-          <Logo />
+      <div className="mx-auto flex h-16 w-full max-w-[75rem] items-center gap-2 px-3 sm:gap-4 sm:px-4 md:px-8">
+        <Link href="/" aria-label="RightProperty365 home" className="min-w-0 shrink rounded-md">
+          <Logo className="h-6 max-w-full sm:h-8" />
         </Link>
 
-        <nav aria-label="Main" data-overlay-part className="hidden md:block">
-          <ul className="flex items-center gap-1">
+        <nav aria-label="Main" className="ml-2 hidden lg:block">
+          <ul className="flex items-center">
             {navItems.map((item) => (
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className="rounded-md px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-sunken hover:text-ink"
+                  className="rounded-md px-3 py-2 text-sm font-semibold text-ink decoration-line-accent decoration-2 underline-offset-8 transition-colors hover:text-primary-ink hover:underline"
                 >
                   {item.label}
                 </Link>
@@ -48,38 +39,15 @@ export function SiteHeader() {
           </ul>
         </nav>
 
-        <div className="ml-auto flex items-center gap-3">
-          {/* The active market comes from the API; the header does not wait for it. */}
-          <Suspense fallback={null}>
-            <ActiveMarketLabel />
-          </Suspense>
-          <Link
-            href="/#for-agents"
-            data-overlay-part
-            className="hidden rounded-md px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-sunken hover:text-ink sm:block"
-          >
-            For agents
-          </Link>
-          <AccountMenu />
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          <AccountMenu professionals={professionalsLink} />
+          {/* The session control needs JavaScript; without it, sign-in is still one tap away. */}
+          <noscript>
+            <ButtonLink href="/sign-in">Sign in</ButtonLink>
+          </noscript>
+          <SiteMenu items={navItems} secondary={[professionalsLink]} />
         </div>
-      </Container>
-
-      <nav aria-label="Main" data-overlay-part className="border-t border-line md:hidden">
-        <Container>
-          <ul className="-mx-2 flex gap-1 overflow-x-auto py-1.5">
-            {navItems.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className="block rounded-md px-3 py-2.5 text-sm font-medium text-muted hover:bg-sunken hover:text-ink"
-                >
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </Container>
-      </nav>
+      </div>
     </header>
   );
 }

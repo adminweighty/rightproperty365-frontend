@@ -11,6 +11,7 @@ type Props = {
   listings: Listing[];
   /** Ids to mark with a "New" badge. */
   newIds?: string[];
+  className?: string;
 };
 
 /**
@@ -18,7 +19,7 @@ type Props = {
  * container with scroll snapping, so touch, trackpad and keyboard scrolling
  * work without JavaScript; the arrow buttons are a convenience on top.
  */
-export function ListingRail({ label, listings, newIds = [] }: Props) {
+export function ListingRail({ label, listings, newIds = [], className }: Props) {
   const track = useRef<HTMLUListElement>(null);
 
   function scroll(direction: 1 | -1) {
@@ -32,19 +33,19 @@ export function ListingRail({ label, listings, newIds = [] }: Props) {
   }
 
   const arrow =
-    "hidden size-11 items-center justify-center rounded-full border border-line bg-surface text-ink shadow-sm transition-colors hover:bg-brand hover:text-on-brand md:flex";
+    "hidden size-11 items-center justify-center rounded-full border border-line-strong bg-surface text-ink shadow-xs transition-colors hover:border-primary hover:bg-primary-soft hover:text-primary-ink md:flex";
 
   return (
-    <div className="relative">
+    <div className={className}>
       <ul
         ref={track}
         tabIndex={0}
         role="region"
         aria-label={`${label}, scrollable`}
-        className="-mx-4 flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-px-4 px-4 pb-4 [scrollbar-width:thin] md:-mx-8 md:scroll-px-8 md:px-8"
+        className="-mx-4 flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-px-4 px-4 pb-4 pt-1 [scrollbar-width:thin] md:-mx-8 md:scroll-px-8 md:px-8"
       >
         {listings.map((listing) => (
-          <li key={listing.id} className="flex w-[18.5rem] shrink-0 snap-start [&>article]:w-full sm:w-[21rem]">
+          <li key={listing.id} className="flex w-[17.5rem] shrink-0 snap-start [&>article]:w-full sm:w-[22rem]">
             <ListingCard listing={listing} isNew={newIds.includes(listing.id)} />
           </li>
         ))}

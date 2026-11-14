@@ -5,9 +5,12 @@ import { cn } from "@/lib/cn";
  * design/assets/logo/svg/logo-horizontal-transparent.svg so it can follow the
  * theme. GENERATED: do not edit the paths by hand.
  *
- * tone="auto"    indigo on light surfaces, white in the dark theme
- * tone="reverse" white, for use on the brand indigo background
+ * tone="auto"    indigo on white and light surfaces (white in the opt-in dark theme)
+ * tone="reverse" white, for use on a brand indigo background
  * "365" is always turquoise.
+ *
+ * `className` sets the height (32px without it). When its container is narrower than the logo
+ * it scales down from the left instead of overflowing.
  */
 export function Logo({
   tone = "auto",
@@ -21,7 +24,8 @@ export function Logo({
       viewBox="76 79 1188 176"
       role="img"
       aria-label="rightproperty365.com"
-      className={cn("h-7 w-auto sm:h-9", tone === "reverse" ? "text-on-brand" : "text-brand-logo", className)}
+      preserveAspectRatio="xMinYMid meet"
+      className={cn("w-auto", tone === "reverse" ? "text-on-brand" : "text-brand-logo", className ?? "h-8")}
     >
       <g transform="translate(76 64) scale(1.25)">
       <path d="M 0 104 L 93 12 L 184 78 L 246 78 L 233 99 L 174 99 L 93 42 L 0 134 Z" fill="currentColor"/>

@@ -25,7 +25,8 @@ Shared rules:
 | `md` | 44px | Default |
 | `lg` | 48px | Form submit, hero actions |
 
-- Labels are a verb or verb plus noun in sentence case: "Send request", "Clear filters".
+- The primary button is the brand indigo with white text; it is the largest block of brand colour on any page. There are no variants for coloured backgrounds, because there are no coloured panels.
+- Labels are weight 600, a verb or verb plus noun in sentence case: "Send request", "Clear filters".
 - While an action is in flight: `disabled`, `aria-busy`, and a label that says what is happening ("Sending…").
 - Icons sit before the label at 16px and are `aria-hidden`. Icon-only buttons need an `aria-label`.
 
@@ -45,28 +46,38 @@ A short, non-interactive label. Tones: `neutral`, `primary`, `accent`, `success`
 
 ## Card (`ui/card.tsx`)
 
-A `surface` with a `line` border, `rounded-lg` and `shadow-xs`. Groups related content. Do not nest cards. Pass `padded={false}` when the card holds edge-to-edge media.
+A white `surface` with a `line` border, `rounded-lg` and `shadow-xs`. Groups related content. Do not nest cards. Pass `padded={false}` when the card holds edge-to-edge media.
 
 ## Container (`ui/container.tsx`)
 
-The page-width wrapper. Full-width bands put the background on the outer element and a `Container` inside it.
+The page-width wrapper. Full-width bands (`bg-soft` or `bg-tint` with `border-y border-line`) put the background on the outer element and a `Container` inside it.
 
 ## ListingCard (`listings/listing-card.tsx`)
 
 The unit of search results.
 
-- Order: media, price, title, location, facts. Price is the most prominent text.
-- The whole card is one link, made by stretching the title link. There are no nested interactive elements inside it.
-- Badges over the media: deal type first, "Featured" second. Sponsored placements must be labelled.
-- Facts show at most three items; missing values are left out rather than shown as a dash.
+- Photo-led: a 4:3 photo fills the top of the card and zooms slightly on hover.
+- Order under the photo: price, the facts line, title, location. Price comes first and is the most prominent text (24px, weight 700).
+- The facts line (`ListingFacts`) is bedrooms, bathrooms and area on one line: an indigo icon, the value in `ink` weight 600, the unit in `muted`. At most three items; missing values are left out rather than shown as a dash.
+- Tags on the photo, top left: the status tag (the deal type, "For sale" or "To rent") in `primary` with white text, then "New" on white, then "Featured" in `brand-accent` with `brand-deep` text. Tags are text on a solid fill, never text on the photo itself. Sponsored placements must be labelled.
+- The whole card is one link, made by stretching the title link. There are no nested interactive elements inside it. On hover and keyboard focus it gains the `frame-brand` outline and a deeper shadow.
 - `ListingPrice` always shows the ISO currency code, because markets and currencies are mixed across the platform.
 
 - A listing without a photo shows a neutral frame that says "No photo yet", never a placeholder picture.
 - Deal, suburb, city and price come from the API. The card has no text of its own apart from "Featured", "New" and "per month".
 
+## ListingRail (`listings/listing-rail.tsx`)
+
+A horizontal row of listing cards under a `SectionHeading`: "New listings", one row per deal type, and so on.
+
+- A native scroll container with scroll snapping, so touch, trackpad and keyboard scrolling work without JavaScript. It is a focusable `region` named for its content ("New listings, scrollable").
+- Cards are 280px wide on phones and 352px from `sm`; the row bleeds to the screen edge so the next card is visibly cut off.
+- Two round arrow buttons under the row, from `md`, scroll it by most of its width. They are a convenience; each has an `aria-label` that names the row.
+- The listings are a prop from the API. A row with no listings is not rendered.
+
 ## SearchBar (`listings/search-bar.tsx`)
 
-The listing search on results pages. A GET form (`GetForm`) that works without JavaScript and produces shareable URLs.
+The listing search on results pages: a white card with a `line` border. A GET form (`GetForm`) that works without JavaScript and produces shareable URLs.
 
 - First row: buy or rent, category, keyword and the "Search" button. Each control has a screen-reader label. On phones it stacks to one column; from `lg` it is a single row.
 - Below it, `ListingFilterPanel` holds the rest of the filters.
@@ -106,7 +117,7 @@ Shown in place of content when the RightProperty365 API cannot be reached or ret
 - A danger `Alert` that says what could not be loaded ("We could not load the listings."), one sentence that it is our side and not theirs, and a "Try again" link.
 - "Try again" is a plain link to the same address. It works without JavaScript and makes a fresh request; a failure is never cached, so it works as soon as the service is back.
 - Never show old, sample or placeholder content in its place, and never an empty state ("No properties match") for a failure: empty means the search ran and found nothing.
-- Use it for the main content of a page. Secondary content that fails (the "Popular searches" links, the market in the header) is left out instead, or replaced by one plain sentence (the market list in the footer).
+- Use it for the main content of a page. Secondary content that fails (the "Popular searches" links) is left out instead, or replaced by one plain sentence (the market list in the footer).
 - Where a page still works without the data, keep the page: the account page and the request inbox show a role or request type by its code if the labels cannot be loaded.
 - The page is marked `noindex` while it shows an error state.
 - `src/app/error.tsx` is the fallback for any other rendering error: the same wording with a "Try again" button and a link home.
@@ -122,15 +133,56 @@ A dashed `line-strong` border, a heading that says what is (not) there in plain 
 | A filter the API no longer accepts | That search could not be run | Clear filters |
 | A listing that was public and is not any more | This listing is no longer available | Browse current listings |
 
+## Hero (`app/page.tsx`)
+
+The top of the landing page: a wide property photograph with a white panel centred on it.
+
+- The photograph is the cover photo of a featured listing (the newest listing when none is featured), from the API. It fills the section, is loaded eagerly with high fetch priority, and is decorative (`alt=""`). From `xl` a small white caption at the bottom right gives that listing's price, title and suburb and links to it.
+- The panel (`surface`, `rounded-xl`, `shadow-lg`, 768px at most) holds a short `rule-brand`, one line that says what the site is, the page's `h1` with one phrase underlined in turquoise (`mark-brand`), one sentence, and `HeroSearch`. All text is on white, so its contrast never depends on the photo.
+- On phones the panel sits low so the photo shows above it; from `md` it is centred, and from `lg` the section is at least 640px tall.
+- The loading state is the same frame with the same heading and a block the height of the search, so nothing moves when the page arrives. There is no slideshow and nothing auto-plays.
+- A page has at most one hero. Other pages start with a plain `h1` on white.
+
 ## HeroSearch (`listings/hero-search.tsx`)
 
-The landing-page search, shown on the brand indigo hero.
+The landing-page search, inside the hero's white panel.
 
-- One tab per deal type (the API's labels, "For sale" and "To rent" today) sits above city, suburb, property type, highest price, bedrooms and the submit button. The tabs are native radio buttons in a `fieldset`, so arrow keys switch between them and the choice is sent as the `deal` parameter.
+- One tab per deal type (the API's labels, "For sale" and "To rent" today), centred, sits above city, suburb, property type, highest price, bedrooms and the primary "Search" button. The tabs are native radio buttons in a `fieldset`, so arrow keys switch between them and the choice is sent as the `deal` parameter.
 - Like `SearchBar`, it is a GET form to `/listings` whose option lists are a prop built from the API: it works without JavaScript and produces a shareable URL.
-- The selected tab is shown by text colour and an underline, not colour alone. The focus outline is drawn on the tab label.
+- The selected tab is shown by text colour and a 3px indigo underline, not colour alone. Tabs are 48px tall. The focus outline is drawn on the tab label.
 - Two rows of three from `lg`, two columns from `sm`, one column on phones.
 - Use it once, on the landing page. Results pages use `SearchBar`.
+
+## SectionHeading (`landing/section-heading.tsx`)
+
+The heading of a landing-page section.
+
+- A 48px `rule-brand`, an `h2`, an optional sentence in `muted`, and an optional link at the right ("View all", "Open the directory") in `primary-ink`, 44px tall.
+- Titles name what is in the row in plain words: "New listings", "Featured homes", "Explore by city". Row titles for a deal type come from the API's labels.
+
+## PhotoTile and PhotoTileRow (`landing/photo-tile.tsx`)
+
+A photo with a title and a count, for places and collections: "Explore by city" on the landing page.
+
+- The photo has a fixed 4:3 frame with `rounded-lg` and is decorative; the title and count sit under it on white (the title weight 700, the count in `muted` with tabular figures). Text is never laid over the photo.
+- The whole tile is one link. On hover the photo zooms slightly and the title gets a turquoise underline.
+- `PhotoTileRow` scrolls sideways with snapping below `lg` and is a four-column grid from `lg`.
+- Title, count and target come from the API. A city without artwork borrows a photo from a listing there; with no photo at all the frame stays neutral.
+
+## Stat strip (`app/page.tsx`)
+
+A slim band under the hero with three counts from the API: properties listed, cities and towns, professionals and businesses.
+
+- A `dl` in three equal columns divided by hairlines. The number is `ink`, weight 700, tabular; the label is `muted`.
+- The numbers are rendered by the server and do not animate. Only show a count the API returns.
+
+## Tiles (`app/page.tsx`, `app/directory/page.tsx`)
+
+Category and directory tiles: a white card with a `line` border that links to a search or a directory.
+
+- A category tile has an icon in a `primary-soft` square, the category and its property types, and its listing count at the right. A directory tile leads with its profile count in `primary-ink`, then the label and description.
+- The whole tile is one link with the `frame-brand` outline on hover and focus. Counts carry a screen-reader unit ("13 properties").
+- Chips (popular suburbs, trades, other directories) are 44px pills with a `line-strong` border; on hover they take the `primary-soft` fill and a `primary` border.
 
 ## PropertyRequestForm (`requests/property-request-form.tsx`)
 
@@ -143,11 +195,31 @@ The only route by which a customer contacts an advertiser. It posts to the Right
 - Consent is an unticked checkbox that names who the details are shared with.
 - The request types and contact methods are props from the API's reference data, in the API's order; the first of each is selected. The business enquiry form on a directory profile (`directory/profile-enquiry-form.tsx`) takes its contact methods the same way.
 
-## SiteHeader and SiteFooter (`layout/`)
+## SiteHeader (`layout/site-header.tsx`)
 
-- The header is sticky, 64px tall, and begins with a "Skip to content" link.
-- Primary navigation shows inline from `md`; on phones it is a horizontally scrolling row under the header, so no menu button is needed.
-- The footer lists markets with their status, which keeps the multi-country roadmap honest. The markets, and the active market's name and currency in the header, come from the API (`layout/market-info.tsx`). If they cannot be loaded the header shows no market and the footer says the list could not be loaded.
+- White, sticky, 64px tall, with a hairline under it and the 3px logo-colour band along its top. It begins with a "Skip to content" link.
+- Left to right: the logo on white (`Logo` default tone), the main navigation, then at the right the session control (`AccountMenu`) and, below `lg`, the menu button (`SiteMenu`).
+- The main navigation (`layout/nav-items.ts`) shows inline from `lg`. Links are `ink`, weight 600, and take a turquoise underline on hover.
+- **The bar is one row at every width and never wraps or scrolls sideways.** The logo is the one part that may shrink: 24px tall on phones, 32px from `sm`. Do not add items to the bar; add them to the navigation list, which moves into the menu on small screens.
+- The header shows no market or currency. Prices carry their currency code, and the footer lists the markets.
+- Without JavaScript the session control cannot load, so a plain "Sign in" link is rendered in a `noscript`.
+
+## SiteMenu (`layout/site-menu.tsx`)
+
+The navigation below `lg`: a 44px menu button at the right of the header that opens a panel under it.
+
+- A native `<details>`: the `<summary>` is the button, so the menu opens and closes without JavaScript.
+- The button is named "Menu", has `aria-expanded` and `aria-controls`, and shows a menu icon that becomes a close icon while open.
+- The panel spans the page width under the header, white with `shadow-lg`, and scrolls if it is taller than the screen. It holds the main navigation (one column on phones, two from `sm`) and, under a hairline, the link for professionals. Links are 48px tall.
+- With JavaScript: opening moves focus to the first link; Escape closes it and returns focus to the button; it also closes when a link is followed, on a click outside, and when focus leaves it.
+- Its `nav` is named "Main menu"; the inline one is "Main". Only one is displayed at a time.
+
+## SiteFooter (`layout/site-footer.tsx`)
+
+- Light: a `soft` background with a hairline and the 3px logo-colour band along its top. No dark or indigo footer.
+- Five columns from `lg`: the logo with one sentence, then "Property", "Directory" and "Account" link columns and "Markets". Two columns from `sm`, one on phones. Each link column is a `nav` named by its heading; links are 44px tall on phones.
+- "Markets" lists every market with its status, which keeps the multi-country roadmap honest. It comes from the API (`layout/market-info.tsx`); if it cannot be loaded the footer says so.
+- A last row holds the copyright line.
 
 ## Alert (`ui/alert.tsx`)
 
@@ -160,7 +232,7 @@ An inline message about the result of an action, placed next to what it describe
 
 ## AuthShell (`auth/auth-shell.tsx`)
 
-The frame for sign-in, registration and account recovery: a 448px card centred on the page with one `h1`, an optional description, the form, and one secondary link below the card.
+The frame for sign-in, registration and account recovery: a 448px white card centred on the white page with one `h1`, an optional description, the form, and one secondary link below the card.
 
 - One task per screen. No marketing content, no navigation beyond the single secondary link.
 - Password fields use `autoComplete="current-password"` or `"new-password"` so password managers work. Never block paste.
@@ -196,9 +268,9 @@ Platform administrators sign in at `/admin/sign-in`, a separate page from the cu
 The session control at the right of the header.
 
 - Loading: an empty block the size of the button, so the header does not shift.
-- Signed out: a small primary "Sign in" button.
-- Signed in: a secondary button with the person's first name that opens a menu with their email, "Your account", "Complete your profile" (while an onboarding application is not submitted or has changes requested), "Request inbox" (professional accounts only) and "Sign out".
-- The button has `aria-expanded` and `aria-controls`. The menu closes on Escape, on an outside click, and when an item is chosen.
+- Signed out: a primary "Sign in" button, 44px tall, at every width. From `lg` the "For professionals" link sits beside it; it leads to the landing page's section for professionals, whose button goes to registration. Below `lg` that link is in the menu panel.
+- Signed in: a secondary button, 44px tall, that opens a menu with the person's email, "Your account", "Complete your profile" (while an onboarding application is not submitted or has changes requested), "Request inbox" (professional accounts only) and "Sign out". From `sm` the button shows the person's first name; on phones it is the account icon alone, with the name kept for screen readers ("Account menu for Tendai"), so the header fits a 320px screen.
+- The button has `aria-expanded` and `aria-controls`. The menu closes on Escape, on an outside click, and when an item is chosen. Items are 44px tall.
 
 ## RequireAuth (`auth/require-auth.tsx`)
 

@@ -96,7 +96,7 @@ export function coverPhoto(photos: Photo[]): ResolvedPhoto | undefined {
 
 /**
  * City tile artwork on the landing page, by file name `city-<city code>.jpg`.
- * A city without artwork borrows a listing photo, or shows the brand colour.
+ * A city without artwork borrows a listing photo, or shows a neutral frame.
  */
 export function cityArtwork(cityCode: string): StaticImageData | undefined {
   return bundled[`city-${cityCode}.jpg`];

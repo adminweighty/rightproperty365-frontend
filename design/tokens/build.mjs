@@ -35,13 +35,10 @@ ${light}
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-${dark.replace(/^/gm, "  ")}
-    color-scheme: dark;
-  }
-}
-
+/*
+ * The site is white for everyone: there is no prefers-color-scheme switch.
+ * The dark theme applies only when <html data-theme="dark"> is set.
+ */
 :root[data-theme="dark"] {
 ${dark}
   color-scheme: dark;
@@ -74,6 +71,13 @@ const pairs = [
   ["text.subtle", "bg.page", 4.5],
   ["text.muted", "bg.sunken", 4.5],
   ["text.subtle", "bg.surface", 4.5],
+  ["text.ink", "bg.soft", 4.5],
+  ["text.muted", "bg.soft", 4.5],
+  ["text.subtle", "bg.soft", 4.5],
+  ["text.ink", "bg.tint", 4.5],
+  ["text.muted", "bg.tint", 4.5],
+  ["text.subtle", "bg.tint", 4.5],
+  ["text.subtle", "bg.sunken", 4.5],
   ["text.inverse", "bg.inverse", 4.5],
   ["brand.on", "brand.base", 4.5],
   ["brand.on", "brand.deep", 4.5],
@@ -81,10 +85,15 @@ const pairs = [
   ["brand.deep", "brand.accent", 4.5],
   ["brand.logo", "bg.page", 4.5],
   ["brand.logo", "bg.sunken", 4.5],
+  ["brand.logo", "bg.soft", 4.5],
   ["primary.on", "primary.base", 4.5],
   ["primary.on", "primary.hover", 4.5],
   ["primary.ink", "primary.soft", 4.5],
   ["primary.ink", "bg.page", 4.5],
+  ["primary.ink", "bg.soft", 4.5],
+  ["primary.ink", "bg.tint", 4.5],
+  ["primary.ink", "bg.sunken", 4.5],
+  ["success.base", "bg.surface", 4.5],
   ["accent.ink", "accent.soft", 4.5],
   ["success.base", "success.soft", 4.5],
   ["warning.base", "warning.soft", 4.5],
@@ -95,6 +104,9 @@ const pairs = [
   ["border.control", "bg.page", 3],
   ["focus", "bg.page", 3],
   ["focus", "bg.surface", 3],
+  ["focus", "bg.soft", 3],
+  ["focus", "bg.tint", 3],
+  ["focus", "primary.soft", 3],
 ];
 
 let failures = 0;

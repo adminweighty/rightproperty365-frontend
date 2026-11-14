@@ -15,6 +15,8 @@
 
   --color-page: var(--rp-color-bg-page);
   --color-surface: var(--rp-color-bg-surface);
+  --color-soft: var(--rp-color-bg-soft);
+  --color-tint: var(--rp-color-bg-tint);
   --color-sunken: var(--rp-color-bg-sunken);
   --color-inverse: var(--rp-color-bg-inverse);
 
@@ -26,6 +28,7 @@
   --color-line: var(--rp-color-border-line);
   --color-line-strong: var(--rp-color-border-strong);
   --color-control: var(--rp-color-border-control);
+  --color-line-accent: var(--rp-color-border-accent);
 
   --color-brand: var(--rp-color-brand-base);
   --color-brand-deep: var(--rp-color-brand-deep);
@@ -73,12 +76,14 @@
 }
 
 /*
- * Logo-colour borders (design/foundations/color.md, "Brand frames").
+ * Logo colours as thin accents (design/foundations/color.md, "Brand accents").
+ * The site is white; indigo and turquoise appear as hairlines, never as
+ * large filled areas.
  *
- *   frame-brand        indigo-to-turquoise outline that appears on hover/focus
- *   frame-brand-on     the same outline, always visible
- *   frame-brand-light  turquoise-to-white outline for indigo backgrounds
- *   rule-brand         a 3px indigo-to-turquoise bar (section and card accents)
+ *   frame-brand     indigo-to-turquoise outline that appears on hover/focus
+ *   frame-brand-on  the same outline, always visible
+ *   rule-brand      a 3px indigo-to-turquoise bar (section and card accents)
+ *   mark-brand      a turquoise underline behind one highlighted phrase
  *
  * The outline is drawn on a pseudo-element with a mask, so it never changes
  * the element's size and follows its border radius.
@@ -90,7 +95,7 @@
     position: absolute;
     inset: 0;
     z-index: 1;
-    padding: 2px;
+    padding: 1.5px;
     border-radius: inherit;
     background: linear-gradient(135deg, var(--rp-color-brand-base), var(--rp-color-brand-accent));
     mask:
@@ -112,25 +117,9 @@
     position: absolute;
     inset: 0;
     z-index: 1;
-    padding: 2px;
+    padding: 1.5px;
     border-radius: inherit;
     background: linear-gradient(135deg, var(--rp-color-brand-base), var(--rp-color-brand-accent));
-    mask:
-      linear-gradient(#000 0 0) content-box exclude,
-      linear-gradient(#000 0 0);
-    pointer-events: none;
-  }
-}
-@utility frame-brand-light {
-  position: relative;
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    padding: 2px;
-    border-radius: inherit;
-    background: linear-gradient(135deg, var(--rp-color-brand-accent), #ffffff 55%, var(--rp-color-brand-accent));
     mask:
       linear-gradient(#000 0 0) content-box exclude,
       linear-gradient(#000 0 0);
@@ -142,76 +131,34 @@
   border-radius: 999px;
   background: linear-gradient(90deg, var(--rp-color-brand-base), var(--rp-color-brand-accent));
 }
+@utility mark-brand {
+  background-image: linear-gradient(var(--rp-color-border-accent), var(--rp-color-border-accent));
+  background-repeat: no-repeat;
+  background-position: 0 92%;
+  background-size: 100% 0.14em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
 
-/* The header and footer carry the same indigo-to-turquoise line. */
-[data-site-header]::after,
+/* A slim indigo-to-turquoise band across the top of the header and the footer. */
+[data-site-header]::before,
 [data-site-footer]::before {
   content: "";
   position: absolute;
   inset-inline: 0;
-  height: 2px;
-  background: linear-gradient(90deg, var(--rp-color-brand-base), var(--rp-color-brand-accent), var(--rp-color-brand-base));
-}
-[data-site-header]::after {
-  bottom: -2px;
+  top: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--rp-color-brand-base), var(--rp-color-brand-accent));
 }
 [data-site-footer] {
   position: relative;
-}
-[data-site-footer]::before {
-  top: 0;
-}
-body:has([data-overlay-hero]) [data-site-header]:not([data-scrolled])::after {
-  opacity: 0;
-}
-
-/*
- * Height of the sticky site header: 64px bar + 1px border, plus the 53px
- * navigation row that shows below it on phones. Heroes that sit under the
- * header (data-overlay-hero) pull themselves up by this much.
- */
-:root {
-  --header-h: 118px;
-}
-@media (min-width: 48rem) {
-  :root {
-    --header-h: 65px;
-  }
-}
-
-/*
- * Overlay header. When a page has a hero marked data-overlay-hero, the header
- * is transparent with white text until the page scrolls (HeaderScrollWatcher
- * then sets data-scrolled). Pure CSS via :has(), so it is right on first
- * paint. Unlayered on purpose: it must beat the header's utility classes.
- * The colour tokens are re-pointed only on the marked parts, so menus that
- * open from the header keep their normal colours.
- */
-[data-overlay-hero] {
-  margin-top: calc(-1 * var(--header-h));
-}
-body:has([data-overlay-hero]) [data-site-header]:not([data-scrolled]) {
-  border-color: transparent;
-  background: transparent;
-  backdrop-filter: none;
-}
-body:has([data-overlay-hero]) [data-site-header]:not([data-scrolled]) [data-overlay-part] {
-  --rp-color-text-muted: rgb(255 255 255 / 0.88);
-  --rp-color-text-ink: #ffffff;
-  --rp-color-brand-logo: #ffffff;
-  --rp-color-bg-sunken: rgb(255 255 255 / 0.14);
-  --rp-color-border-line: rgb(255 255 255 / 0.18);
-}
-/* Without scripting the header cannot turn solid on scroll, so it scrolls away. */
-@media (scripting: none) {
-  body:has([data-overlay-hero]) [data-site-header] {
-    position: relative;
-  }
 }
 
 @layer base {
   html {
     scroll-behavior: smooth;
+    /* Anchored sections stop below the sticky header. */
+    scroll-padding-top: 5.5rem;
   }
 
   body {
@@ -242,29 +189,6 @@ body:has([data-overlay-hero]) [data-site-header]:not([data-scrolled]) [data-over
   ::selection {
     background: var(--rp-color-primary-soft);
     color: var(--rp-color-primary-ink);
-  }
-
-  /*
-   * Start state for elements animated by components/motion/page-motion.tsx.
-   * Only when scripts run and motion is welcome; otherwise content is simply
-   * visible.
-   */
-  @media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
-    [data-hero],
-    [data-reveal],
-    [data-reveal-group] > * {
-      opacity: 0;
-    }
-
-    /* Headlines revealed word by word: hidden until GSAP has split them. */
-    [data-split] {
-      visibility: hidden;
-    }
-
-    /* Photos that wipe in from the bottom. */
-    [data-reveal-clip] {
-      clip-path: inset(100% 0 0 0);
-    }
   }
 
   @media (prefers-reduced-motion: reduce) {

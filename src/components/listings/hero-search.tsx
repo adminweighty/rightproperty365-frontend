@@ -12,10 +12,11 @@ type Props = {
 };
 
 /**
- * The landing-page search: one tab per deal type over city, suburb, property
- * type, highest price and bedrooms. The tabs are native radio buttons and the
- * whole thing is a GET form, so it works without JavaScript and with a
- * keyboard (arrow keys switch tabs). All lists come from the API.
+ * The landing-page search, inside the hero's white panel: one tab per deal
+ * type over city, suburb, property type, highest price and bedrooms. The tabs
+ * are native radio buttons and the whole thing is a GET form, so it works
+ * without JavaScript and with a keyboard (arrow keys switch tabs). All lists
+ * come from the API.
  */
 export function HeroSearch({ options, className }: Props) {
   return (
@@ -23,15 +24,15 @@ export function HeroSearch({ options, className }: Props) {
       action="/listings"
       role="search"
       aria-label="Property search"
-      className={cn("frame-brand-on overflow-hidden rounded-xl bg-surface text-ink shadow-lg", className)}
+      className={cn("text-left", className)}
     >
       {options.deals.length > 0 && (
-        <fieldset className="flex border-b border-line">
+        <fieldset className="flex justify-center border-b border-line">
           <legend className="sr-only">Buy or rent</legend>
           {options.deals.map((deal, index) => (
             <label
               key={deal.value}
-              className="relative flex-1 cursor-pointer px-4 py-3.5 text-center text-sm font-semibold text-muted transition-colors hover:text-ink has-checked:text-primary-ink has-checked:after:absolute has-checked:after:inset-x-0 has-checked:after:bottom-0 has-checked:after:h-0.5 has-checked:after:bg-primary has-focus-visible:outline-2 has-focus-visible:-outline-offset-2 has-focus-visible:outline-focus"
+              className="relative flex min-h-12 min-w-28 cursor-pointer items-center justify-center px-5 text-base font-semibold text-muted transition-colors hover:text-ink has-checked:text-primary-ink has-checked:after:absolute has-checked:after:inset-x-0 has-checked:after:-bottom-px has-checked:after:h-[3px] has-checked:after:rounded-full has-checked:after:bg-primary has-focus-visible:outline-2 has-focus-visible:-outline-offset-2 has-focus-visible:outline-focus"
             >
               <input
                 type="radio"
@@ -46,7 +47,7 @@ export function HeroSearch({ options, className }: Props) {
         </fieldset>
       )}
 
-      <div className="grid gap-3 p-3 sm:grid-cols-2 sm:p-4 lg:grid-cols-3">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <div>
           <label htmlFor="hero-city" className="sr-only">
             City or town
@@ -121,7 +122,7 @@ export function HeroSearch({ options, className }: Props) {
             ))}
           </Select>
         </div>
-        <Button type="submit" className="px-6">
+        <Button type="submit">
           <Search className="size-4" aria-hidden="true" />
           Search
         </Button>

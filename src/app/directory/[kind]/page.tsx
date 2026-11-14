@@ -90,12 +90,10 @@ function ProfilesByTrade({ groups, others }: { groups: TradeGroup[]; others: Dir
             <li key={group.code}>
               <a
                 href={`#${group.code}`}
-                className="flex min-h-11 items-center gap-2 rounded-full border border-line bg-surface px-4 text-sm font-medium text-ink transition-colors hover:border-brand hover:bg-brand hover:text-on-brand"
+                className="flex min-h-11 items-center gap-2 rounded-full border border-line-strong bg-surface px-4 text-sm font-medium text-ink transition-colors hover:border-primary hover:bg-primary-soft hover:text-primary-ink"
               >
                 {group.label}
-                <span className="rounded-full bg-accent-soft px-2 py-0.5 text-xs font-semibold text-accent-ink">
-                  {group.entries.length}
-                </span>
+                <span className="tabular-nums text-muted">{group.entries.length}</span>
               </a>
             </li>
           ))}
@@ -195,7 +193,7 @@ async function DirectoryList({ params }: Pick<Props, "params">) {
               <li key={other.code}>
                 <Link
                   href={`/directory/${other.code}`}
-                  className="flex min-h-11 items-center rounded-full border border-line bg-surface px-4 text-sm font-medium text-ink transition-colors hover:border-brand hover:bg-brand hover:text-on-brand"
+                  className="flex min-h-11 items-center rounded-full border border-line-strong bg-surface px-4 text-sm font-medium text-ink transition-colors hover:border-primary hover:bg-primary-soft hover:text-primary-ink"
                 >
                   {other.label}
                 </Link>

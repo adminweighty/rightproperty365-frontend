@@ -115,16 +115,16 @@ async function ProfileContent({ params }: Pick<Props, "params">) {
         </ol>
       </nav>
 
-      <header className="mt-6 overflow-hidden rounded-xl border border-line bg-surface">
-        <div aria-hidden="true" className="h-24 bg-brand md:h-32" />
+      <header className="mt-6 overflow-hidden rounded-xl border border-line bg-surface shadow-xs">
         <div aria-hidden="true" className="rule-brand rounded-none" />
+        <div aria-hidden="true" className="h-20 bg-tint md:h-24" />
         <div className="flex flex-col gap-5 px-6 pb-6 md:flex-row md:items-end md:px-8">
           <ProfileAvatar
             name={profile.name}
             person={agency !== null}
             className="-mt-10 size-24 text-3xl ring-4 ring-surface md:-mt-12 md:size-28"
           />
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 md:pt-5">
             <div className="flex flex-wrap gap-2">
               <Badge>{kind.singular_label}</Badge>
               {profile.trade && <Badge tone="primary">{profile.trade.label}</Badge>}
@@ -207,7 +207,7 @@ async function ProfileContent({ params }: Pick<Props, "params">) {
         </div>
 
         <aside aria-labelledby="enquiry-heading">
-          <Card className="frame-brand-on lg:sticky lg:top-24">
+          <Card className="lg:sticky lg:top-24">
             <h2 id="enquiry-heading" className="text-2xl">
               Send an enquiry
             </h2>

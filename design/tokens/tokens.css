@@ -16,6 +16,7 @@
   --rp-palette-slate-850: #1b202b;
   --rp-palette-slate-900: #131722;
   --rp-palette-slate-950: #0c0f17;
+  --rp-palette-indigo-25: #f8f7ff;
   --rp-palette-indigo-50: #f1efff;
   --rp-palette-indigo-100: #e2deff;
   --rp-palette-indigo-200: #c5bdff;
@@ -51,17 +52,20 @@
   --rp-motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
   --rp-motion-easing-exit: cubic-bezier(0.4, 0, 1, 1);
 
-  --rp-color-bg-page: var(--rp-palette-slate-25);
+  --rp-color-bg-page: var(--rp-palette-white);
   --rp-color-bg-surface: var(--rp-palette-white);
+  --rp-color-bg-soft: var(--rp-palette-slate-25);
+  --rp-color-bg-tint: var(--rp-palette-indigo-25);
   --rp-color-bg-sunken: var(--rp-palette-slate-50);
   --rp-color-bg-inverse: var(--rp-palette-slate-900);
   --rp-color-text-ink: var(--rp-palette-slate-900);
   --rp-color-text-muted: var(--rp-palette-slate-600);
   --rp-color-text-subtle: var(--rp-palette-slate-500);
   --rp-color-text-inverse: var(--rp-palette-slate-25);
-  --rp-color-border-line: var(--rp-palette-slate-200);
+  --rp-color-border-line: var(--rp-palette-slate-100);
   --rp-color-border-strong: var(--rp-palette-slate-300);
   --rp-color-border-control: var(--rp-palette-slate-450);
+  --rp-color-border-accent: var(--rp-palette-turquoise-500);
   --rp-color-brand-base: var(--rp-palette-indigo-600);
   --rp-color-brand-deep: var(--rp-palette-indigo-800);
   --rp-color-brand-on: var(--rp-palette-white);
@@ -83,54 +87,20 @@
   --rp-color-danger-soft: #fbebe9;
   --rp-color-info-base: #2b5f8a;
   --rp-color-info-soft: #e8f0f7;
-  --rp-color-focus: var(--rp-palette-indigo-500);
+  --rp-color-focus: var(--rp-palette-indigo-600);
   --rp-color-overlay: rgb(19 23 34 / 0.5);
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --rp-color-bg-page: var(--rp-palette-slate-900);
-    --rp-color-bg-surface: var(--rp-palette-slate-850);
-    --rp-color-bg-sunken: var(--rp-palette-slate-950);
-    --rp-color-bg-inverse: var(--rp-palette-slate-50);
-    --rp-color-text-ink: var(--rp-palette-slate-50);
-    --rp-color-text-muted: var(--rp-palette-slate-300);
-    --rp-color-text-subtle: var(--rp-palette-slate-400);
-    --rp-color-text-inverse: var(--rp-palette-slate-900);
-    --rp-color-border-line: var(--rp-palette-slate-800);
-    --rp-color-border-strong: var(--rp-palette-slate-700);
-    --rp-color-border-control: var(--rp-palette-slate-450);
-    --rp-color-brand-base: var(--rp-palette-indigo-600);
-    --rp-color-brand-deep: var(--rp-palette-indigo-800);
-    --rp-color-brand-on: var(--rp-palette-white);
-    --rp-color-brand-accent: var(--rp-palette-turquoise-500);
-    --rp-color-brand-logo: var(--rp-palette-white);
-    --rp-color-primary-base: var(--rp-palette-indigo-300);
-    --rp-color-primary-hover: var(--rp-palette-indigo-200);
-    --rp-color-primary-soft: #1c1650;
-    --rp-color-primary-ink: var(--rp-palette-indigo-200);
-    --rp-color-primary-on: var(--rp-palette-indigo-900);
-    --rp-color-accent-base: var(--rp-palette-turquoise-300);
-    --rp-color-accent-soft: var(--rp-palette-turquoise-900);
-    --rp-color-accent-ink: var(--rp-palette-turquoise-100);
-    --rp-color-success-base: #7cc79a;
-    --rp-color-success-soft: #17301f;
-    --rp-color-warning-base: #e8b45c;
-    --rp-color-warning-soft: #3a2c10;
-    --rp-color-danger-base: #f0938b;
-    --rp-color-danger-soft: #3d1a17;
-    --rp-color-info-base: #8db9de;
-    --rp-color-info-soft: #152b3d;
-    --rp-color-focus: var(--rp-palette-indigo-300);
-    --rp-color-overlay: rgb(0 0 0 / 0.6);
-    color-scheme: dark;
-  }
-}
-
+/*
+ * The site is white for everyone: there is no prefers-color-scheme switch.
+ * The dark theme applies only when <html data-theme="dark"> is set.
+ */
 :root[data-theme="dark"] {
   --rp-color-bg-page: var(--rp-palette-slate-900);
   --rp-color-bg-surface: var(--rp-palette-slate-850);
+  --rp-color-bg-soft: var(--rp-palette-slate-850);
+  --rp-color-bg-tint: #17143a;
   --rp-color-bg-sunken: var(--rp-palette-slate-950);
   --rp-color-bg-inverse: var(--rp-palette-slate-50);
   --rp-color-text-ink: var(--rp-palette-slate-50);
@@ -140,6 +110,7 @@
   --rp-color-border-line: var(--rp-palette-slate-800);
   --rp-color-border-strong: var(--rp-palette-slate-700);
   --rp-color-border-control: var(--rp-palette-slate-450);
+  --rp-color-border-accent: var(--rp-palette-turquoise-600);
   --rp-color-brand-base: var(--rp-palette-indigo-600);
   --rp-color-brand-deep: var(--rp-palette-indigo-800);
   --rp-color-brand-on: var(--rp-palette-white);

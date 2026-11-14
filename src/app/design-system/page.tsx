@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import cityArtwork from "@/assets/images/city-harare.jpg";
+import { PhotoTile, PhotoTileRow } from "@/components/landing/photo-tile";
+import { SectionHeading } from "@/components/landing/section-heading";
 import { ListingCard } from "@/components/listings/listing-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,13 +22,15 @@ export const metadata: Metadata = {
 const swatches = [
   ["page", "bg-page"],
   ["surface", "bg-surface"],
+  ["soft", "bg-soft"],
+  ["tint", "bg-tint"],
   ["sunken", "bg-sunken"],
-  ["inverse", "bg-inverse"],
-  ["brand", "bg-brand"],
-  ["brand-accent", "bg-brand-accent"],
+  ["line", "bg-line"],
+  ["line-accent", "bg-line-accent"],
+  ["ink", "bg-ink"],
   ["primary", "bg-primary"],
   ["primary-soft", "bg-primary-soft"],
-  ["accent", "bg-accent"],
+  ["brand-accent", "bg-brand-accent"],
   ["accent-soft", "bg-accent-soft"],
   ["success", "bg-success"],
   ["warning", "bg-warning"],
@@ -34,10 +39,10 @@ const swatches = [
 ] as const;
 
 const typeScale = [
-  ["text-6xl", "Display", "font-display text-6xl"],
-  ["text-4xl", "Page title", "font-display text-4xl"],
-  ["text-3xl", "Section title", "font-display text-3xl"],
-  ["text-2xl", "Sub-section", "font-display text-2xl"],
+  ["text-5xl", "Home hero", "font-display text-5xl font-bold tracking-tight"],
+  ["text-4xl", "Page title", "font-display text-4xl font-bold tracking-tight"],
+  ["text-3xl", "Section title", "font-display text-3xl font-bold tracking-tight"],
+  ["text-2xl", "Sub-section, card price", "font-display text-2xl font-bold tracking-tight"],
   ["text-lg", "Lead paragraph", "text-lg"],
   ["text-base", "Body copy", "text-base"],
   ["text-sm", "Supporting text", "text-sm text-muted"],
@@ -70,8 +75,10 @@ export default function DesignSystemPage() {
       <h1 className="text-4xl">Design system</h1>
       <p className="mt-3 max-w-2xl text-muted">
         A live view of the tokens and components. The written guidelines are in the{" "}
-        <code className="font-mono text-sm">design/</code> folder of the repository. Switch your
-        device between light and dark to check both themes.
+        <code className="font-mono text-sm">design/</code> folder of the repository. The site is
+        white for everyone and does not follow the device&apos;s dark mode; the dark tokens apply
+        only with <code className="font-mono text-sm">data-theme=&quot;dark&quot;</code> on the{" "}
+        <code className="font-mono text-sm">html</code> element.
       </p>
 
       <div className="mt-10">
@@ -84,6 +91,41 @@ export default function DesignSystemPage() {
               </li>
             ))}
           </ul>
+        </Section>
+
+        <Section title="Brand accents">
+          <p className="max-w-2xl text-muted">
+            The logo colours appear as thin lines, never as filled areas. Hover or focus the card
+            to see its outline.
+          </p>
+          <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <span aria-hidden="true" className="rule-brand block w-12" />
+              <p className="mt-3 font-mono text-xs text-muted">rule-brand</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold">
+                The <span className="mark-brand">right property</span>
+              </p>
+              <p className="mt-3 font-mono text-xs text-muted">mark-brand</p>
+            </div>
+            <div>
+              <a
+                href="#brand-accents"
+                id="brand-accents"
+                className="frame-brand block rounded-lg border border-line bg-surface p-4 text-sm font-semibold text-ink shadow-xs"
+              >
+                Interactive card
+              </a>
+              <p className="mt-3 font-mono text-xs text-muted">frame-brand</p>
+            </div>
+            <div>
+              <div className="frame-brand-on rounded-lg border border-line bg-surface p-4 text-sm font-semibold text-ink shadow-xs">
+                Sponsored profile
+              </div>
+              <p className="mt-3 font-mono text-xs text-muted">frame-brand-on</p>
+            </div>
+          </div>
         </Section>
 
         <Section title="Typography">
@@ -160,6 +202,24 @@ export default function DesignSystemPage() {
               <ListingCardExample />
             </Suspense>
           </div>
+        </Section>
+
+        <Section title="Section heading and photo tiles">
+          <SectionHeading
+            title="Explore by city"
+            note="A short rule in the logo colours, the title, one sentence and an optional link."
+            href="/listings"
+            linkLabel="View all"
+          />
+          <PhotoTileRow className="mt-8">
+            <PhotoTile
+              href="/listings"
+              title="Photo tile"
+              count="12 properties"
+              photo={{ src: cityArtwork, bundled: true }}
+            />
+            <PhotoTile href="/listings" title="Without a photo" count="1 property" />
+          </PhotoTileRow>
         </Section>
 
         <Section title="Pagination">

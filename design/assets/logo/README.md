@@ -19,16 +19,16 @@ Approved kit: **Blue, White and Turquoise, v4.1**. The kit's own notes are in [`
 
 | Use | File |
 | --- | --- |
-| Header and footer logo | `src/components/layout/logo.tsx`, inlined from `svg/logo-horizontal-transparent.svg` so it can follow the theme |
+| Header and footer logo | `src/components/layout/logo.tsx`, inlined from `svg/logo-horizontal-transparent.svg` so it can take the token colours |
 | Favicon and app icons | `src/app/favicon.ico`, `src/app/icon.svg`, `src/app/apple-icon.png`, `public/app-icon-*.png`, `public/site.webmanifest` |
 
 ## Which version to use
 
 | Background | Version |
 | --- | --- |
-| White or light | Indigo mark and wordmark, turquoise "365" (`Logo` default) |
-| Brand indigo | White mark and wordmark, turquoise "365" (`Logo tone="reverse"`) |
-| Dark theme surfaces | White mark and wordmark, turquoise "365" (automatic) |
+| White or light | Indigo mark and wordmark, turquoise "365" (`Logo` default). This is the version the site uses: the header and footer are white or near-white |
+| Brand indigo | White mark and wordmark, turquoise "365" (`Logo tone="reverse"`). Not used on the site today |
+| Opt-in dark theme | White mark and wordmark, turquoise "365" (automatic with `data-theme="dark"`) |
 | One-colour print | `svg/logo-horizontal-all-white-on-blue.svg` |
 
 ## Rules
@@ -36,5 +36,5 @@ Approved kit: **Blue, White and Turquoise, v4.1**. The kit's own notes are in [`
 - Do not recolour the logo, replace the indigo, or add a door to the house. Only "365" is turquoise.
 - Do not retype the wordmark in a font. Use the outlined paths.
 - Keep clear space around the logo of at least the height of the window in the mark.
-- Minimum height on screen is 24px for the horizontal logo. Below that, use the mark alone.
+- Minimum height on screen is 24px for the horizontal logo. Below that, use the mark alone. The header shows it at 24px on phones and 32px from `sm`; on a 320px screen it may scale down a pixel or two so the bar never overflows.
 - Do not place the indigo logo on photographs or mid-tone colours. Use the reverse version on indigo or dark surfaces.

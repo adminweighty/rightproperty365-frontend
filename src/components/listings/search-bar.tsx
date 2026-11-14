@@ -26,7 +26,7 @@ export function SearchBar({ options, defaults = {}, className }: Props) {
       action="/listings"
       role="search"
       aria-label="Property search"
-      className={cn("rounded-xl border border-line bg-surface p-3 shadow-md", className)}
+      className={cn("rounded-xl border border-line bg-surface p-3 shadow-sm sm:p-4", className)}
     >
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[11rem_12rem_1fr_auto]">
         <div>

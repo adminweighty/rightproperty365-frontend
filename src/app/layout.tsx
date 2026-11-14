@@ -29,11 +29,11 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image" },
 };
 
+// The site is white for everyone, whatever theme the operating system uses
+// (design/foundations/color.md). The value is the `bg.page` token.
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f8f9fc" },
-    { media: "(prefers-color-scheme: dark)", color: "#131722" },
-  ],
+  themeColor: "#ffffff",
+  colorScheme: "light",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

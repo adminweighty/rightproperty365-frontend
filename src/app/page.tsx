@@ -5,7 +5,6 @@ import {
   CalendarClock,
   House,
   LandPlot,
-  MapPin,
   MessageSquare,
   RefreshCw,
   ShieldCheck,
@@ -16,16 +15,14 @@ import {
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
 import agentsPhoto from "@/assets/images/agents.jpg";
-import { initials } from "@/components/directory/profile-card";
-import { HeroBackdrop } from "@/components/landing/hero-backdrop";
-import { ListingTicker } from "@/components/landing/listing-ticker";
-import { ShowcaseScroll } from "@/components/landing/showcase-scroll";
-import { StatCounter } from "@/components/landing/stat-counter";
+import { ProfileGrid } from "@/components/directory/profile-card";
+import { PhotoTile, PhotoTileRow } from "@/components/landing/photo-tile";
+import { SectionHeading } from "@/components/landing/section-heading";
 import { HeroSearch } from "@/components/listings/hero-search";
+import { ListingGrid } from "@/components/listings/listing-card";
 import { ListingRail } from "@/components/listings/listing-rail";
-import { PageMotion } from "@/components/motion/page-motion";
 import { JsonLd } from "@/components/seo/json-ld";
 import { ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
@@ -35,10 +32,10 @@ import { listListings } from "@/lib/api/server/listings";
 import { load } from "@/lib/api/server/load";
 import { getCatalogue } from "@/lib/api/server/reference";
 import type { FacetCount, Listing } from "@/lib/api/types";
-import { cn } from "@/lib/cn";
+import { formatMoney } from "@/lib/format";
 import { cityArtwork, coverPhoto } from "@/lib/photos";
 import { buildSearchOptions } from "@/lib/search-options";
-import { listingsHeading, listingsPath, organizationJsonLd, profilePath, websiteJsonLd } from "@/lib/seo";
+import { listingsHeading, listingsPath, organizationJsonLd, websiteJsonLd } from "@/lib/seo";
 
 const homeTitle = "RightProperty365 | Property for sale and to rent in Zimbabwe";
 const homeDescription =
@@ -87,7 +84,7 @@ const promises = [
   },
 ];
 
-const agentTools = [
+const professionalTools = [
   { icon: MessageSquare, title: "One inbox for every lead", body: "Enquiries and viewing requests arrive in your dashboard and on your phone." },
   { icon: CalendarClock, title: "Viewings without the back-and-forth", body: "Customers ask for a time; you confirm, reschedule or decline." },
   { icon: TrendingUp, title: "See what each listing is doing", body: "Views, enquiries and conversion for every property you publish." },
@@ -106,39 +103,6 @@ function sentenceList(labels: string[]): string {
   const others = rest.map((label) => label.toLowerCase());
   if (others.length === 0) return first;
   return `${[first, ...others.slice(0, -1)].join(", ")} and ${others[others.length - 1]}`;
-}
-
-function SectionHeading({
-  title,
-  note,
-  href,
-  linkLabel,
-  className,
-}: {
-  title: string;
-  note?: string;
-  href?: string;
-  linkLabel?: string;
-  className?: string;
-}) {
-  return (
-    <div data-reveal className={cn("flex items-end justify-between gap-4", className)}>
-      <div>
-        <span aria-hidden="true" className="rule-brand block w-16" />
-        <h2 className="mt-4 text-2xl md:text-4xl">{title}</h2>
-        {note && <p className="mt-3 max-w-xl text-muted">{note}</p>}
-      </div>
-      {href && linkLabel && (
-        <Link
-          href={href}
-          className="shrink-0 items-center gap-1.5 text-sm font-semibold text-primary-ink hover:underline sm:inline-flex"
-        >
-          {linkLabel}
-          <ArrowRight className="hidden size-4 sm:block" aria-hidden="true" />
-        </Link>
-      )}
-    </div>
-  );
 }
 
 const RAIL_SIZE = 12;
@@ -178,7 +142,7 @@ async function readHome() {
     .flatMap((list) => list?.profiles ?? [])
     .filter((profile) => profile.listing_count > 0 && !profile.agency)
     .sort((a, b) => b.listing_count - a.listing_count || a.name.localeCompare(b.name))
-    .slice(0, 6);
+    .slice(0, 3);
 
   const others = otherRows
     .flatMap((page) => page?.items ?? [])
@@ -196,15 +160,61 @@ async function readHome() {
   };
 }
 
-/** The hero's size and colour while the page loads, so nothing jumps when it arrives. */
-function HomeFallback() {
+/**
+ * The hero frame: a wide photograph with a white panel centred on it. The
+ * panel holds the page's `h1` and the search, so the text is always on white.
+ * Used for the loaded page and for its loading state, so nothing moves when
+ * the content arrives.
+ */
+function Hero({
+  photo,
+  eyebrow,
+  caption,
+  children,
+  busy,
+}: {
+  /** The backdrop. Decorative: the property is named in `caption`. */
+  photo?: ReactNode;
+  eyebrow: string;
+  caption?: ReactNode;
+  children: ReactNode;
+  busy?: boolean;
+}) {
   return (
     <section
-      data-overlay-hero
-      aria-busy="true"
-      aria-label="Loading the home page"
-      className="min-h-[44rem] bg-brand-deep lg:min-h-[100svh]"
-    />
+      aria-busy={busy}
+      aria-label={busy ? "Loading the home page" : undefined}
+      className="relative isolate overflow-hidden border-b border-line bg-sunken"
+    >
+      {photo}
+      <Container className="flex justify-center pb-8 pt-40 sm:pt-48 md:items-center md:py-16 lg:min-h-[40rem]">
+        <div className="w-full max-w-3xl rounded-xl bg-surface p-5 text-center shadow-lg sm:p-8 md:p-10">
+          <span aria-hidden="true" className="rule-brand mx-auto block w-12" />
+          <p className="mt-4 text-sm font-semibold text-primary-ink">
+            <BadgeCheck className="mr-1.5 inline size-4 align-[-0.2em]" aria-hidden="true" />
+            {eyebrow}
+          </p>
+          <h1 className="mt-3 text-3xl leading-tight sm:text-4xl md:text-5xl">
+            Find the <span className="mark-brand">right property</span> any day of the year
+          </h1>
+          <p className="mx-auto mt-3 max-w-xl leading-relaxed text-muted md:text-lg">
+            Homes, commercial space and land from agents and owners we have checked. Send one
+            enquiry and follow it until you get an answer.
+          </p>
+          {children}
+        </div>
+      </Container>
+      {caption}
+    </section>
+  );
+}
+
+/** The hero while the page loads: same frame, same heading, an empty search of the same height. */
+function HomeFallback() {
+  return (
+    <Hero eyebrow="Verified property" busy>
+      <div className="mt-6 h-[24.25rem] rounded-lg bg-sunken sm:h-[13.75rem] lg:h-[10.25rem]" />
+    </Hero>
   );
 }
 
@@ -220,8 +230,6 @@ export default function HomePage() {
   );
 }
 
-// One component renders the whole page, inside PageMotion, so the entrance
-// and scroll animations start once all of the content they act on is there.
 async function HomeContent() {
   const loaded = await load(readHome);
   if (!loaded.ok) {
@@ -240,8 +248,9 @@ async function HomeContent() {
   const searchOptions = buildSearchOptions(sets, facets);
   const cities = byCount(facets.city);
   const suburbs = byCount(facets.suburb);
-  // Featured listings lead the hero; without any, the newest do.
-  const heroListings = (featured.length > 0 ? featured : newest.items).slice(0, 5);
+  // A featured listing lends the hero its photograph; without one, the newest does.
+  const heroListing = [...featured, ...newest.items].find((listing) => listing.photos.length > 0);
+  const heroPhoto = heroListing && coverPhoto(heroListing.photos);
   // Every listing loaded for this page, to lend a photo to a city without artwork.
   const pool: Listing[] = [...newest.items, ...featured, ...dealRows.flatMap((row) => row.listings), ...otherRow.listings];
 
@@ -252,115 +261,70 @@ async function HomeContent() {
   ];
 
   return (
-    <PageMotion>
-      {/* Full-bleed hero. It sits under the transparent header (data-overlay-hero). */}
-      <section
-        data-overlay-hero
-        className="relative isolate flex min-h-[44rem] flex-col justify-end overflow-hidden bg-brand-deep text-on-brand lg:min-h-[100svh]"
+    <>
+      <Hero
+        eyebrow={`Verified property${market ? ` across ${market.name}` : ""}`}
+        photo={
+          heroPhoto && (
+            <Image
+              src={heroPhoto.src}
+              alt=""
+              fill
+              sizes="100vw"
+              placeholder={heroPhoto.bundled ? "blur" : "empty"}
+              unoptimized={!heroPhoto.bundled}
+              loading="eager"
+              fetchPriority="high"
+              className="-z-10 object-cover"
+            />
+          )
+        }
+        caption={
+          heroListing && (
+            <Link
+              href={`/listings/${heroListing.slug}`}
+              className="absolute bottom-4 right-4 hidden max-w-xs rounded-md bg-surface px-3 py-2 text-sm shadow-md hover:underline xl:block"
+            >
+              <span className="block font-semibold text-ink">
+                {formatMoney(heroListing.price)}
+                {heroListing.price_period === "month" && <span className="font-normal text-muted"> per month</span>}
+              </span>
+              <span className="block truncate text-muted">
+                {heroListing.title}, {heroListing.suburb.label}
+              </span>
+            </Link>
+          )
+        }
       >
-        {heroListings.length > 0 && <HeroBackdrop listings={heroListings} />}
+        <HeroSearch options={searchOptions} className="mt-6" />
+      </Hero>
 
-        <Container className="pb-40 pt-[calc(var(--header-h)+3rem)] lg:pb-44">
-          <p
-            data-hero
-            className="inline-flex items-center gap-2 rounded-full bg-brand-accent px-3.5 py-1.5 text-sm font-semibold text-brand-deep"
-          >
-            <BadgeCheck className="size-4" aria-hidden="true" />
-            Verified property{market && ` across ${market.name}`}
-          </p>
-          <h1 data-split className="mt-6 max-w-4xl text-5xl leading-[1.02] md:text-7xl">
-            Find the <span className="text-brand-accent">right property</span> any day of the year
-          </h1>
-          <p data-hero className="mt-6 max-w-xl text-lg leading-relaxed opacity-90 md:text-xl">
-            Homes, commercial space and land from agents and owners we have checked. Send one
-            enquiry and follow it until you get an answer.
-          </p>
-          <div data-hero className="mt-8 flex flex-wrap gap-3">
-            {sets.deal_types.map((deal, index) => (
-              <ButtonLink
-                key={deal.code}
-                href={listingsPath({ deal: deal.code })}
-                size="lg"
-                variant={index === 0 ? "accent" : "on-brand"}
-                data-magnetic
-              >
-                Browse property {deal.label.toLowerCase()}
-              </ButtonLink>
-            ))}
-          </div>
-          <dl data-hero className="mt-10 flex flex-wrap gap-x-10 gap-y-4 border-t border-white/20 pt-6 lg:max-w-xl">
+      {/* Trust strip: three counts from the API. */}
+      <section aria-label="RightProperty365 in numbers" className="border-b border-line">
+        <Container>
+          <dl className="grid grid-cols-3 divide-x divide-line py-6 text-center md:py-8">
             {stats.map((stat) => (
-              <div key={stat.label} className="flex flex-col-reverse">
-                <dt className="text-sm opacity-80">{stat.label}</dt>
-                <dd className="text-3xl font-bold tabular-nums text-brand-accent md:text-4xl">
-                  <StatCounter value={stat.value} />
-                </dd>
+              <div key={stat.label} className="flex flex-col-reverse px-2">
+                <dt className="mt-1 text-sm text-muted">{stat.label}</dt>
+                <dd className="text-2xl font-bold tabular-nums text-ink md:text-4xl">{stat.value}</dd>
               </div>
             ))}
           </dl>
         </Container>
       </section>
 
-      {/* Search card straddles the hero's bottom edge. */}
-      <Container className="relative z-10 -mt-24">
-        <div data-hero>
-          <HeroSearch options={searchOptions} className="mx-auto max-w-4xl" />
-        </div>
-      </Container>
-
-      {newest.items.length > 0 && (
-        <div data-reveal className="mt-10">
-          <ListingTicker listings={newest.items.slice(0, 10)} />
-        </div>
-      )}
-
-      {advertisers.length > 0 && (
-        <Container className="pt-8">
-          <div data-reveal className="flex flex-col gap-4 md:flex-row md:items-center md:justify-center md:gap-8">
-            <h2 className="shrink-0 font-sans text-sm font-semibold tracking-normal text-muted">
-              Featured agencies
-            </h2>
-            <ul className="flex flex-wrap gap-3">
-              {advertisers.map((profile) => (
-                <li key={`${profile.kind}/${profile.slug}`}>
-                  <Link
-                    href={profilePath(profile)}
-                    className="flex items-center gap-3 rounded-md border border-line bg-surface px-3 py-2 transition-shadow hover:shadow-md"
-                  >
-                    <span
-                      aria-hidden="true"
-                      className="flex size-9 items-center justify-center rounded-sm bg-brand text-sm font-bold text-on-brand"
-                    >
-                      {initials(profile.name)}
-                    </span>
-                    <span>
-                      <span className="block text-sm font-semibold text-ink">{profile.name}</span>
-                      <span className="block text-xs text-muted">
-                        {plural(profile.listing_count, "listing", "listings")}
-                      </span>
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </Container>
-      )}
-
       {newest.items.length > 0 ? (
-        <Container className="pt-16 md:pt-20">
+        <Container className="pt-14 md:pt-20">
           <SectionHeading
-            title="Just listed"
+            title="New listings"
             note="The newest properties on the market."
             href="/listings"
             linkLabel="View all"
           />
-          <div data-reveal className="mt-8">
-            <ListingRail label="Just listed" listings={newest.items.slice(0, 8)} newIds={newIds} />
-          </div>
+          <ListingRail label="New listings" listings={newest.items.slice(0, 8)} newIds={newIds} className="mt-8" />
         </Container>
       ) : (
-        <Container className="pt-16 md:pt-20">
+        <Container className="pt-14 md:pt-20">
           <p className="rounded-lg border border-dashed border-line-strong p-10 text-center text-muted">
             No properties are listed yet. New listings appear here as soon as they are published.
           </p>
@@ -368,153 +332,84 @@ async function HomeContent() {
       )}
 
       {featured.length > 0 && (
-        <div className="mt-16 md:mt-20">
-          <ShowcaseScroll
-            listings={featured}
-            heading={
-              <div className="flex items-end justify-between gap-6">
-                <div>
-                  <p className="text-sm font-semibold text-brand-accent">Signature collection</p>
-                  <h2 data-split className="mt-3 max-w-2xl text-3xl md:text-5xl">
-                    Featured properties worth a closer look
-                  </h2>
-                </div>
-                <p className="hidden max-w-xs text-sm opacity-80 lg:block">
-                  Hand-picked by our agencies this week. Keep scrolling to move through the collection.
-                </p>
-              </div>
-            }
-          />
-        </div>
-      )}
-
-      {dealRows.slice(0, 1).map(
-        (row) =>
-          row.listings.length > 0 && (
-            <Container key={row.href} className="pt-16 md:pt-20">
-              <SectionHeading title={row.title} href={row.href} linkLabel="View all" />
-              <div data-reveal className="mt-8">
-                <ListingRail label={row.title} listings={row.listings} newIds={newIds} />
-              </div>
-            </Container>
-          ),
-      )}
-
-      {cities.length > 0 && (
-        <section className="mt-16 border-y border-line bg-surface md:mt-20">
-          <Container className="py-16 md:py-20">
-            <SectionHeading title="Explore by city" note="See what is on the market where you want to live or work." />
-            <ul className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              {cities.map((city) => {
-                // Cities without their own artwork borrow a photo from a listing there.
-                const artwork = cityArtwork(city.code);
-                const borrowed = coverPhoto(pool.find((listing) => listing.city.code === city.code)?.photos ?? []);
-                return (
-                  <li key={city.code}>
-                    <Link
-                      href={listingsPath({ city: city.code })}
-                      data-reveal-clip
-                      className="group relative flex aspect-[3/4] items-end overflow-hidden rounded-lg bg-brand text-on-brand shadow-xs transition-shadow hover:shadow-lg"
-                    >
-                      {/* Decorative: the city is named in the link text. */}
-                      {artwork ? (
-                        <Image
-                          src={artwork}
-                          alt=""
-                          fill
-                          sizes="(min-width: 1024px) 290px, (min-width: 640px) 50vw, 100vw"
-                          placeholder="blur"
-                          className="object-cover transition-transform duration-700 ease-standard group-hover:scale-105"
-                        />
-                      ) : (
-                        borrowed && (
-                          <Image
-                            src={borrowed.src}
-                            alt=""
-                            fill
-                            sizes="(min-width: 1024px) 290px, (min-width: 640px) 50vw, 100vw"
-                            placeholder={borrowed.bundled ? "blur" : "empty"}
-                            unoptimized={!borrowed.bundled}
-                            className="object-cover transition-transform duration-700 ease-standard group-hover:scale-105"
-                          />
-                        )
-                      )}
-                      <span
-                        aria-hidden="true"
-                        className="absolute inset-0 bg-linear-to-t from-brand-deep via-brand-deep/40 to-transparent"
-                      />
-                      <span className="relative flex w-full items-end justify-between gap-3 p-5">
-                        <span>
-                          <span className="flex items-center gap-1.5 text-xl font-bold">
-                            <MapPin className="size-5 text-brand-accent" aria-hidden="true" />
-                            {city.label}
-                          </span>
-                          <span className="mt-1 block text-sm opacity-90">
-                            {plural(city.count, "property", "properties")}
-                          </span>
-                        </span>
-                        <span className="flex size-10 items-center justify-center rounded-full bg-brand-accent text-brand-deep transition-transform group-hover:translate-x-1">
-                          <ArrowRight className="size-5" aria-hidden="true" />
-                        </span>
-                      </span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-
-            {suburbs.length > 0 && (
-              <>
-                <h3 data-reveal className="mt-12 text-lg">
-                  Popular suburbs
-                </h3>
-                <ul data-reveal-group className="mt-4 flex flex-wrap gap-2">
-                  {suburbs.map((suburb) => (
-                    <li key={suburb.code}>
-                      <Link
-                        href={listingsPath({ suburb: suburb.code })}
-                        className="frame-brand flex min-h-11 items-center gap-2 rounded-full border border-line bg-page px-4 text-sm font-medium text-ink transition-colors hover:bg-primary-soft"
-                      >
-                        {suburb.label}
-                        <span className="rounded-full bg-accent-soft px-2 py-0.5 text-xs font-semibold text-accent-ink">
-                          {suburb.count}
-                          <span className="sr-only"> {suburb.count === 1 ? "property" : "properties"}</span>
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
+        <section className="mt-14 border-y border-line bg-soft md:mt-20">
+          <Container className="py-14 md:py-20">
+            <SectionHeading
+              title="Featured homes"
+              note="Properties our agencies have chosen to put forward this week."
+            />
+            <div className="mt-8">
+              <ListingGrid listings={featured.slice(0, 6)} />
+            </div>
           </Container>
         </section>
       )}
 
-      {dealRows.slice(1).map(
+      {cities.length > 0 && (
+        <Container className="pt-14 md:pt-20">
+          <SectionHeading title="Explore by city" note="See what is on the market where you want to live or work." />
+          <PhotoTileRow className="mt-8">
+            {cities.map((city) => {
+              // Cities without their own artwork borrow a photo from a listing there.
+              const artwork = cityArtwork(city.code);
+              const borrowed = coverPhoto(pool.find((listing) => listing.city.code === city.code)?.photos ?? []);
+              return (
+                <PhotoTile
+                  key={city.code}
+                  href={listingsPath({ city: city.code })}
+                  title={city.label}
+                  count={plural(city.count, "property", "properties")}
+                  photo={artwork ? { src: artwork, bundled: true } : borrowed}
+                />
+              );
+            })}
+          </PhotoTileRow>
+
+          {suburbs.length > 0 && (
+            <>
+              <h3 className="mt-10 text-lg">Popular suburbs</h3>
+              <ul className="mt-4 flex flex-wrap gap-2">
+                {suburbs.map((suburb) => (
+                  <li key={suburb.code}>
+                    <Link
+                      href={listingsPath({ suburb: suburb.code })}
+                      className="flex min-h-11 items-center gap-2 rounded-full border border-line-strong bg-surface px-4 text-sm font-medium text-ink transition-colors hover:border-primary hover:bg-primary-soft hover:text-primary-ink"
+                    >
+                      {suburb.label}
+                      <span className="tabular-nums text-muted">
+                        {suburb.count}
+                        <span className="sr-only"> {suburb.count === 1 ? "property" : "properties"}</span>
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </Container>
+      )}
+
+      {dealRows.map(
         (row) =>
           row.listings.length > 0 && (
-            <Container key={row.href} className="pt-16 md:pt-20">
+            <Container key={row.href} className="pt-14 md:pt-20">
               <SectionHeading title={row.title} href={row.href} linkLabel="View all" />
-              <div data-reveal className="mt-8">
-                <ListingRail label={row.title} listings={row.listings} newIds={newIds} />
-              </div>
+              <ListingRail label={row.title} listings={row.listings} newIds={newIds} className="mt-8" />
             </Container>
           ),
       )}
 
       {otherRow.listings.length > 0 && (
-        <Container className="pt-16 md:pt-20">
+        <Container className="pt-14 md:pt-20">
           <SectionHeading title={otherRow.title} />
-          <div data-reveal className="mt-8">
-            <ListingRail label={otherRow.title} listings={otherRow.listings} newIds={newIds} />
-          </div>
+          <ListingRail label={otherRow.title} listings={otherRow.listings} newIds={newIds} className="mt-8" />
         </Container>
       )}
 
-      <section className="mt-16 border-y border-line bg-sunken md:mt-20">
-        <Container className="py-16 md:py-20">
+      <section className="mt-14 border-y border-line bg-soft md:mt-20">
+        <Container className="py-14 md:py-20">
           <SectionHeading title="Browse by category" />
-          <ul data-reveal-group className="mt-10 grid gap-4 md:grid-cols-3">
+          <ul className="mt-8 grid gap-4 md:grid-cols-3">
             {sets.property_categories.map((category) => {
               const Icon = categoryIcons[category.code] ?? Tag;
               // What the category covers: its property types, from the API.
@@ -525,18 +420,16 @@ async function HomeContent() {
                 <li key={category.code}>
                   <Link
                     href={listingsPath({ category: category.code })}
-                    className="group frame-brand flex items-center gap-4 rounded-lg border border-line bg-surface p-5 transition-shadow hover:shadow-md"
+                    className="group frame-brand flex h-full items-center gap-4 rounded-lg border border-line bg-surface p-5 shadow-xs transition-shadow hover:shadow-md"
                   >
-                    <span className="flex size-12 shrink-0 items-center justify-center rounded-md bg-brand text-on-brand transition-colors group-hover:bg-brand-accent group-hover:text-brand-deep">
+                    <span className="flex size-12 shrink-0 items-center justify-center rounded-md bg-primary-soft text-primary-ink">
                       <Icon className="size-6" aria-hidden="true" />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block font-semibold text-ink">{category.label}</span>
-                      {types.length > 0 && (
-                        <span className="block text-sm text-muted">{sentenceList(types)}</span>
-                      )}
+                      <span className="block font-semibold text-ink group-hover:underline">{category.label}</span>
+                      {types.length > 0 && <span className="block text-sm text-muted">{sentenceList(types)}</span>}
                     </span>
-                    <span className="rounded-full bg-primary-soft px-2.5 py-1 text-sm font-semibold tabular-nums text-primary-ink">
+                    <span className="text-lg font-bold tabular-nums text-ink">
                       {facets.category.find((item) => item.code === category.code)?.count ?? 0}
                       <span className="sr-only"> properties</span>
                     </span>
@@ -548,26 +441,39 @@ async function HomeContent() {
         </Container>
       </section>
 
-      <Container className="py-16 md:py-20">
+      <Container className="pt-14 md:pt-20">
+        {advertisers.length > 0 && (
+          <>
+            <SectionHeading
+              title="Agencies with the most listings"
+              note="The businesses marketing the most property on RightProperty365 today."
+              href="/directory/agencies"
+              linkLabel="All agencies"
+            />
+            <div className="mt-8">
+              <ProfileGrid profiles={advertisers} />
+            </div>
+          </>
+        )}
+
         <SectionHeading
           title="Find a professional"
           note="Agents, developers, property managers, hosts and the services around a move."
           href="/directory"
           linkLabel="Open the directory"
+          className={advertisers.length > 0 ? "mt-14 md:mt-20" : undefined}
         />
-        <ul data-reveal-group className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {kinds.map((kind) => (
             <li key={kind.code}>
               <Link
                 href={`/directory/${kind.code}`}
-                className="group frame-brand flex h-full items-center gap-4 rounded-lg border border-line bg-surface p-5 transition-shadow hover:shadow-md"
+                className="group frame-brand flex h-full items-start gap-4 rounded-lg border border-line bg-surface p-5 shadow-xs transition-shadow hover:shadow-md"
               >
-                <span className="flex size-12 shrink-0 items-center justify-center rounded-md bg-accent-soft text-xl font-bold tabular-nums text-accent-ink">
-                  {kind.count}
-                </span>
+                <span className="min-w-10 text-3xl font-bold tabular-nums text-primary-ink">{kind.count}</span>
                 <span className="min-w-0 flex-1">
                   <span className="block font-semibold text-ink group-hover:underline">{kind.label}</span>
-                  <span className="block text-sm text-muted">{kind.description}</span>
+                  <span className="mt-1 block text-sm leading-relaxed text-muted">{kind.description}</span>
                 </span>
               </Link>
             </li>
@@ -575,15 +481,15 @@ async function HomeContent() {
         </ul>
       </Container>
 
-      <section className="border-t border-line bg-surface">
-        <Container className="py-16 md:py-20">
+      <section className="mt-14 border-y border-line bg-tint md:mt-20">
+        <Container className="py-14 md:py-20">
           <SectionHeading title="How it works" note="Three steps, and you always know where your enquiry stands." />
-          <ol data-reveal-group className="mt-10 grid gap-6 md:grid-cols-3">
+          <ol className="mt-8 grid gap-6 md:grid-cols-3">
             {steps.map((step, index) => (
-              <li key={step.title} className="frame-brand rounded-lg border border-line bg-page p-6">
+              <li key={step.title} className="rounded-lg border border-line bg-surface p-6 shadow-xs">
                 <span
                   aria-hidden="true"
-                  className="flex size-11 items-center justify-center rounded-full bg-brand-accent text-lg font-bold text-brand-deep"
+                  className="flex size-11 items-center justify-center rounded-full border-2 border-line-accent text-lg font-bold text-primary-ink"
                 >
                   {index + 1}
                 </span>
@@ -593,64 +499,68 @@ async function HomeContent() {
             ))}
           </ol>
 
-          <ul data-reveal-group className="mt-14 grid gap-8 border-t border-line pt-12 md:grid-cols-3">
+          <ul className="mt-12 grid gap-8 md:grid-cols-3">
             {promises.map(({ icon: Icon, title, body }) => (
-              <li key={title}>
-                <span className="flex size-11 items-center justify-center rounded-md bg-accent-soft text-accent-ink">
-                  <Icon className="size-5" aria-hidden="true" />
-                </span>
-                <h3 className="mt-4 text-lg">{title}</h3>
-                <p className="mt-2 leading-relaxed text-muted">{body}</p>
+              <li key={title} className="flex gap-4">
+                <Icon className="mt-1 size-6 shrink-0 text-primary-ink" aria-hidden="true" />
+                <div>
+                  <h3 className="text-lg">{title}</h3>
+                  <p className="mt-1 leading-relaxed text-muted">{body}</p>
+                </div>
               </li>
             ))}
           </ul>
         </Container>
       </section>
 
-      <Container className="pt-16 md:pt-20">
+      <Container className="pt-14 md:pt-20">
         <section
-          id="for-agents"
-          data-reveal
-          className="frame-brand-light grid scroll-mt-24 overflow-hidden rounded-xl bg-brand text-on-brand lg:grid-cols-[1.2fr_1fr]"
+          id="for-professionals"
+          aria-labelledby="for-professionals-heading"
+          className="grid overflow-hidden rounded-xl border border-line bg-surface shadow-sm lg:grid-cols-[1.15fr_1fr]"
         >
-          <div className="px-6 py-12 md:px-12 md:py-16">
-            <p className="text-sm font-semibold text-brand-accent">For agents, landlords and developers</p>
-            <h2 data-split className="mt-3 max-w-xl text-3xl md:text-5xl">
+          <div className="p-6 md:p-12">
+            <span aria-hidden="true" className="rule-brand block w-12" />
+            <p className="mt-4 text-sm font-semibold text-primary-ink">
+              For agents, landlords, developers and service providers
+            </p>
+            <h2 id="for-professionals-heading" className="mt-2 max-w-xl text-3xl md:text-4xl">
               More than an advert. The tools to run the deal.
             </h2>
             <ul className="mt-8 space-y-6">
-              {agentTools.map(({ icon: Icon, title, body }) => (
+              {professionalTools.map(({ icon: Icon, title, body }) => (
                 <li key={title} className="flex gap-4">
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-white/10 text-brand-accent">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary-soft text-primary-ink">
                     <Icon className="size-5" aria-hidden="true" />
                   </span>
                   <span>
-                    <span className="block font-semibold">{title}</span>
-                    <span className="mt-1 block leading-relaxed opacity-90">{body}</span>
+                    <span className="block font-semibold text-ink">{title}</span>
+                    <span className="mt-1 block leading-relaxed text-muted">{body}</span>
                   </span>
                 </li>
               ))}
             </ul>
-            <ButtonLink href="/register" size="lg" variant="accent" className="mt-10" data-magnetic>
-              Create an account
+            <ButtonLink href="/register" size="lg" className="mt-10">
+              Register as a professional
+              <ArrowRight className="size-4" aria-hidden="true" />
             </ButtonLink>
-            <p className="mt-4 text-sm opacity-90">
-              Agency onboarding opens with the first release. Packages are priced per market.
+            <p className="mt-4 max-w-md text-sm leading-relaxed text-muted">
+              Choose how you work with property when you create the account. Listing and agency
+              roles are switched on after we have checked who you are.
             </p>
           </div>
-          <div className="relative hidden min-h-80 lg:block">
+          <div className="relative aspect-[16/9] lg:aspect-auto">
             <Image
               src={agentsPhoto}
               alt="Glass-walled corridor in a modern office"
               fill
-              sizes="(min-width: 1024px) 480px, 0px"
+              sizes="(min-width: 1024px) 520px, 100vw"
               placeholder="blur"
               className="object-cover"
             />
-            <span aria-hidden="true" className="absolute inset-0 bg-linear-to-r from-brand to-transparent" />
           </div>
         </section>
       </Container>
-    </PageMotion>
+    </>
   );
 }

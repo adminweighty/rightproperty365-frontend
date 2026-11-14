@@ -26,7 +26,7 @@ export function ProfileAvatar({ name, person, className }: AvatarProps) {
     <span
       aria-hidden="true"
       className={cn(
-        "flex shrink-0 items-center justify-center bg-brand font-bold text-on-brand",
+        "flex shrink-0 items-center justify-center bg-primary-soft font-bold text-primary-ink",
         person ? "rounded-full" : "rounded-md",
         className ?? "size-14 text-lg",
       )}

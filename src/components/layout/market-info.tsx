@@ -3,24 +3,10 @@ import { load } from "@/lib/api/server/load";
 import { getMarkets } from "@/lib/api/server/reference";
 
 /**
- * Market details in the header and footer, from GET /v1/markets. Both are
- * async and read the API, so they are rendered inside `<Suspense>`.
+ * Every market with its status, from GET /v1/markets, which keeps the
+ * multi-country roadmap honest. Shown in the footer. It is async and reads
+ * the API, so it is rendered inside `<Suspense>`.
  */
-
-/** "Zimbabwe · USD" for the market the site is showing. Nothing when it cannot be loaded. */
-export async function ActiveMarketLabel() {
-  const loaded = await load(getMarkets);
-  const market = loaded.ok ? loaded.data.find(({ status }) => status === "ACTIVE") : undefined;
-  if (!market) return null;
-
-  return (
-    <span data-overlay-part className="hidden text-sm text-muted lg:inline" title="Current market">
-      {market.name} · {market.currency_code}
-    </span>
-  );
-}
-
-/** Every market with its status, which keeps the multi-country roadmap honest. */
 export async function MarketList() {
   const loaded = await load(getMarkets);
   if (!loaded.ok) {
@@ -30,7 +16,7 @@ export async function MarketList() {
   return (
     <ul className="mt-3 space-y-2">
       {loaded.data.map((market) => (
-        <li key={market.code} className="flex items-center gap-2 text-sm text-muted">
+        <li key={market.code} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
           {market.name}
           {market.status === "ACTIVE" ? (
             <Badge tone="success">Live</Badge>

@@ -35,7 +35,7 @@ The target is WCAG 2.2 level AA on the website. This list is the working checkli
 ## Testing before merge
 
 1. Tab through the changed screen without a mouse.
-2. Check it in light and dark themes and at 320px and 200% zoom.
+2. Check it at 320px, at about 800px and at 200% zoom, signed in and signed out, and with the operating system set to dark (the site must stay white).
 3. Run an automated checker (axe or Lighthouse) and fix every issue it reports.
 4. For new components, test once with a screen reader (NVDA on Windows, VoiceOver on iOS, TalkBack on Android).
 

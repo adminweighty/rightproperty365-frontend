@@ -45,7 +45,7 @@ Everything the site lists comes from the Go API (`api/openapi.yaml` in the backe
 | On the site | API |
 | --- | --- |
 | Every drop-down, filter option and label: deal types, property categories and types, cities, suburbs, listing features, request types, contact methods, sign-up roles and their groups, directories, service trades | `GET /v1/reference` |
-| Markets in the header and footer; the active market's name and currency | `GET /v1/markets` |
+| Markets in the footer | `GET /v1/markets` |
 | Listing search, its facet counts and pages; the landing page rows, city and suburb tiles and counts | `GET /v1/listings` |
 | Listing detail; "no longer available" for a 410 | `GET /v1/listings/{slug}` |
 | Suggestions when a keyword search finds nothing | `GET /v1/listings/suggest` |
@@ -131,7 +131,8 @@ src/app/                Routes (App Router)
 src/components/
   ui/                   Primitives: Button, Field, Input, Select, Badge, Card, Container,
                         Alert, ErrorState, Pagination
-  layout/               Header, footer, logo, market details
+  layout/               Header, menu for small screens, footer, logo, market list
+  landing/              Landing-page section heading and photo tiles
   listings/             Listing card, media, search bar, filter panel, hero search
   directory/            Profile card, enquiry form
   requests/             Property request form
@@ -151,6 +152,7 @@ src/lib/
 ## Conventions
 
 - **Colours, radius, shadow and fonts come from tokens.** Tailwind's default palette is disabled; use semantic classes such as `bg-surface` and `text-muted`.
+- **The site is white for everyone.** It does not follow the operating system's dark mode; the dark tokens apply only with `data-theme="dark"` on `<html>`. See `design/foundations/color.md`.
 - **All business writes go to the Go API.** Customer enquiries are sent only to `POST /v1/property-requests`. Never post customer details to an agent or a third party from the browser.
 - **The session is an HttpOnly cookie set by the API.** The web app never stores a token. `AuthProvider` loads the user from `GET /v1/me`; roles in the browser decide what to show, and the API authorises every request.
 - **Money is a decimal string plus an ISO 4217 code**, formatted for display only.
