@@ -19,14 +19,19 @@ export type PlatformRole =
   | "SUPPORT";
 
 export type MembershipRole = "OWNER" | "MANAGER" | "AGENT" | "STAFF";
-export type OrganisationKind = "AGENCY" | "LANDLORD" | "HOST" | "DEVELOPER" | "SERVICE_PROVIDER";
 
 export type Membership = {
   organisation_id: string;
   organisation_name: string;
-  organisation_kind: OrganisationKind;
+  /** A code of the API's `organisation_kinds` reference set, which has its label. */
+  organisation_kind: string;
   market_code: string;
   role: MembershipRole;
+  /**
+   * The role as a title for this kind of organisation: "Agency Principal" at
+   * an agency, "Principal" at a law firm. Optional: older API builds do not send it.
+   */
+  role_label?: string | null;
 };
 
 /**
@@ -46,7 +51,13 @@ export type OnboardingStatus = "DRAFT" | "SUBMITTED" | "CHANGES_REQUESTED" | "AP
 export type AccountRoleGroup = {
   code: string;
   label: string;
-  roles: { code: AccountRole; label: string; requiresVerification: boolean }[];
+  roles: {
+    code: AccountRole;
+    label: string;
+    /** One line on what the role is, from the API. */
+    description: string | null;
+    requiresVerification: boolean;
+  }[];
 };
 
 export type User = {
@@ -73,32 +84,50 @@ export type SessionScope = "customer" | "admin";
 
 export type SessionResponse = { user: User; session: { scope: SessionScope; expires_at: string } };
 
-// The three maps below label fixed enums of the identity API (the User schema).
-// They are not reference sets, so GET /v1/reference has no rows for them.
+// Role names are titles (design/guidelines/content-voice.md, "Role names")
+// and come from the API wherever it supplies them.
+
+/**
+ * Platform administrator roles are a fixed enum of the identity API with no
+ * labels in the reference data, so their titles are the one role list
+ * written in the app.
+ */
 export const platformRoleLabels: Record<PlatformRole, string> = {
-  SUPER_ADMIN: "Super admin",
-  PLATFORM_ADMIN: "Platform admin",
-  MARKET_ADMIN: "Market admin",
-  FINANCE_ADMIN: "Finance admin",
-  CONTENT_ADMIN: "Content admin",
+  SUPER_ADMIN: "Super Administrator",
+  PLATFORM_ADMIN: "Platform Administrator",
+  MARKET_ADMIN: "Market Administrator",
+  FINANCE_ADMIN: "Finance Administrator",
+  CONTENT_ADMIN: "Content Administrator",
   MODERATOR: "Moderator",
   SUPPORT: "Support",
 };
 
-export const membershipRoleLabels: Record<MembershipRole, string> = {
-  OWNER: "Owner",
+/** "LAW_FIRM" becomes "Law Firm": the last resort for a code that has no label. */
+export const titleFromCode = (code: string) =>
+  code
+    .toLowerCase()
+    .split("_")
+    .map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
+    .join(" ");
+
+/** Used only when the API sends a membership role without its `role_label`. */
+const membershipRoleFallback: Record<string, string> = {
+  OWNER: "Principal",
   MANAGER: "Manager",
   AGENT: "Agent",
   STAFF: "Staff",
 };
 
-export const organisationKindLabels: Record<OrganisationKind, string> = {
-  AGENCY: "Agency",
-  LANDLORD: "Landlord",
-  HOST: "Host",
-  DEVELOPER: "Developer",
-  SERVICE_PROVIDER: "Service provider",
-};
+/** The title of a membership role: the API's `role_label`, else a generic title. */
+export const membershipRoleLabel = (membership: { role: string; role_label?: string | null }) =>
+  membership.role_label || membershipRoleFallback[membership.role] || titleFromCode(membership.role);
+
+/**
+ * The label of an organisation kind. `labels` is code -> label of the API's
+ * `organisation_kinds` reference set, loaded by the page.
+ */
+export const organisationKindLabel = (code: string, labels: Record<string, string>) =>
+  labels[code] ?? titleFromCode(code);
 
 /** True when the user chose a role that has an onboarding application. */
 export const hasOnboarding = (user: User | null) =>
@@ -115,13 +144,17 @@ export const hasOnboardingToDo = (user: User | null) =>
 /** True when the user belongs to at least one organisation. */
 export const isProfessional = (user: User | null) => Boolean(user?.memberships.length);
 
+/** Individual owners who advertise their own property and have no organisation. */
+const OWNER_ROLES = ["PRIVATE_SELLER", "LANDLORD"];
+
 /**
- * Who is shown the request inbox: organisation members and private sellers.
- * The API decides which requests each of them may read.
+ * Who is shown the request inbox: organisation members, and individual owners
+ * (Property Seller (Vendor), Landlord). The API decides which requests each of
+ * them may read.
  */
 export const canUseInbox = (user: User | null) =>
   isProfessional(user) ||
-  Boolean(user?.account_roles?.some(({ role }) => role === "PRIVATE_SELLER"));
+  Boolean(user?.account_roles?.some(({ role }) => OWNER_ROLES.includes(role)));
 
 export const getMe = () => apiFetch<SessionResponse>("/v1/me");
 

@@ -2,7 +2,6 @@ import { BadgeCheck, Check, ChevronRight, MapPin, ShieldCheck } from "lucide-rea
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 import { ProfileAvatar, ProfileGrid, ProfileRefGrid } from "@/components/directory/profile-card";
 import { ProfileEnquiryForm } from "@/components/directory/profile-enquiry-form";
 import { ListingGrid } from "@/components/listings/listing-card";
@@ -18,8 +17,15 @@ import { load, readAtBuild } from "@/lib/api/server/load";
 import { getCatalogue } from "@/lib/api/server/reference";
 import { toOptions } from "@/lib/api/types";
 import { profileJsonLd, profilePath } from "@/lib/seo";
+import { ApiBoundary } from "@/components/api-boundary";
 
 type Props = PageProps<"/directory/[kind]/[slug]">;
+
+// The content reads the address and the API with no <Suspense> around it
+// (ApiBoundary), so an address that was not prerendered has no static shell:
+// the server renders the whole page before it answers. That keeps the content
+// in the HTML, visible without JavaScript.
+export const instant = false;
 
 /** Profiles prerendered at build; the rest are rendered on first visit and then cached. */
 const PRERENDER_LIMIT = 200;
@@ -59,7 +65,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const { profile, kind: directory } = loaded.data;
   // A profile created by an approval may have no role line yet: fall back to its trade or directory.
-  const what = profile.role || profile.trade?.label || directory.singular_label;
+  const what = profile.role || profile.specialism?.label || profile.trade?.label || directory.singular_label;
   const title = `${profile.name}: ${what.toLowerCase()} in ${profile.city.label}`;
   const description = `${profile.tagline} ${profile.description}`.slice(0, 300);
   const path = profilePath(profile);
@@ -74,9 +80,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default function ProfilePage({ params }: Props) {
   return (
     <Container className="py-8 md:py-12">
-      <Suspense fallback={<div aria-busy="true" className="h-96 rounded-lg bg-sunken" />}>
+      <ApiBoundary fallback={<div aria-busy="true" className="h-96 rounded-lg bg-sunken" />}>
         <ProfileContent params={params} />
-      </Suspense>
+      </ApiBoundary>
     </Container>
   );
 }
@@ -128,6 +134,7 @@ async function ProfileContent({ params }: Pick<Props, "params">) {
             <div className="flex flex-wrap gap-2">
               <Badge>{kind.singular_label}</Badge>
               {profile.trade && <Badge tone="primary">{profile.trade.label}</Badge>}
+              {profile.specialism && <Badge tone="primary">{profile.specialism.label}</Badge>}
               {profile.verified && (
                 <Badge tone="success">
                   <BadgeCheck className="size-3.5" aria-hidden="true" />

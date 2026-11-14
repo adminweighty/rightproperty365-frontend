@@ -5,6 +5,8 @@ import { Container } from "@/components/ui/container";
 import { getDirectoryKinds } from "@/lib/api/server/directory";
 import { load } from "@/lib/api/server/load";
 import { getOnboardingLists } from "@/lib/api/server/onboarding";
+import { getCatalogue } from "@/lib/api/server/reference";
+import { toLabels } from "@/lib/api/types";
 
 type Props = PageProps<"/admin/verifications/[id]">;
 
@@ -18,8 +20,8 @@ export const metadata: Metadata = { title: "Review application", robots: { index
 async function Detail({ params }: Pick<Props, "params">) {
   const { id } = await params;
   const loaded = await load(async () => {
-    const [lists, kinds] = await Promise.all([getOnboardingLists(), getDirectoryKinds()]);
-    return { lists, kinds };
+    const [lists, kinds, catalogue] = await Promise.all([getOnboardingLists(), getDirectoryKinds(), getCatalogue()]);
+    return { lists, kinds, organisationKinds: catalogue.sets.organisation_kinds ?? [] };
   });
   const { requirements = [], ...lists } = loaded.ok
     ? loaded.data.lists
@@ -28,7 +30,15 @@ async function Detail({ params }: Pick<Props, "params">) {
     ? Object.fromEntries(loaded.data.kinds.map(({ code, label }) => [code, label]))
     : {};
 
-  return <ReviewDetail id={id} requirements={requirements} lists={lists} directoryLabels={directoryLabels} />;
+  return (
+    <ReviewDetail
+      id={id}
+      requirements={requirements}
+      lists={lists}
+      directoryLabels={directoryLabels}
+      organisationKindLabels={loaded.ok ? toLabels(loaded.data.organisationKinds) : {}}
+    />
+  );
 }
 
 export default function VerificationPage({ params }: Props) {

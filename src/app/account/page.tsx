@@ -9,12 +9,19 @@ import { toLabels } from "@/lib/api/types";
 export const metadata: Metadata = { title: "Your account", robots: { index: false } };
 
 /**
- * Role labels come from the API's reference data. If they cannot be loaded the
- * account page still works and shows each role by its code.
+ * Role and organisation-kind labels come from the API's reference data. If
+ * they cannot be loaded the account page still works and shows each one by a
+ * title made from its code.
  */
 async function AccountWithLabels() {
   const loaded = await load(getCatalogue);
-  return <AccountOverview roleLabels={loaded.ok ? toLabels(loaded.data.sets.account_roles) : {}} />;
+  const sets = loaded.ok ? loaded.data.sets : undefined;
+  return (
+    <AccountOverview
+      roleLabels={sets ? toLabels(sets.account_roles) : {}}
+      organisationKindLabels={sets ? toLabels(sets.organisation_kinds ?? []) : {}}
+    />
+  );
 }
 
 export default function AccountPage() {

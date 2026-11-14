@@ -97,7 +97,7 @@ function ApplicationCard({ application, requirement }: { application: Onboarding
             application.decision.reason && (
               <p>
                 <span className="font-medium text-ink">
-                  {application.status === "REJECTED" ? "Why it was not approved:" : "What our team asked for:"}
+                  {application.status === "REJECTED" ? "Why it was rejected:" : "What our team asked for:"}
                 </span>{" "}
                 {application.decision.reason}
               </p>
@@ -150,7 +150,7 @@ function Applications({ requirements }: Props) {
         <Alert tone="success" title="Your email address is confirmed. You are signed in." className="mt-6" />
       )}
       <p className="mt-4 max-w-2xl leading-relaxed text-muted">
-        Roles for listing or managing property, and for working at an agency, are confirmed after
+        Roles for real estate professionals, businesses and property owners are confirmed after
         RightProperty365 has checked who you are. For each role, give us your details and attach
         the documents we ask for, then submit it for review. Until a role is approved it gives no
         extra access, and you can use your account to search and enquire as usual.

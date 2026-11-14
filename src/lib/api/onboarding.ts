@@ -152,7 +152,10 @@ export type OnboardingAdminPage = {
 
 export type OnboardingHistoryEntry = {
   from: OnboardingStatus;
+  /** The API's wording for `from` and `to`, when it sends them. */
+  from_label?: string | null;
   to: OnboardingStatus;
+  to_label?: string | null;
   /** Empty if that account no longer exists. */
   actor_name: string;
   reason: string | null;
@@ -233,15 +236,17 @@ export const adminDocumentUrl = (id: string, documentId: string) =>
 // ---- Shared display helpers -------------------------------------------------
 
 /**
- * The application statuses are a fixed enum of the API, not a reference set,
- * so their wording lives here. "Approved" is the only one that means verified.
+ * The API sends the wording of a status with every application
+ * (`status_label`). These are the same words, for the places that have only
+ * the code: the status tabs of the review queue and a role on the account
+ * page. "Approved" is the only one that means verified.
  */
 export const onboardingStatusLabels: Record<OnboardingStatus, string> = {
-  DRAFT: "Not submitted",
-  SUBMITTED: "Submitted for review",
-  CHANGES_REQUESTED: "Changes requested",
+  DRAFT: "Pending Verification",
+  SUBMITTED: "Under Review",
+  CHANGES_REQUESTED: "Changes Requested",
   APPROVED: "Approved",
-  REJECTED: "Not approved",
+  REJECTED: "Rejected",
 };
 
 /** The API's own wording for a status when it sends one, otherwise ours. */

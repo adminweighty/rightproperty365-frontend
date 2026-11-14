@@ -2,7 +2,6 @@ import { ChevronRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 import { ProfileGrid } from "@/components/directory/profile-card";
 import { JsonLd } from "@/components/seo/json-ld";
 import { Container } from "@/components/ui/container";
@@ -12,8 +11,15 @@ import { load, readAtBuild } from "@/lib/api/server/load";
 import { getCatalogue } from "@/lib/api/server/reference";
 import type { DirectoryProfile, ReferenceItem } from "@/lib/api/types";
 import { directoryJsonLd } from "@/lib/seo";
+import { ApiBoundary } from "@/components/api-boundary";
 
 type Props = PageProps<"/directory/[kind]">;
+
+// The content reads the address and the API with no <Suspense> around it
+// (ApiBoundary), so an address that was not prerendered has no static shell:
+// the server renders the whole page before it answers. That keeps the content
+// in the HTML, visible without JavaScript.
+export const instant = false;
 
 /** Cache Components needs at least one param to build the route's shell. This is never a directory. */
 const SHELL_ONLY = [{ kind: "not-prerendered" }];
@@ -55,9 +61,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default function DirectoryKindPage({ params }: Props) {
   return (
     <Container className="py-10 md:py-14">
-      <Suspense fallback={<div aria-busy="true" className="h-96 rounded-lg bg-sunken" />}>
+      <ApiBoundary fallback={<div aria-busy="true" className="h-96 rounded-lg bg-sunken" />}>
         <DirectoryList params={params} />
-      </Suspense>
+      </ApiBoundary>
     </Container>
   );
 }

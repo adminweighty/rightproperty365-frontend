@@ -463,11 +463,21 @@ export function directoryCrumbs(kind: DirectoryKindInfo, profile?: DirectoryProf
 }
 
 /**
- * Agencies are RealEstateAgent, agents are Person, everything else Organization.
- * The kinds `agencies` and `agents` are baseline directory kinds in the API
- * contract; the choice of schema.org type is the only thing keyed on them,
- * and an unknown kind falls back to Organization.
+ * The schema.org type of a profile's main entity, by directory kind code.
+ * These kinds are baseline directory kinds in the API contract, and the choice
+ * of type is the only thing keyed on them. A kind that is not listed (and any
+ * kind added later) is an Organization.
  */
+const profileEntityTypes: Record<string, string> = {
+  agencies: "RealEstateAgent",
+  agents: "Person",
+  // A law practice. LegalService is a LocalBusiness, so it takes an address.
+  solicitors: "LegalService",
+};
+const DEFAULT_ENTITY_TYPE = "Organization";
+
+export const profileEntityType = (kindCode: string) => profileEntityTypes[kindCode] ?? DEFAULT_ENTITY_TYPE;
+
 export function profileJsonLd(
   profile: DirectoryProfile,
   kind: DirectoryKindInfo,
@@ -482,12 +492,13 @@ export function profileJsonLd(
     areaServed: profile.areas.map((name) => ({ "@type": "Place", name })),
   };
 
+  const type = profileEntityType(profile.kind);
   const entity =
-    profile.kind === "agents"
+    type === "Person"
       ? {
-          "@type": "Person",
+          "@type": type,
           ...common,
-          jobTitle: profile.role,
+          jobTitle: profile.specialism?.label || profile.role,
           ...(profile.agency && {
             worksFor: {
               "@type": "RealEstateAgent",
@@ -497,7 +508,7 @@ export function profileJsonLd(
           }),
         }
       : {
-        "@type": profile.kind === "agencies" ? "RealEstateAgent" : "Organization",
+        "@type": type,
         ...common,
         address: {
           "@type": "PostalAddress",

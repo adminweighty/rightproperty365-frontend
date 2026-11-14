@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink, buttonClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, fieldDescribedBy, Textarea } from "@/components/ui/field";
-import { membershipRoleLabels, organisationKindLabels, type MembershipRole, type OrganisationKind } from "@/lib/api/auth";
+import { membershipRoleLabel, organisationKindLabel } from "@/lib/api/auth";
 import type { ApiFailure } from "@/lib/api/http";
 import {
   adminDocumentUrl,
@@ -35,6 +35,8 @@ type Props = {
   lists: FieldLists;
   /** code -> label of the API's directory kinds. */
   directoryLabels: Record<string, string>;
+  /** code -> label of the API's `organisation_kinds` reference set. */
+  organisationKindLabels: Record<string, string>;
 };
 
 type State =
@@ -52,17 +54,19 @@ function outcomeText(
   application: OnboardingAdminApplication,
   requirement: OnboardingRequirements | undefined,
   directoryLabels: Record<string, string>,
+  organisationKindLabels: Record<string, string>,
 ): string {
   const directory = requirement?.directory_kind
     ? (directoryLabels[requirement.directory_kind] ?? requirement.directory_kind)
     : null;
   const profile = directory ? ` and a public profile in “${directory}” with a Verified badge` : "";
   if (application.outcome === "ORGANISATION") {
+    // The kind is a title from the API: "Law Firm", "Real Estate Agency".
     const kind = requirement?.organisation_kind
-      ? (organisationKindLabels[requirement.organisation_kind as OrganisationKind] ?? requirement.organisation_kind).toLowerCase()
-      : "";
+      ? organisationKindLabel(requirement.organisation_kind, organisationKindLabels)
+      : "organisation";
     const name = application.details.business_name ? ` “${application.details.business_name}”` : "";
-    return `a new ${kind} organisation${name} owned by the applicant${profile}. The role becomes active.`;
+    return `a new organisation of the kind ${kind}${name}, with the applicant as its principal${profile}. The role becomes active.`;
   }
   if (application.outcome === "AGENCY_MEMBER") {
     const agency = application.agency?.name ?? "the agency they named";
@@ -95,7 +99,7 @@ const actionCopy: Record<Action, { open: string; heading: string; confirm: strin
   },
 };
 
-function Review({ id, requirements, lists, directoryLabels }: Props) {
+function Review({ id, requirements, lists, directoryLabels, organisationKindLabels }: Props) {
   const [state, setState] = useState<State>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
   const [action, setAction] = useState<Action | null>(null);
@@ -170,7 +174,7 @@ function Review({ id, requirements, lists, directoryLabels }: Props) {
 
   const { application } = state;
   const requirement = requirements.find((item) => item.role === application.role);
-  const outcome = outcomeText(application, requirement, directoryLabels);
+  const outcome = outcomeText(application, requirement, directoryLabels, organisationKindLabels);
   const decidable = application.status === "SUBMITTED";
   const requiredMissing =
     application.requirements.fields.some((item) => item.required && !item.provided) ||
@@ -242,7 +246,7 @@ function Review({ id, requirements, lists, directoryLabels }: Props) {
                 {approval.membership_role && (
                   <li>
                     The applicant is now a member with the role{" "}
-                    {membershipRoleLabels[approval.membership_role as MembershipRole] ?? approval.membership_role}.
+                    {membershipRoleLabel({ role: approval.membership_role })}.
                   </li>
                 )}
                 {approval.profile ? (
@@ -413,10 +417,10 @@ function Review({ id, requirements, lists, directoryLabels }: Props) {
                 {application.history.map((entry, index) => (
                   <li key={`${entry.at}-${index}`}>
                     <p className="text-ink">
-                      <span className="font-medium">{onboardingStatusLabels[entry.to]}</span>
+                      <span className="font-medium">{entry.to_label || onboardingStatusLabels[entry.to]}</span>
                       <span className="text-muted">
                         {" "}
-                        (was {onboardingStatusLabels[entry.from].toLowerCase()})
+                        (was {entry.from_label || onboardingStatusLabels[entry.from]})
                       </span>
                     </p>
                     <p className="text-sm text-muted">

@@ -1,9 +1,12 @@
 import Link from "next/link";
-import { Suspense } from "react";
+import { Fragment } from "react";
 import { Logo } from "@/components/layout/logo";
 import { MarketList } from "@/components/layout/market-info";
 import { professionalsLink, type NavItem } from "@/components/layout/nav-items";
 import { Container } from "@/components/ui/container";
+import { getDirectoryKinds } from "@/lib/api/server/directory";
+import { load } from "@/lib/api/server/load";
+import { ApiBoundary } from "@/components/api-boundary";
 
 const columns: { title: string; links: NavItem[] }[] = [
   {
@@ -17,14 +20,6 @@ const columns: { title: string; links: NavItem[] }[] = [
     ],
   },
   {
-    title: "Directory",
-    links: [
-      { href: "/directory/agencies", label: "Estate agencies" },
-      { href: "/directory/developers", label: "Property developers" },
-      { href: "/directory", label: "Property directory" },
-    ],
-  },
-  {
     title: "Account",
     links: [
       { href: "/sign-in", label: "Sign in" },
@@ -34,9 +29,41 @@ const columns: { title: string; links: NavItem[] }[] = [
   },
 ];
 
-const headingClass = "font-sans text-sm font-semibold tracking-normal text-ink";
+const directoryHome: NavItem = { href: "/directory", label: "Property directory" };
 
-/** Light, multi-column footer: brand line, three link columns and the markets. */
+const headingClass = "font-sans text-sm font-semibold tracking-normal text-ink";
+const linkClass = "flex min-h-11 items-center text-sm text-muted hover:text-primary-ink hover:underline md:min-h-9";
+
+function LinkList({ links }: { links: NavItem[] }) {
+  return (
+    <ul className="mt-2">
+      {links.map((item) => (
+        <li key={item.href}>
+          <Link href={item.href} className={linkClass}>
+            {item.label}
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * Every directory the API lists (Real Estate Agencies, Estate Agents,
+ * Solicitors, ...), so a new directory appears here without a change to the
+ * app. If they cannot be loaded, the link to the directory hub is enough.
+ */
+async function DirectoryLinks() {
+  const loaded = await load(getDirectoryKinds);
+  const kinds = loaded.ok ? loaded.data : [];
+  return (
+    <LinkList
+      links={[...kinds.map((kind) => ({ href: `/directory/${kind.code}`, label: kind.label })), directoryHome]}
+    />
+  );
+}
+
+/** Light, multi-column footer: brand line, three link columns (the directories from the API) and the markets. */
 export function SiteFooter() {
   return (
     <footer data-site-footer className="mt-20 border-t border-line bg-soft md:mt-24">
@@ -49,29 +76,29 @@ export function SiteFooter() {
           </p>
         </div>
 
-        {columns.map((column) => (
-          <nav key={column.title} aria-label={column.title}>
-            <h2 className={headingClass}>{column.title}</h2>
-            <ul className="mt-2">
-              {column.links.map((item) => (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className="flex min-h-11 items-center text-sm text-muted hover:text-primary-ink hover:underline md:min-h-9"
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
+        {columns.map((column, index) => (
+          <Fragment key={column.title}>
+            <nav aria-label={column.title}>
+              <h2 className={headingClass}>{column.title}</h2>
+              <LinkList links={column.links} />
+            </nav>
+            {/* The directory column sits between "Property" and "Account". */}
+            {index === 0 && (
+              <nav aria-label="Directory">
+                <h2 className={headingClass}>Directory</h2>
+                <ApiBoundary fallback={<LinkList links={[directoryHome]} />}>
+                  <DirectoryLinks />
+                </ApiBoundary>
+              </nav>
+            )}
+          </Fragment>
         ))}
 
         <div>
           <h2 className={headingClass}>Markets</h2>
-          <Suspense fallback={<div aria-busy="true" className="mt-3 h-24 rounded-md bg-sunken" />}>
+          <ApiBoundary fallback={<div aria-busy="true" className="mt-3 h-24 rounded-md bg-sunken" />}>
             <MarketList />
-          </Suspense>
+          </ApiBoundary>
         </div>
       </Container>
       <div className="border-t border-line">

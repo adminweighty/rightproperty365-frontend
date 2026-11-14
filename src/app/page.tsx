@@ -2,23 +2,21 @@ import {
   ArrowRight,
   BadgeCheck,
   Building2,
-  CalendarClock,
   House,
   LandPlot,
   MessageSquare,
   RefreshCw,
   ShieldCheck,
   Tag,
-  TrendingUp,
   type LucideIcon,
 } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { Suspense, type ReactNode } from "react";
-import agentsPhoto from "@/assets/images/agents.jpg";
+import type { ReactNode } from "react";
 import { ProfileGrid } from "@/components/directory/profile-card";
 import { PhotoTile, PhotoTileRow } from "@/components/landing/photo-tile";
+import { RoleGroups } from "@/components/landing/role-groups";
 import { SectionHeading } from "@/components/landing/section-heading";
 import { HeroSearch } from "@/components/listings/hero-search";
 import { ListingGrid } from "@/components/listings/listing-card";
@@ -34,8 +32,10 @@ import { getCatalogue } from "@/lib/api/server/reference";
 import type { FacetCount, Listing } from "@/lib/api/types";
 import { formatMoney } from "@/lib/format";
 import { cityArtwork, coverPhoto } from "@/lib/photos";
+import { groupRoles } from "@/lib/roles";
 import { buildSearchOptions } from "@/lib/search-options";
 import { listingsHeading, listingsPath, organizationJsonLd, websiteJsonLd } from "@/lib/seo";
+import { ApiBoundary } from "@/components/api-boundary";
 
 const homeTitle = "RightProperty365 | Property for sale and to rent in Zimbabwe";
 const homeDescription =
@@ -70,7 +70,7 @@ const promises = [
   {
     icon: ShieldCheck,
     title: "Verified advertisers",
-    body: "Agencies and private sellers are checked before their listings go live.",
+    body: "Real Estate Agencies, Landlords and Property Sellers (Vendors) are checked before their listings go live.",
   },
   {
     icon: RefreshCw,
@@ -82,12 +82,6 @@ const promises = [
     title: "Enquiries you can track",
     body: "Each request gets a reference, so you can see when it was received and answered.",
   },
-];
-
-const professionalTools = [
-  { icon: MessageSquare, title: "One inbox for every lead", body: "Enquiries and viewing requests arrive in your dashboard and on your phone." },
-  { icon: CalendarClock, title: "Viewings without the back-and-forth", body: "Customers ask for a time; you confirm, reschedule or decline." },
-  { icon: TrendingUp, title: "See what each listing is doing", body: "Views, enquiries and conversion for every property you publish." },
 ];
 
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
@@ -223,9 +217,9 @@ export default function HomePage() {
     <>
       <JsonLd data={organizationJsonLd()} />
       <JsonLd data={websiteJsonLd()} />
-      <Suspense fallback={<HomeFallback />}>
+      <ApiBoundary fallback={<HomeFallback />}>
         <HomeContent />
-      </Suspense>
+      </ApiBoundary>
     </>
   );
 }
@@ -246,6 +240,7 @@ async function HomeContent() {
   const { facets } = newest;
   const newIds = newest.items.slice(0, 6).map((listing) => listing.id);
   const searchOptions = buildSearchOptions(sets, facets);
+  const roleGroups = groupRoles(sets.account_roles);
   const cities = byCount(facets.city);
   const suburbs = byCount(facets.suburb);
   // A featured listing lends the hero its photograph; without one, the newest does.
@@ -445,7 +440,7 @@ async function HomeContent() {
         {advertisers.length > 0 && (
           <>
             <SectionHeading
-              title="Agencies with the most listings"
+              title="Real Estate Agencies with the most listings"
               note="The businesses marketing the most property on RightProperty365 today."
               href="/directory/agencies"
               linkLabel="All agencies"
@@ -458,7 +453,7 @@ async function HomeContent() {
 
         <SectionHeading
           title="Find a professional"
-          note="Agents, developers, property managers, hosts and the services around a move."
+          note="Estate agents, solicitors, developers, property managers, hosts and the services around a move."
           href="/directory"
           linkLabel="Open the directory"
           className={advertisers.length > 0 ? "mt-14 md:mt-20" : undefined}
@@ -513,54 +508,39 @@ async function HomeContent() {
         </Container>
       </section>
 
-      <Container className="pt-14 md:pt-20">
-        <section
-          id="for-professionals"
-          aria-labelledby="for-professionals-heading"
-          className="grid overflow-hidden rounded-xl border border-line bg-surface shadow-sm lg:grid-cols-[1.15fr_1fr]"
-        >
-          <div className="p-6 md:p-12">
-            <span aria-hidden="true" className="rule-brand block w-12" />
-            <p className="mt-4 text-sm font-semibold text-primary-ink">
-              For agents, landlords, developers and service providers
-            </p>
-            <h2 id="for-professionals-heading" className="mt-2 max-w-xl text-3xl md:text-4xl">
-              More than an advert. The tools to run the deal.
-            </h2>
-            <ul className="mt-8 space-y-6">
-              {professionalTools.map(({ icon: Icon, title, body }) => (
-                <li key={title} className="flex gap-4">
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary-soft text-primary-ink">
-                    <Icon className="size-5" aria-hidden="true" />
-                  </span>
-                  <span>
-                    <span className="block font-semibold text-ink">{title}</span>
-                    <span className="mt-1 block leading-relaxed text-muted">{body}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <ButtonLink href="/register" size="lg" className="mt-10">
-              Register as a professional
-              <ArrowRight className="size-4" aria-hidden="true" />
-            </ButtonLink>
-            <p className="mt-4 max-w-md text-sm leading-relaxed text-muted">
-              Choose how you work with property when you create the account. Listing and agency
-              roles are switched on after we have checked who you are.
-            </p>
-          </div>
-          <div className="relative aspect-[16/9] lg:aspect-auto">
-            <Image
-              src={agentsPhoto}
-              alt="Glass-walled corridor in a modern office"
-              fill
-              sizes="(min-width: 1024px) 520px, 100vw"
-              placeholder="blur"
-              className="object-cover"
+      {/*
+        The role groups come from the same reference data as the search form,
+        so they are here whenever the page is. A market with no roles to choose
+        (an empty set) has nothing to show, so the section is left out.
+      */}
+      {roleGroups.length > 0 && (
+        <Container className="pt-14 md:pt-20">
+          <section id="for-professionals" aria-labelledby="roles-heading">
+            <SectionHeading
+              id="roles-heading"
+              title="Who RightProperty365 is for"
+              note="Choose how you work with property when you create an account. Roles for professionals, businesses and owners are active once we have verified them."
             />
-          </div>
-        </section>
-      </Container>
+            <div className="mt-8">
+              <RoleGroups groups={roleGroups} />
+            </div>
+            <div className="mt-6 flex flex-col items-start gap-5 rounded-xl border border-line bg-soft p-6 md:flex-row md:items-center md:justify-between md:p-8">
+              <div>
+                <h3 className="text-xl">Work in property?</h3>
+                <p className="mt-1 max-w-2xl leading-relaxed text-muted">
+                  Register, choose your role and send us your details. Once we have verified you,
+                  the role is active on your account. Roles with a directory profile get one with
+                  a Verified badge, and enquiries reach you in your request inbox.
+                </p>
+              </div>
+              <ButtonLink href="/register" size="lg" className="shrink-0">
+                Register as a professional
+                <ArrowRight className="size-4" aria-hidden="true" />
+              </ButtonLink>
+            </div>
+          </section>
+        </Container>
+      )}
     </>
   );
 }

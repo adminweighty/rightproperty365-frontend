@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Suspense } from "react";
 import { ListingGrid } from "@/components/listings/listing-card";
 import { SearchBar } from "@/components/listings/search-bar";
 import { JsonLd } from "@/components/seo/json-ld";
@@ -14,8 +13,15 @@ import { load } from "@/lib/api/server/load";
 import { getCatalogue } from "@/lib/api/server/reference";
 import { buildSearchOptions } from "@/lib/search-options";
 import { listingsCollectionJsonLd, listingsPath, parseListingsSearch } from "@/lib/seo";
+import { ApiBoundary } from "@/components/api-boundary";
 
 type Props = PageProps<"/listings">;
+
+// The content reads the address and the API with no <Suspense> around it
+// (ApiBoundary), so an address that was not prerendered has no static shell:
+// the server renders the whole page before it answers. That keeps the content
+// in the HTML, visible without JavaScript.
+export const instant = false;
 type RawParams = Awaited<Props["searchParams"]>;
 
 /** Reference data, the parsed search and its results. Every read is cached. */
@@ -70,8 +76,8 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 
 const propertyCount = (count: number) => (count === 1 ? "1 property" : `${count} properties`);
 
-// searchParams is request-time data, so everything that reads it sits behind
-// Suspense and the rest of the page stays in the static shell.
+// searchParams is request-time data, so this is rendered for each request.
+// It sits in an ApiBoundary, not a <Suspense>: see `instant` above.
 async function Results({ searchParams }: Pick<Props, "searchParams">) {
   const params = await searchParams;
   const loaded = await load(() => readResults(params));
@@ -225,12 +231,12 @@ async function PopularSearches() {
 export default function ListingsPage({ searchParams }: Props) {
   return (
     <Container className="py-10 md:py-14">
-      <Suspense fallback={<ResultsFallback />}>
+      <ApiBoundary fallback={<ResultsFallback />}>
         <Results searchParams={searchParams} />
-      </Suspense>
-      <Suspense fallback={null}>
+      </ApiBoundary>
+      <ApiBoundary fallback={null}>
         <PopularSearches />
-      </Suspense>
+      </ApiBoundary>
     </Container>
   );
 }

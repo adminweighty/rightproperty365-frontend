@@ -124,6 +124,8 @@ export type DirectoryProfile = {
   offerings: { name: string; description: string }[];
   /** Service providers only. */
   trade: Coded | null;
+  /** Agent profiles only: "Sales Agent" or "Lettings Agent". Null for an agent with no specialism. */
+  specialism?: Coded | null;
   verified: boolean;
   /** Paid placement. Always labelled "Sponsored" wherever it is shown. */
   sponsored: boolean;
@@ -171,6 +173,7 @@ export type ReferenceSetCode =
   | "contact_methods"
   | "account_roles"
   | "directory_kinds"
+  | "organisation_kinds"
   | "service_trades"
   | "cities"
   | "suburbs"

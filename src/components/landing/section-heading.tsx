@@ -3,6 +3,8 @@ import Link from "next/link";
 import { cn } from "@/lib/cn";
 
 type Props = {
+  /** An id for the `h2`, when a section is labelled by it. */
+  id?: string;
   title: string;
   /** One sentence under the title. */
   note?: string;
@@ -16,12 +18,14 @@ type Props = {
  * The heading of a landing-page row: a short logo-colour rule, an `h2`, an
  * optional sentence, and an optional "View all" link at the right.
  */
-export function SectionHeading({ title, note, href, linkLabel, className }: Props) {
+export function SectionHeading({ id, title, note, href, linkLabel, className }: Props) {
   return (
     <div className={cn("flex items-end justify-between gap-4", className)}>
       <div className="min-w-0">
         <span aria-hidden="true" className="rule-brand block w-12" />
-        <h2 className="mt-4 text-2xl md:text-3xl">{title}</h2>
+        <h2 id={id} className="mt-4 text-2xl md:text-3xl">
+          {title}
+        </h2>
         {note && <p className="mt-2 max-w-xl text-muted">{note}</p>}
       </div>
       {href && linkLabel && (

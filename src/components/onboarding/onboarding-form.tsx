@@ -262,7 +262,7 @@ function Details({ requirement, lists }: Props) {
 
       <div className="mt-6 space-y-4">
         {application.status === "SUBMITTED" && (
-          <Alert tone="info" title="Submitted for review">
+          <Alert tone="info" title={onboardingStatusLabel(application)}>
             <p>
               We received your application
               {application.submitted_at && ` on ${formatWhen(application.submitted_at)}`}. Our team
@@ -287,7 +287,7 @@ function Details({ requirement, lists }: Props) {
           </Alert>
         )}
         {application.status === "REJECTED" && (
-          <Alert tone="danger" title="This application was not approved">
+          <Alert tone="danger" title="This application was rejected">
             <p className="whitespace-pre-line">{application.decision.reason}</p>
             <p className="mt-1">
               You can apply again. Your earlier details are kept; documents have to be attached again.

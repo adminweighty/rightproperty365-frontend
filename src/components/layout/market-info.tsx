@@ -5,7 +5,7 @@ import { getMarkets } from "@/lib/api/server/reference";
 /**
  * Every market with its status, from GET /v1/markets, which keeps the
  * multi-country roadmap honest. Shown in the footer. It is async and reads
- * the API, so it is rendered inside `<Suspense>`.
+ * the API, so it is rendered inside `ApiBoundary`.
  */
 export async function MarketList() {
   const loaded = await load(getMarkets);

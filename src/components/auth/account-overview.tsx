@@ -14,23 +14,29 @@ import {
   canUseInbox,
   hasOnboarding,
   hasOnboardingToDo,
-  membershipRoleLabels,
-  organisationKindLabels,
+  membershipRoleLabel,
+  organisationKindLabel,
   platformRoleLabels,
+  titleFromCode,
   type User,
 } from "@/lib/api/auth";
 import {
   listMyApplications,
   onboardingStatusLabel,
+  onboardingStatusLabels,
   onboardingStatusTones,
   roleToSlug,
   type OnboardingApplication,
 } from "@/lib/api/onboarding";
 
-/** code -> label of the API's `account_roles` reference set. */
-type RoleLabels = Record<string, string>;
+type Props = {
+  /** code -> label of the API's `account_roles` reference set. */
+  roleLabels: Record<string, string>;
+  /** code -> label of the API's `organisation_kinds` reference set. */
+  organisationKindLabels: Record<string, string>;
+};
 
-function Details({ user, roleLabels }: { user: User; roleLabels: RoleLabels }) {
+function Details({ user, roleLabels, organisationKindLabels }: Props & { user: User }) {
   const { signOut } = useAuth();
   const router = useRouter();
   const welcome = useSearchParams().get("welcome") === "1";
@@ -85,7 +91,7 @@ function Details({ user, roleLabels }: { user: User; roleLabels: RoleLabels }) {
           <ul className="mt-2 space-y-3">
             {user.account_roles.map(({ role, status, onboarding_status: onboarding }) => {
               const application = applications.find((item) => item.role === role);
-              const label = roleLabels[role] ?? role;
+              const label = roleLabels[role] ?? titleFromCode(role);
               return (
                 <li key={role}>
                   <div className="flex items-center justify-between gap-3">
@@ -98,9 +104,9 @@ function Details({ user, roleLabels }: { user: User; roleLabels: RoleLabels }) {
                         {onboardingStatusLabel(application ?? { status: onboarding })}
                       </Badge>
                     ) : status === "REJECTED" ? (
-                      <Badge tone="danger">Not approved</Badge>
+                      <Badge tone="danger">{onboardingStatusLabels.REJECTED}</Badge>
                     ) : (
-                      <Badge tone="warning">Pending verification</Badge>
+                      <Badge tone="warning">{onboardingStatusLabels.DRAFT}</Badge>
                     )}
                   </div>
                   {onboarding && (
@@ -154,10 +160,11 @@ function Details({ user, roleLabels }: { user: User; roleLabels: RoleLabels }) {
                 <span>
                   <span className="block text-ink">{membership.organisation_name}</span>
                   <span className="block text-sm text-muted">
-                    {organisationKindLabels[membership.organisation_kind]} · {membership.market_code}
+                    {organisationKindLabel(membership.organisation_kind, organisationKindLabels)} ·{" "}
+                    {membership.market_code}
                   </span>
                 </span>
-                <Badge tone="primary">{membershipRoleLabels[membership.role]}</Badge>
+                <Badge tone="primary">{membershipRoleLabel(membership)}</Badge>
               </li>
             ))}
             {user.platform_roles.map((assignment) => (
@@ -199,6 +206,6 @@ function Details({ user, roleLabels }: { user: User; roleLabels: RoleLabels }) {
   );
 }
 
-export function AccountOverview({ roleLabels }: { roleLabels: RoleLabels }) {
-  return <RequireAuth>{(user) => <Details user={user} roleLabels={roleLabels} />}</RequireAuth>;
+export function AccountOverview(props: Props) {
+  return <RequireAuth>{(user) => <Details user={user} {...props} />}</RequireAuth>;
 }

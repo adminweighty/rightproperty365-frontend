@@ -44,26 +44,27 @@ Everything the site lists comes from the Go API (`api/openapi.yaml` in the backe
 
 | On the site | API |
 | --- | --- |
-| Every drop-down, filter option and label: deal types, property categories and types, cities, suburbs, listing features, request types, contact methods, sign-up roles and their groups, directories, service trades | `GET /v1/reference` |
+| Every drop-down, filter option and label: deal types, property categories and types, cities, suburbs, listing features, request types, contact methods, sign-up roles with their groups and descriptions, organisation kinds, directories, service trades | `GET /v1/reference` |
 | Markets in the footer | `GET /v1/markets` |
 | Listing search, its facet counts and pages; the landing page rows, city and suburb tiles and counts | `GET /v1/listings` |
 | Listing detail; "no longer available" for a 410 | `GET /v1/listings/{slug}` |
 | Suggestions when a keyword search finds nothing | `GET /v1/listings/suggest` |
-| Directories with counts, directory lists, profiles | `GET /v1/directory`, `/v1/directory/{kind}`, `/v1/directory/{kind}/{slug}` |
+| Directories with counts (Real Estate Agencies, Estate Agents, Solicitors and the rest), directory lists, profiles, the footer's directory links | `GET /v1/directory`, `/v1/directory/{kind}`, `/v1/directory/{kind}/{slug}` |
 | Sitemap; which listings and profiles are prerendered | `GET /v1/sitemap` |
 
 How it is wired:
 
 - **`src/lib/api/server/`** holds the server-side readers. Each is a `'use cache'` function with a lifetime and a tag: reference data and markets for an hour (`reference`, `markets`), listings and the directory for a minute (`listings`, `listing:<slug>`, `directory`, `profile:<kind>:<slug>`). A reader throws when the API fails, so a failure is never cached. Pages call them through `load()`, which turns a failure into an error state.
 - **Server Components fetch; Client Components receive props.** Forms such as the search bars, the sign-up role picker, the property request form and the request inbox get their option lists and labels from the page that renders them. Nothing fetches reference data in the browser.
-- **Results that depend on `searchParams`** (the listing search) are read inside `<Suspense>` with the parsed filters passed as arguments, so each search is its own cache entry.
+- **Results that depend on `searchParams`** (the listing search) are read with the parsed filters passed as arguments, so each search is its own cache entry. The page is rendered by the server for each request (see "Builds and the API").
 - **Codes are checked against the reference data** before they are sent to the API, which answers 400 for a code it does not know.
 - **Photos.** The API returns a photo as `/assets/images/<file>.jpg` with alt text and size. Object storage and uploads are not built, so those files are the ones bundled from `src/assets/images`. `src/lib/photos.ts` maps the file name to the bundled import, which keeps hashed URLs, responsive sizes and blur placeholders. A photo that is not bundled is loaded from the URL the API gave, unoptimised, at the API's width and height.
-- **Not in the reference data**, so still labelled in code: the four sort orders of the listing search (an enum of that endpoint), and the labels of platform roles, organisation roles and organisation kinds on the account and admin pages (enums of the identity API). The main navigation and the landing page's marketing copy are written in the app.
+- **Role names come from the API.** Account roles with their groups and descriptions (`account_roles`), organisation kinds (`organisation_kinds`), the title of a membership (`role_label` in `GET /v1/me`), an agent's specialism and the wording of an application's status (`status_label`) are shown as sent. They are titles: see `design/guidelines/content-voice.md`, "Role names".
+- **Not in the reference data**, so still labelled in code: the four sort orders of the listing search (an enum of that endpoint) and the titles of platform administrator roles (an enum of the identity API). The main navigation and the landing page's marketing copy are written in the app.
 
 ## Onboarding and verification
 
-A person who signs up with a listing, managing or agency role (every role except buyer and tenant) has one application per role. The role gives no access until a platform administrator approves the application.
+A person who signs up with a role for real estate professionals, businesses or property owners (every role except Prospective Buyer and Prospective Tenant) has one application per role. The role gives no access until a platform administrator approves the application.
 
 - **Applicant** (`/onboarding`, `/onboarding/<role>`): after confirming their email they land on the hub, which lists each application with its status and what is missing. The form for a role is built from `GET /v1/onboarding/requirements`: which details and documents the role has, and which are required, come from the API. Details are saved with "Save draft"; each document is uploaded on its own (PDF, JPEG or PNG, up to 10 MB); "Submit for review" sends it. The reviewer's reason is shown when changes are requested or the application is not approved, and a rejected applicant can apply again.
 - **Administrator** (`/admin/verifications`, `/admin/verifications/<id>`): the review queue (status tabs with counts, role filter, search, pages) and the review page (applicant, private details, requirement checklist, documents, history) with Approve, Request changes and Reject. Only an administrator session sees them; the API authorises every call.
@@ -83,20 +84,26 @@ The route accepts only the cache tags listed under "Data from the API", returns 
 
 ## Builds and the API
 
-`next build` prerenders pages, and CI builds with no API. Two rules follow: the build must succeed without the API, and it must never store an error or an empty page that is then served as if it were real.
+`next build` prerenders pages, and CI builds with no API. Three rules follow: the build must succeed without the API, it must never store an error or an empty page that is then served as if it were real, and **public content must be in the HTML, visible without JavaScript**, whenever the build could read the API.
 
-When the build starts, each build worker checks once whether the API answers (`GET /readyz` on `API_URL`, else `NEXT_PUBLIC_API_URL`). This is in `src/lib/api/server/load.ts`.
+When the build starts, `next.config.ts` checks once whether the API answers (`GET /readyz` on `API_URL`, else `NEXT_PUBLIC_API_URL`) and compiles the answer into the server code as `RP_API_AT_BUILD`. `src/lib/api/server/load.ts` (`load()`, `apiAtBuild`) and `src/components/api-boundary.tsx` (`ApiBoundary`) read it, so the build and the server it produces always agree.
 
-| Build | What is prerendered | At run time |
-| --- | --- | --- |
-| **The API answers** | The landing page, directories, every profile (up to 200) and the newest 100 listings, with real data. Other listings and profiles are rendered on their first visit and then cached. | Cached pages are refreshed in the background: listings and directory after a minute, reference data after an hour. |
-| **The API does not answer** (CI), or `BUILD_WITHOUT_API=1` | Only the page shells. Every part that needs the API is left as its loading placeholder; nothing from the API, and no error state, is stored. | Those parts are rendered on each request from the API (the data itself is still cached in memory for a minute or an hour). |
+| Build | What is prerendered | At run time | Without JavaScript |
+| --- | --- | --- | --- |
+| **The API answers** | The landing page, directories, every profile (up to 200) and the newest 100 listings, with real data, as complete HTML. | Cached pages are refreshed in the background: listings and directory after a minute, reference data after an hour. The listing search, and listings and profiles that were not prerendered, are rendered by the server for each request (the data is cached) and sent as complete HTML. | Listings, search results, directories and profiles are all readable. Forms that post to the API (enquiries, sign-in) and the account menu need JavaScript. |
+| **The API does not answer** (CI), or `BUILD_WITHOUT_API=1` | Only the page shells. Every part that needs the API is left as its loading placeholder; nothing from the API, and no error state, is stored. | Those parts are rendered on each request from the API (the data itself is still cached in memory for a minute or an hour) and streamed into the page. | Only the placeholders show: streamed content is revealed by a script. |
 
-The second mode works by waiting for `connection()` before any API read while building. During prerendering that never resolves, so Next.js stores the `<Suspense>` fallback and renders the component on each request instead. This is why every component that calls `load()` sits inside `<Suspense>`.
+How the two modes work:
+
+- **With the API**, the readers are `'use cache'` functions, so their output can be prerendered, and `ApiBoundary` renders its children with no `<Suspense>` around them. That matters: React moves the finished content of a `<Suspense>` boundary larger than about 500 bytes into a hidden element at the end of the document and reveals it with an inline script, even when the content was ready at build time. Without the boundary the content is ordinary HTML in its place.
+- **Without the API**, `load()` waits for `connection()` before any API read. During prerendering that never resolves, so `ApiBoundary`, which is then a `<Suspense>`, has its fallback stored and its content rendered on each request instead.
+- Pages whose content also reads the address (`/listings` reads `searchParams`; listing, directory and profile pages read `params`) export `instant = false`. With no boundary they have no static shell for an address that was not prerendered, so the server renders the whole page before answering. The cost is that such a navigation shows no skeleton while it waits; the gain is complete HTML.
+
+Every public component that calls `load()` sits inside `ApiBoundary`. The signed-in screens (account, onboarding, inbox, admin) need JavaScript anyway and use a plain `<Suspense>`.
 
 If the API stops answering part-way through a build that started with it, the build fails rather than storing a broken page.
 
-An image built without the API is correct but slower on first paint of the data. To get prerendered pages in production, build where the API is reachable (pass `API_URL` as a build argument) or accept request-time rendering.
+To get complete, prerendered pages in production, build where the API is reachable (pass `API_URL` as a build argument). An image built without the API is correct, but slower on first paint of the data and dependent on JavaScript to show it.
 
 At run time, a page that cannot reach the API shows an error state with a "Try again" link and is marked `noindex`. The next request tries again; nothing about the failure is cached. `src/app/error.tsx` catches any other rendering error.
 
@@ -132,7 +139,8 @@ src/components/
   ui/                   Primitives: Button, Field, Input, Select, Badge, Card, Container,
                         Alert, ErrorState, Pagination
   layout/               Header, menu for small screens, footer, logo, market list
-  landing/              Landing-page section heading and photo tiles
+  landing/              Landing-page section heading, photo tiles and role groups
+  api-boundary.tsx      Wrapper for public components that read the API
   listings/             Listing card, media, search bar, filter panel, hero search
   directory/            Profile card, enquiry form
   requests/             Property request form
@@ -144,6 +152,7 @@ src/lib/
   api/                  Browser clients for the Go API (session cookie), and types.ts
   api/server/           Server-side cached readers for listings, directory, reference data
   seo.ts                Search parameters, indexing rules, structured data (docs/seo.md)
+  roles.ts              Groups the API's account roles under their headings
   search-options.ts     Option lists for the search forms, from reference data and facets
   photos.ts             Maps API photo file names to the bundled images
   env.ts, format.ts     Public config and formatting helpers
@@ -156,7 +165,7 @@ src/lib/
 - **All business writes go to the Go API.** Customer enquiries are sent only to `POST /v1/property-requests`. Never post customer details to an agent or a third party from the browser.
 - **The session is an HttpOnly cookie set by the API.** The web app never stores a token. `AuthProvider` loads the user from `GET /v1/me`; roles in the browser decide what to show, and the API authorises every request.
 - **Money is a decimal string plus an ISO 4217 code**, formatted for display only.
-- **Request-time data sits behind `<Suspense>`** (`params`, `searchParams`, cookies) so every route keeps a static shell. So does every component that reads the API (see "Builds and the API").
+- **Public content is HTML first.** A public component that reads the API sits inside `ApiBoundary`, never a plain `<Suspense>`, and a public page that reads `params` or `searchParams` exports `instant = false` (see "Builds and the API"). Signed-in screens keep request-time data behind `<Suspense>`.
 - **No lists in code.** A drop-down, filter or label for a value the API returns comes from the API's reference data. Add a row in the database, not an array in the app.
 - **WCAG 2.2 AA** is required. See `design/guidelines/accessibility.md`.
 
@@ -190,6 +199,6 @@ The build reads the API if it can reach it (`--build-arg API_URL=...`, else `NEX
 
 ## Current state
 
-Built: design system, UI primitives, home page, listing search with filters, facet counts and pages, listing detail, the directories and profiles, the property request and business enquiry forms, sitemap and structured data, and authentication: register, email confirmation, sign in and out, password reset, an account page showing roles, the request inbox, onboarding for listing and agency roles with document uploads, and the administrator review queue. All of it reads the Go API; the listings and profiles it shows are the backend's seed data.
+Built: design system, UI primitives, home page, listing search with filters, facet counts and pages, listing detail, the directories and profiles (including Solicitors), the property request and business enquiry forms, sitemap and structured data, and authentication: register, email confirmation, sign in and out, password reset, an account page showing roles, the request inbox, onboarding for professional, business and owner roles with document uploads, and the administrator review queue. All of it reads the Go API; the listings and profiles it shows are the backend's seed data.
 
 Not built yet: multi-factor authentication, organisation invitations and agent onboarding, account deletion, creating and editing listings, the rest of the agent and admin portals (listing moderation, markets, invoices, users, audit), maps, media uploads and object storage (photos are bundled files), YouTube embeds, analytics events, and automatic cache revalidation when the API changes (`POST /api/revalidate` exists; the API does not call it yet).

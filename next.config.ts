@@ -1,4 +1,29 @@
 import type { NextConfig } from "next";
+import { PHASE_PRODUCTION_BUILD } from "next/constants";
+
+/**
+ * Whether the API answers when `next build` starts (README, "Builds and the
+ * API"). The answer is compiled into the server code as RP_API_AT_BUILD, so
+ * the build and the server it produces always agree on it:
+ *
+ *   "1"  pages are prerendered with API data and need no <Suspense> around it
+ *   "0"  API-backed parts are left as loading placeholders in the build and
+ *        rendered on each request (CI, or BUILD_WITHOUT_API=1)
+ *
+ * Outside a production build (next dev) it is "1": the API is expected to run.
+ */
+async function apiAnswersAtBuild(phase: string): Promise<boolean> {
+  if (phase !== PHASE_PRODUCTION_BUILD) return true;
+  if (process.env.BUILD_WITHOUT_API === "1") return false;
+  // The same address the server-side readers use (src/lib/api/server/client.ts).
+  const base = (process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080").replace(/\/+$/, "");
+  try {
+    const response = await fetch(`${base}/readyz`, { signal: AbortSignal.timeout(3000) });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
 
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
@@ -7,7 +32,8 @@ const securityHeaders = [
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(self)" },
 ];
 
-const nextConfig: NextConfig = {
+const nextConfig = async (phase: string): Promise<NextConfig> => ({
+  env: { RP_API_AT_BUILD: (await apiAnswersAtBuild(phase)) ? "1" : "0" },
   // Self-contained server bundle for the Docker image (FR-049).
   output: "standalone",
   poweredByHeader: false,
@@ -32,6 +58,6 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
-};
+});
 
 export default nextConfig;

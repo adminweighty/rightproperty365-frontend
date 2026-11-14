@@ -2,7 +2,6 @@ import { BadgeCheck, Check, ChevronRight, MapPin } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 import { ListingFacts, ListingGrid, ListingPrice } from "@/components/listings/listing-card";
 import { ListingMedia } from "@/components/listings/listing-media";
 import { PropertyRequestForm } from "@/components/requests/property-request-form";
@@ -25,8 +24,15 @@ import {
   listingsPath,
   profilePath,
 } from "@/lib/seo";
+import { ApiBoundary } from "@/components/api-boundary";
 
 type Props = PageProps<"/listings/[slug]">;
+
+// The content reads the address and the API with no <Suspense> around it
+// (ApiBoundary), so an address that was not prerendered has no static shell:
+// the server renders the whole page before it answers. That keeps the content
+// in the HTML, visible without JavaScript.
+export const instant = false;
 
 /** Newest listings prerendered at build; the rest are rendered on first visit and then cached. */
 const PRERENDER_LIMIT = 100;
@@ -86,14 +92,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-// `params` is awaited inside Suspense so the route keeps an instant app shell
-// for slugs that were not prerendered.
+// `params` is awaited inside an ApiBoundary, not a <Suspense>: see `instant`
+// above. A slug that was not prerendered is rendered on its first request.
 export default function ListingPage({ params }: Props) {
   return (
     <Container className="py-8 md:py-12">
-      <Suspense fallback={<ListingFallback />}>
+      <ApiBoundary fallback={<ListingFallback />}>
         <ListingContent params={params} />
-      </Suspense>
+      </ApiBoundary>
     </Container>
   );
 }

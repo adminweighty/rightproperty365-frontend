@@ -230,7 +230,7 @@ export function RequestInbox({ requestTypeLabels, contactMethodLabels }: Props) 
               load={loadRequests}
               contactMethodLabels={contactMethodLabels}
             />
-            {/* Business enquiries go to organisations, so private sellers have none. */}
+            {/* Business enquiries go to organisations, so Landlords and Property Sellers (Vendors) have none. */}
             {isProfessional(user) && (
               <InboxSection
                 id="inbox-business"

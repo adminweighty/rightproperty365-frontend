@@ -8,7 +8,7 @@ import type { User } from "@/lib/api/auth";
 
 /**
  * Shows its children only to an administrator session. Signed-out visitors are
- * sent to the administrator sign-in; a customer session gets the "no access"
+ * sent to the administrator sign-in; any other session gets the "no access"
  * state. This chooses what to display; the API only accepts administrator
  * sessions for platform-role actions.
  */
@@ -34,15 +34,15 @@ export function AdminGate({ children }: { children: (user: User) => ReactNode })
       <div className="rounded-lg border border-dashed border-line-strong p-10 text-center">
         <h1 className="text-2xl">You do not have access to this page</h1>
         <p className="mx-auto mt-2 max-w-md text-muted">
-          This area is for RightProperty365 administrators. Your account is signed in as a
-          customer account.
+          This area is for Platform Administrators. You are signed in with an account that is
+          not an administrator account.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <ButtonLink href="/account" variant="secondary">
             Go to your account
           </ButtonLink>
           <ButtonLink href="/sign-in" variant="ghost">
-            Customer sign in
+            Sign in to the main site
           </ButtonLink>
         </div>
       </div>

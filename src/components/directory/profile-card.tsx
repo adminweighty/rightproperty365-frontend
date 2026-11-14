@@ -59,7 +59,8 @@ export function ProfileCard({ profile }: { profile: DirectoryProfile }) {
             </Link>
           </h3>
           <p className="text-sm text-muted">
-            {profile.role || profile.trade?.label}
+            {/* An agent's specialism is a title from the API: "Sales Agent", "Lettings Agent". */}
+            {profile.specialism?.label || profile.role || profile.trade?.label}
             {profile.agency && ` · ${profile.agency.name}`}
           </p>
         </div>

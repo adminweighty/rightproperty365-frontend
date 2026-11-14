@@ -34,6 +34,7 @@ Rules behind the table:
 - **Empty parameters do not create duplicates.** With JavaScript the search forms leave empty fields out of the address. Without it they submit them (`?deal=rent&category=&q=`); the page ignores them, and the canonical drops them and fixes the parameter order.
 - **Expired listings leave the index.** `unavailable_after` (the API's `expires_at`) tells Google when to drop the page, and the sitemap lists only published listings. A listing that was public and no longer is shows "This listing is no longer available" with `noindex`; a slug that never existed is not found. Neither is redirected to a category page.
 - **An error state is never indexed and never cached.** When the API cannot be reached a page shows an error state with `noindex` and no canonical, and the next request tries again. The sitemap answers 500 rather than listing fewer pages.
+- **Content is in the HTML.** When the build could read the API, listings, search results, directories and profiles are complete HTML in the response, in document order, with nothing left for a script to reveal (README, "Builds and the API"). A crawler that does not run JavaScript reads the same page as a browser. A build made without the API streams that content instead, so production images should be built with the API reachable.
 - **Crawlers get metadata in `<head>`.** By default Next.js streams request-time metadata into `<body>` for browsers and for Googlebot, but Google honours `rel=canonical` only in `<head>`. `htmlLimitedBots` in `next.config.ts` lists crawler user agents (Next's default list plus Googlebot and generic crawler names) that receive complete `<head>` metadata instead. Browsers keep the faster streamed behaviour.
 
 ## Where the data comes from
@@ -57,13 +58,14 @@ Titles, headings, canonicals and structured data are built from what the API ret
 | Listing search, indexable pages only | `CollectionPage` with `BreadcrumbList` and an `ItemList` of the results |
 | Listing detail | `RealEstateListing` with `BreadcrumbList`, the property as `mainEntity` and an `Offer` |
 | Directory list | `CollectionPage` with `BreadcrumbList` and an `ItemList` of the profiles |
-| Directory profile | `ProfilePage` whose `mainEntity` is a `RealEstateAgent` (agency), `Person` (agent, with `worksFor`) or `Organization` (everyone else) |
+| Directory profile | `ProfilePage` whose `mainEntity` is a `RealEstateAgent` (agency), `Person` (agent, with `worksFor`), `LegalService` (solicitor) or `Organization` (everyone else) |
 
 - The property is `House` or `Apartment` when the listing has a bedroom count (a home) and `Place` otherwise (commercial property and land), because `floorSize` and bedroom counts are only valid on accommodation types.
 - The `Offer` sits on the listing, not the property. Rentals use a `UnitPriceSpecification` per month.
 - Google has **no rich result for real-estate listings**. This markup helps machines understand the page; it will not add stars or prices to results. `BreadcrumbList` and `Organization` are supported Google features.
 - Deliberately not used: `Product` for property, `FAQPage`, and `WebSite` `SearchAction` (Google retired the sitelinks search box in November 2024).
-- Not included yet: `geo` coordinates (listings have none) and agency pages with `RealEstateAgent`.
+- The type of a profile's main entity is chosen by directory kind code in one map (`profileEntityType` in `src/lib/seo.ts`). A directory the API adds later is an `Organization` until it is given a type there. `LegalService` is a `LocalBusiness`, so a law firm carries its city as an address; a street address, phone number and email are never published (the enquiry-only rule).
+- Not included yet: `geo` coordinates (listings have none).
 
 ## Internal links and images
 
@@ -76,7 +78,7 @@ Titles, headings, canonicals and structured data are built from what the API ret
 
 ## Known gaps
 
-- **Unknown listings return HTTP 200 with `noindex`, not 404.** With Cache Components the page shell is sent before the listing is looked up. Google treats this as a soft 404, which is acceptable; a real 404 needs a slug check in a proxy before the response starts.
+- **Unknown listings return HTTP 200 with `noindex`, not 404.** With Cache Components the response starts before the listing is looked up (still true now that the page has no `<Suspense>`: checked on 14 November 2026). Google treats this as a soft 404, which is acceptable; a real 404 needs a slug check in a proxy before the response starts.
 - **A listing that is no longer available also returns HTTP 200 with `noindex`,** for the same reason. A 410 needs the same proxy check.
 - **No image sitemap.** `GET /v1/sitemap` returns each listing's slug and `updated_at` but not its photo, so the sitemap no longer names a photo per listing. Google still finds the photos on the pages.
 - **The sitemap is one file.** It holds every public listing and profile. Split it with `generateSitemaps` before it nears 50,000 URLs.

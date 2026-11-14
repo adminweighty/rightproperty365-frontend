@@ -1,7 +1,6 @@
 import { ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Suspense } from "react";
 import { ProfileGrid } from "@/components/directory/profile-card";
 import { JsonLd } from "@/components/seo/json-ld";
 import { Container } from "@/components/ui/container";
@@ -9,10 +8,11 @@ import { ErrorState } from "@/components/ui/error-state";
 import { getDirectoryKinds, getDirectoryList } from "@/lib/api/server/directory";
 import { load } from "@/lib/api/server/load";
 import { absoluteUrl, breadcrumbJsonLd } from "@/lib/seo";
+import { ApiBoundary } from "@/components/api-boundary";
 
-const title = "Property directory: agents, developers and services in Zimbabwe";
+const title = "Property directory: agents, solicitors, developers and services in Zimbabwe";
 const description =
-  "Find estate agencies and agents, property developers, landlords and property managers, hosts and property service providers in Zimbabwe.";
+  "Find real estate agencies and estate agents, solicitors, property developers, property managers, hosts and property service providers in Zimbabwe.";
 
 export const metadata: Metadata = {
   title,
@@ -96,9 +96,9 @@ export default function DirectoryPage() {
         and keeps it running.
       </p>
 
-      <Suspense fallback={<div aria-busy="true" aria-label="Loading the directory" className="mt-10 h-96 rounded-lg bg-sunken" />}>
+      <ApiBoundary fallback={<div aria-busy="true" aria-label="Loading the directory" className="mt-10 h-96 rounded-lg bg-sunken" />}>
         <Directories />
-      </Suspense>
+      </ApiBoundary>
     </Container>
   );
 }

@@ -80,7 +80,7 @@ export function AdminSignInForm() {
       </Button>
 
       <p className="text-sm leading-relaxed text-muted">
-        Forgotten your password? Ask a super administrator to reset it. Administrator passwords
+        Forgotten your password? Ask a Super Administrator to reset it. Administrator passwords
         cannot be reset by email.
       </p>
     </form>

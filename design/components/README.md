@@ -153,6 +153,16 @@ The landing-page search, inside the hero's white panel.
 - Two rows of three from `lg`, two columns from `sm`, one column on phones.
 - Use it once, on the landing page. Results pages use `SearchBar`.
 
+## RoleGroups (`landing/role-groups.tsx`)
+
+"Who RightProperty365 is for" on the landing page: the roles a person can choose, so the page speaks in real estate terms.
+
+- One white card per role group, in the API's order (today: Property Seekers, Real Estate Professionals, Real Estate Businesses, Property Owners, Other property businesses). Three columns from `lg`, two from `sm`, one on phones.
+- A card has the group's label as an `h3`, then a `dl` of its roles: the role's title in `ink` weight 600 and its one-line description in `muted`. Groups, titles and descriptions are the API's `account_roles` reference set (`groupRoles` in `src/lib/roles.ts`); the component names no role.
+- One action per card, at the bottom. A group whose roles need no verification links to "Browse listings". Every other group says "Verified before the role is active" (with a shield icon) and links to "Create an account". Which case applies comes from the API's `requires_verification`.
+- Under the grid, one `soft` panel with the page's single "Register as a professional" button. It says what registering leads to today: verification, an active role, a directory profile for roles that have one, and the request inbox. It promises nothing that is not built.
+- The section has the id `for-professionals`, which the header's "For professionals" link targets. It is left out when the reference data has no roles.
+
 ## SectionHeading (`landing/section-heading.tsx`)
 
 The heading of a landing-page section.
@@ -218,6 +228,7 @@ The navigation below `lg`: a 44px menu button at the right of the header that op
 
 - Light: a `soft` background with a hairline and the 3px logo-colour band along its top. No dark or indigo footer.
 - Five columns from `lg`: the logo with one sentence, then "Property", "Directory" and "Account" link columns and "Markets". Two columns from `sm`, one on phones. Each link column is a `nav` named by its heading; links are 44px tall on phones.
+- "Directory" lists every directory the API returns, by its label (Real Estate Agencies, Estate Agents, Solicitors and so on), then "Property directory". If the directories cannot be loaded it shows that one link.
 - "Markets" lists every market with its status, which keeps the multi-country roadmap honest. It comes from the API (`layout/market-info.tsx`); if it cannot be loaded the footer says so.
 - A last row holds the copyright line.
 
@@ -244,14 +255,16 @@ The frame for sign-in, registration and account recovery: a 448px white card cen
 
 The sign-up question "How will you use RightProperty365?". People choose one or more roles; any combination is allowed.
 
-- The roles, their groups and every label are a prop (`groups`) from the API's `account_roles` reference set, in the API's order. Today that is three groups: Looking for property, Listing or managing property, Working at an agency.
+- The roles, their groups, their titles and their one-line descriptions are a prop (`groups`) from the API's `account_roles` reference set, in the API's order. Today that is five groups: Property Seekers, Real Estate Professionals, Real Estate Businesses, Property Owners, Other property businesses.
+- Each row is the role's title (weight 500) with its description under it in `muted` 14px. Role names are titles, as the API sends them (content and voice, "Role names").
 - One outer `fieldset` with the question as its `legend` and the hint "Choose all that apply", then one nested `fieldset` per group with the group's label as its `legend`.
-- Native checkboxes named `roles`. Each label row is at least 44px tall and the whole row is the target. The buyer or renter role (`CONSUMER`) is ticked by default.
+- Native checkboxes named `roles`. Each label row is at least 44px tall and the whole row is the target. The Prospective Buyer role (`CONSUMER`) is ticked by default.
 - At least one is required. The error ("Choose at least one option.", or the API's `roles` message) appears under the groups and is linked to the outer fieldset with `aria-describedby`.
-- A role the API marks `requires_verification` says "Needs verification" in its label, and a note under the groups explains that those roles are confirmed after we verify the person or their organisation. Choosing one records a request; it grants no access by itself.
+- A role the API marks `requires_verification` says "Needs verification" beside its title (on its own line on phones), and a note under the groups explains that those roles are confirmed after we verify the person or their organisation. Choosing one records a request; it grants no access by itself.
 - If the roles cannot be loaded the form is replaced by an `ErrorState`: an account cannot be created without choosing a role.
 - Platform administrator roles never appear here. The API also rejects them, so this list is not the safeguard.
-- On the account page each chosen role is shown with a status badge: "Active" (`success`), or the status of its onboarding application ("Not submitted", "Submitted for review", "Changes requested", "Not approved"), separate from organisation memberships and staff access. A role with an application links to it, and an approved role links to its public profile when it has one.
+- On the account page each chosen role is shown with a status badge: "Active" (`success`), or the status of its onboarding application in the API's words ("Pending Verification", "Under Review", "Changes Requested", "Rejected"), separate from organisation memberships and staff access. A role with an application links to it, and an approved role links to its public profile when it has one.
+- A membership shows the organisation's name, its kind from the `organisation_kinds` reference set ("Law Firm", "Real Estate Agency") and the membership's `role_label` from the API as a badge ("Principal", "Agency Principal"). Staff access shows the platform role's title ("Super Administrator").
 
 ## Administrator sign-in and landing (`admin/admin-sign-in-form.tsx`, `admin/admin-home.tsx`)
 
@@ -260,7 +273,7 @@ Platform administrators sign in at `/admin/sign-in`, a separate page from the cu
 - The page uses `AuthShell` with the heading "Administrator sign in". It has no "create an account" link, no role picker and no email password reset; a line of text says to ask a super administrator.
 - It is not linked from the header, footer or customer sign-in, is `noindex, nofollow`, and is not in the sitemap. Administrators are given the address.
 - Every failed attempt shows the same message, "That email and password do not match.", whether the address is unknown, the password is wrong, or the account is not an administrator. The customer sign-in shows the same message for an administrator account.
-- `/admin` states: loading skeleton; signed out (redirects to `/admin/sign-in`); signed in without an administrator session (the "You do not have access" state with links to the account page and customer sign-in); administrator (name, a "Verifications" card with the number of applications waiting and a link to the review queue, platform roles with their market, and an honest list of what is not built yet). `AdminGate` (`admin/admin-gate.tsx`) gives every admin page the same states.
+- `/admin` states: loading skeleton; signed out (redirects to `/admin/sign-in`); signed in without an administrator session (the "You do not have access" state, which says the area is for Platform Administrators, with links to the account page and the main sign-in); administrator (name, a "Verifications" card with the number of applications waiting and a link to the review queue, platform roles with their market, and an honest list of what is not built yet). `AdminGate` (`admin/admin-gate.tsx`) gives every admin page the same states.
 - For an administrator session the account menu shows "Administration" in place of "Your account", and signing out returns to `/admin/sign-in`.
 
 ## AccountMenu (`auth/account-menu.tsx`)
@@ -281,9 +294,9 @@ Wraps content that depends on the session and renders one of four states: loadin
 
 ## RequestInbox (`agent/request-inbox.tsx`)
 
-The list of customer requests routed to the signed-in person: an agent's own listings, everything in the agency for an owner or manager, or a private seller's own listings. It is shown to organisation members and private sellers; the API decides which requests each may read.
+The list of customer requests routed to the signed-in person: an Estate Agent's own listings, everything in the organisation for its principal or a manager, or an individual owner's own listings. It is shown to organisation members (a Real Estate Agency, a Law Firm and so on), Landlords and Property Sellers (Vendors) (`canUseInbox`); the API decides which requests each may read.
 
-- Two sections, each with its own `h2`, count and states: "Property requests" (about listings) and "Business enquiries" (sent from a directory profile). Private sellers see only the first, because business enquiries go to organisations.
+- Two sections, each with its own `h2`, count and states: "Property requests" (about listings) and "Business enquiries" (sent from a directory profile). Landlords and Property Sellers (Vendors) see only the first, because business enquiries go to organisations.
 - A directory profile never shows a phone number or email address. The enquiry form is the only way to reach a business, and the customer's details appear only in this inbox.
 - Each request is a card: type and status badges, received time in the viewer's time zone, customer name and listing, the message, then contact links and the reference. The listing's title comes with the request from the API; when it does not, the card says "about a listing". Request type and contact method labels come from the API's reference data.
 - States: loading skeleton, error with "Try again", empty ("No requests yet"), and the list with a count.
@@ -293,9 +306,9 @@ The list of customer requests routed to the signed-in person: an agent's own lis
 
 `/onboarding`: the signed-in person's applications for listing, managing and agency roles, one card per role.
 
-- An opening paragraph says in plain words that these roles are confirmed after RightProperty365 has checked who the person is, and that a role gives no extra access until then.
+- An opening paragraph says in plain words that roles for real estate professionals, businesses and property owners are confirmed after RightProperty365 has checked who the person is, and that a role gives no extra access until then.
 - Each card: the role's label (from the API) as an `h2`, a status badge, what is still needed in words ("Details still needed: …", "Documents still needed: …"), and one primary action.
-- Status wording is exact. Use the API's `status_label` when it sends one; otherwise: "Not submitted", "Submitted for review", "Changes requested", "Approved", "Not approved". Never "Verified" before an approval. The badge always has text; tone is neutral, info, warning, success, danger in that order.
+- Status wording is the API's `status_label`: "Pending Verification" (not yet submitted), "Under Review", "Changes Requested", "Approved", "Rejected". The same words are the fallback where only the code is known. Never "Verified" before an approval. The badge always has text; tone is neutral, info, warning, success, danger in that order.
 - Action by status: "Start" (an untouched draft), "Continue", "Fix and resubmit" (changes requested, with the reviewer's reason on the card), "View" (submitted or approved, a secondary button), "Apply again" (not approved, with the reason). An approved role with a public profile also gets "View your public profile".
 - States: loading skeleton, signed out (`RequireAuth`), error with "Try again", and "Nothing to complete" for an account with no such role.
 
@@ -308,8 +321,8 @@ The list of customer requests routed to the signed-in person: an agent's own lis
 - **Private details say so.** The phone number's hint says it is used only by the verification team and is never shown publicly; the registration number likewise. In read-only views they carry a "Private" badge.
 - Actions: "Save draft" (secondary; saves the details and says "Draft saved. Nothing has been sent for review yet.") and "Submit for review" (primary; saves, then submits).
 - When submitting fails, every missing detail gets its message under its control and every missing document under its row, one summary `Alert` appears above the buttons, and focus moves to the first problem. The API's "is required" is rewritten to say what to do ("Enter business name before you submit.").
-- After submitting: an info `Alert` titled "Submitted for review" with the time, saying the role is not active yet and the application cannot be changed. The details and documents are then read-only.
-- "Changes requested" shows the reviewer's reason in a warning `Alert` above an editable form. "Not approved" shows the reason in a danger `Alert` with "Apply again", which starts a new application with the earlier details (documents are attached again).
+- After submitting: an info `Alert` titled with the status ("Under Review") with the time, saying the role is not active yet and the application cannot be changed. The details and documents are then read-only.
+- "Changes requested" shows the reviewer's reason in a warning `Alert` above an editable form. "Rejected" shows the reason in a danger `Alert` with "Apply again", which starts a new application with the earlier details (documents are attached again).
 - "Approved" shows a success `Alert` and, when there is one, a link to the public profile.
 
 ## DocumentUploader (`onboarding/document-uploader.tsx`)
@@ -328,7 +341,7 @@ One row per document type in an application.
 
 `/admin/verifications`: applications waiting for a platform administrator. Shown only to an administrator session (`AdminGate`); customers get the "You do not have access" state.
 
-- Status tabs are links in a `nav` (Submitted for review first, the default), each with its count as text inside the link and `aria-current="page"` on the current one. The current tab is filled, not only coloured.
+- Status tabs are links in a `nav` (Under Review first, the default), each with its count as text inside the link and `aria-current="page"` on the current one. The current tab is filled, not only coloured.
 - A GET form filters by role (the roles come from the API) and searches applicant, email or business. Status, filters and page live in the address, so a view can be bookmarked.
 - Each row is a card that is one link (the applicant's name, stretched): role and status badges, submitted time, applicant name and email, the business name or "Joining <agency>", and the number of documents. Oldest submission first, as the API returns them.
 - States: loading skeleton, error with "Try again", empty ("No applications are waiting for review." or "No applications match those filters" with "Clear filters"), and `Pagination`.
@@ -341,11 +354,29 @@ One row per document type in an application.
 - "Applicant" card: name, email with "Confirmed" or "Not confirmed", account age, market, and one sentence beginning "Approving creates:" that says in plain words what an approval does (a new organisation and a verified profile in a named directory, a membership in a named agency, or nothing beyond making the role active).
 - "Details" card: every detail the role has. Private ones (phone, registration number) carry a "Private" badge. A missing required detail reads "Not given (required)".
 - "Documents" card: one row per document type with "Attached", "Missing" or "Not attached", the file name, size and upload time, and "Open" (the admin file route, new tab, downloads). A line says every open is recorded in the audit log.
-- "History" card: an ordered list of every status change with who made it, when, and the reason.
+- "History" card: an ordered list of every status change in the API's words (`to_label`, `from_label`) with who made it, when, and the reason.
 - "Decision" card (sticky on desktop): the requirement checklist in words ("provided", "missing (required)", "not provided (optional)") with an icon as a second cue, then three buttons: "Approve" (primary), "Request changes" (secondary), "Reject" (danger). They appear only while the application is submitted.
 - **Every decision has a confirmation step** in place: a panel that names the action, says what will happen, and has a labelled text area and "Confirm approval" / "Send request" / "Confirm rejection" plus "Cancel". Focus moves into the panel. The note is optional for an approval; a reason of at least 5 characters is required to request changes or reject, and it is shown to the applicant.
 - After a decision: a success `Alert` ("Application approved." with what was created, and a link to the public profile when there is one).
 - A 409 (already decided, or the named agency is no longer verified) shows a warning `Alert` that says so and the page reloads the application.
+
+## Directory profiles (`directory/profile-card.tsx`, `app/directory`)
+
+Every directory the API lists has a tile on `/directory`, a list at `/directory/<kind>` and a profile page per entry. Nothing in these pages names a directory: Solicitors appeared when the API added the kind.
+
+- `ProfileCard`: avatar with initials (round for a person, square for a business), name, one line under it, tagline, then city, listing count, "Verified" and "Sponsored" badges. The line under the name is the agent's specialism when the API sends one ("Sales Agent", "Lettings Agent"), otherwise the profile's role line or trade, followed by the agency for an agent.
+- Profile page: breadcrumb, a header with the directory's singular label, trade or specialism, "Verified" and "Sponsored" badges, then About, Services (offerings with descriptions when the API has them), Areas covered, and the enquiry card. A law firm, an agency and a plumber use the same page.
+- Contact is enquiry-only on every kind. No phone number, email or address is shown.
+- Structured data picks a schema.org type per kind code (`profileEntityType` in `src/lib/seo.ts`): agencies `RealEstateAgent`, agents `Person`, solicitors `LegalService`, anything else `Organization`.
+
+## ApiBoundary (`components/api-boundary.tsx`)
+
+Wraps every public component that reads the API through `load()`.
+
+- In a build made with the API it renders its children directly, so their content is ordinary HTML in the page and is visible without JavaScript. In a build made without the API it is a `<Suspense>` with the given fallback.
+- Do not wrap API-backed public content in a plain `<Suspense>`: React moves the finished content of a boundary into a hidden element and reveals it with a script, so a visitor without JavaScript sees only the fallback.
+- A page whose content also reads `params` or `searchParams` exports `instant = false`. See README, "Builds and the API".
+- The fallback still matters: it is what a build without the API stores and shows first. Match the content's size.
 
 ## Not built yet
 
