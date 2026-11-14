@@ -87,7 +87,7 @@ async function DirectoryLinks() {
   );
 }
 
-/** Light, multi-column footer: brand line, three link columns (the directories from the API), the countries that have listings, the app-store links, and a row with the FAQ and the legal links. */
+/** Light, multi-column footer: brand line, three link columns (the directories from the API), the countries that have listings, a row with the app-store links, and a row with the FAQ and the legal links. */
 export function SiteFooter() {
   return (
     <footer data-site-footer className="mt-20 border-t border-line bg-soft md:mt-24">
@@ -98,8 +98,6 @@ export function SiteFooter() {
             Verified property listings, with every enquiry tracked from the moment you send it to
             the moment the agent replies.
           </p>
-          <h2 className={`mt-6 ${headingClass}`}>Get the app</h2>
-          <AppLinks className="mt-3" />
         </div>
 
         {columns.map((column, index) => (
@@ -127,6 +125,13 @@ export function SiteFooter() {
           </ApiBoundary>
         </nav>
       </Container>
+      {/* A row of its own, so the three store buttons sit side by side on wider screens. */}
+      <div className="border-t border-line">
+        <Container className="py-6">
+          <h2 className={headingClass}>Get the app</h2>
+          <AppLinks className="mt-3" />
+        </Container>
+      </div>
       <div className="border-t border-line">
         <Container className="py-3">
           <nav aria-label="Help and legal">

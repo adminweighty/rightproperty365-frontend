@@ -1,7 +1,7 @@
 /**
  * Where the RightProperty365 mobile apps are downloaded. Everything that
  * links to an app store reads from here (the footer's "Get the app" block
- * and the FAQ), so replacing the two addresses below is the whole change
+ * and the FAQ), so replacing the three addresses below is the whole change
  * when the apps are published.
  *
  * PLACEHOLDERS: the apps are not in the stores yet, so each address is the
@@ -12,8 +12,8 @@
  * false for each store. The "being prepared" sentence then disappears.
  */
 export type AppLink = {
-  store: "appStore" | "playStore";
-  /** The link text. Plain words: the stores' badge artwork is not used. */
+  store: "appStore" | "playStore" | "appGallery";
+  /** The link text, shown beside the store's mark. The stores' badge artwork is not used yet (README, "Mobile app links"). */
   label: string;
   url: string;
   /** True while `url` is the store's home page and not the app's page. */
@@ -33,6 +33,13 @@ export const appLinks: AppLink[] = [
     label: "Get it on Google Play",
     // PLACEHOLDER: replace with https://play.google.com/store/apps/details?id=<package>
     url: "https://play.google.com/store",
+    placeholder: true,
+  },
+  {
+    store: "appGallery",
+    label: "Explore it on AppGallery",
+    // PLACEHOLDER: replace with https://appgallery.huawei.com/app/C<number>
+    url: "https://appgallery.huawei.com/",
     placeholder: true,
   },
 ];

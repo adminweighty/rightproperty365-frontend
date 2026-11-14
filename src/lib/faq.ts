@@ -541,7 +541,7 @@ export const faqCategories: FaqCategory[] = [
         question: "Is there a mobile app?",
         answer: [
           p(
-            "Yes, the RightProperty365 mobile app for iPhone and Android. You can search property and send enquiries in it, and professionals can manage their enquiries and appointments. It uses the same account as the website.",
+            "Yes, the RightProperty365 mobile app for iPhone, Android and Huawei phones. You can search property and send enquiries in it, and professionals can manage their enquiries and appointments. It uses the same account as the website.",
           ),
         ],
       },
@@ -551,8 +551,8 @@ export const faqCategories: FaqCategory[] = [
         answer: [
           p(
             appLinksArePlaceholders
-              ? `From the Apple App Store and Google Play. ${APP_LINKS_PLACEHOLDER_NOTE}`
-              : "From the Apple App Store and Google Play. The app is free and has no in-app purchases.",
+              ? `From the Apple App Store, Google Play and Huawei AppGallery. ${APP_LINKS_PLACEHOLDER_NOTE}`
+              : "From the Apple App Store, Google Play and Huawei AppGallery. The app is free and has no in-app purchases.",
           ),
           { type: "appLinks" },
         ],

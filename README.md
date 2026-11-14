@@ -173,7 +173,7 @@ src/lib/
   stay-calendar.ts      The public calendar as the listing page hands it to the browser
   legal.ts              Every business fact the legal pages state (docs/legal.md)
   faq.ts                The frequently asked questions, as data
-  app-links.ts          App Store and Google Play addresses (placeholders until the apps are published)
+  app-links.ts          App Store, Google Play and AppGallery addresses (placeholders until the apps are published)
   roles.ts              Groups the API's account roles under their headings
   search-options.ts     Option lists for the search forms, from reference data and facets
   searchable-select.ts  Matching, grouping and keyboard logic of the searchable select
@@ -205,7 +205,11 @@ src/lib/
 
 ## Mobile app links
 
-The footer ("Get the app") and the FAQ link to the Apple App Store and Google Play. The two addresses are in `src/lib/app-links.ts`. **They are placeholders today**: each points at the store's home page and is flagged `placeholder: true`, and the site says the apps are being prepared for the stores. **At launch, set each `url` to the app's store page and `placeholder` to `false`.** Nothing else needs to change.
+The footer ("Get the app") and the FAQ link to the Apple App Store, Google Play and Huawei AppGallery. The three addresses are in `src/lib/app-links.ts`. **They are placeholders today**: each points at the store's home page and is flagged `placeholder: true`, and the site says the apps are being prepared for the stores. **At launch, set each `url` to the app's store page and `placeholder` to `false`.**
+
+Each button shows the store's mark beside its words. The marks come from the [`simple-icons`](https://simpleicons.org) package (`siApple`, `siGoogleplay`, `siAppgallery`), which is licensed CC0-1.0; the logos themselves remain trade marks of Apple, Google and Huawei. They are drawn as inline SVG in the text colour, unaltered.
+
+**Also at launch, replace the buttons with the stores' official badges.** The badges may only be shown for an app that is available in the store, and each company publishes the artwork and its rules: Apple at `developer.apple.com/app-store/marketing/guidelines/`, Google at `play.google.com/intl/en_us/badges/` and Huawei in its developer documentation for AppGallery Connect (`developer.huawei.com`, "AppGallery badge" guidelines). Download them from there; do not copy them from another site.
 
 ## Branches
 

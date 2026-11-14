@@ -335,7 +335,7 @@ The navigation below `lg`: a 44px menu button at the right of the header that op
 - Five columns from `lg`: the logo with one sentence, then "Property", "Professionals" and "Account" link columns and "Countries with listings". Two columns from `sm`, one on phones. Each link column is a `nav` named by its heading; links are 44px tall on phones.
 - "Professionals" lists every kind the API returns, by its label (Real Estate Agencies, Estate Agents, Solicitors and so on), then "Find a professional". If they cannot be loaded it shows that one link.
 - "Countries with listings" links the six countries with the most listings to their result pages (`/listings?country=GB`), then "All countries". The API knows every country (249); the footer names only those with something to show. If they cannot be loaded it shows that one link.
-- Under the logo's sentence, "Get the app": the two app-store links (`AppLinks`).
+- Under the columns, a row of its own headed "Get the app": the three app-store links (`AppLinks`), side by side from `sm` and stacked at full width on phones.
 - Under the columns, a row of links in a `nav` named "Help and legal": Frequently asked questions, then Privacy Policy, Terms and Conditions, Refund Policy, End User Licence Agreement, from `src/lib/legal.ts`. One per line and 44px tall on phones; one wrapping row from `sm`.
 - A last row holds the copyright line.
 
@@ -562,9 +562,12 @@ The layout of the four legal pages under `/legal`: Privacy Policy, Terms and Con
 
 ## AppLinks (`layout/app-links.tsx`, `lib/app-links.ts`)
 
-The links to the mobile app in the Apple App Store and Google Play: in the footer under "Get the app", and in the FAQ's "Where do I get the app?".
+The links to the mobile app in the Apple App Store, Google Play and Huawei AppGallery: in the footer under "Get the app", and in the FAQ's "Where do I get the app?".
 
-- Two secondary buttons in words, "Download on the App Store" and "Get it on Google Play". **The stores' badge artwork and logos are not used**; they have their own usage rules. Each opens in a new tab (`rel="noopener"`) and says "(opens in a new tab)" to screen readers.
+- Three secondary buttons, each with the store's mark to the left of its words: "Download on the App Store", "Get it on Google Play" and "Explore it on AppGallery". One row from `sm`; stacked at equal width on phones, each at least 44px tall.
+- **The marks** are the Apple, Google Play and AppGallery glyphs of the `simple-icons` package (`siApple`, `siGoogleplay`, `siAppgallery`; CC0-1.0, the marks remain their owners' trade marks), drawn as inline SVG on the server at 20px in the button's text colour. They are decorative (`aria-hidden`): the words name the store. Do not recolour, redraw, stretch or crowd them, and do not join them to our logo.
+- **The stores' official badges are not used yet.** The black "Download on the App Store", "Get it on Google Play" and "Explore it on AppGallery" badges may only be shown for an app that is available in that store, and must be the artwork each company publishes. At launch they replace these buttons (README, "Mobile app links").
+- Each link opens in a new tab (`rel="noopener"`) and says "(opens in a new tab)" to screen readers.
 - The addresses are in `src/lib/app-links.ts` and nowhere else. **Today they are placeholders** (each store's home page, `placeholder: true`). While any is a placeholder, one sentence under the links says the apps are being prepared for the stores and the links will go to the app pages once they are published. Set the real addresses and `placeholder: false` and the sentence disappears, in the footer and in the FAQ.
 
 ## ApiBoundary (`components/api-boundary.tsx`)
