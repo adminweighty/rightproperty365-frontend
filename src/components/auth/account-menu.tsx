@@ -117,6 +117,11 @@ export function AccountMenu({ professionals }: { professionals?: NavItem }) {
                     Appointments received
                   </Link>
                 </li>
+                <li>
+                  <Link href="/agent/listings" className={itemClass} onClick={() => setOpen(false)}>
+                    Your listings
+                  </Link>
+                </li>
               </>
             )}
             <li className="mt-1 border-t border-line pt-1">

@@ -298,6 +298,7 @@ A month calendar of nights. One component for the visitor's availability calenda
 - **State is never colour alone.** A night that is not available is struck through on a grey fill; the lister also sees "Booked" (tinted, the word in the cell) and "Blocked" (hatched, the word in the cell). Today is ringed and bold. The chosen span is indigo: its two ends solid, the nights between tinted. Every cell's accessible name says it all: "Tuesday 17 November 2026, available, first night". A key under the grid explains the fills.
 - Cells are 44px tall. At 320px they are about 37px wide: above the WCAG 2.2 minimum of 24px, below our 44px target, which seven columns cannot reach at that width. The form fields beside the calendar do the same job with full-size controls.
 - It renders on the server, so the first months are in the HTML and readable without JavaScript. Picking and the month buttons need JavaScript; every flow that uses the calendar also has date inputs that do not depend on it.
+- **Two uses.** A visitor chooses a stay (`StayCalendar`): first night, then the day of leaving; nights that cannot start or end a stay are `aria-disabled`. A lister chooses a range to change (`AvailabilityEditor`): any two nights of the booking window, with the kind written in the cell.
 - Props: `first`, `last`, `today`, `kindOf(night)`, `canPick(day)`, `selected`, `ends` (what the two ends are called), `onPick(day)`, `showKinds` (write "Booked" and "Blocked" in the cells) and `legend`.
 
 ## StayCalendar (`availability/stay-calendar.tsx`)
@@ -418,6 +419,28 @@ The list of customer requests routed to the signed-in person: an Estate Agent's 
 - A request to stay shows its stay above the message: "Asks to stay 8–11 Dec 2026 · 3 nights · 3 guests". It is a request: the nights are not blocked until the lister marks them in the availability calendar.
 - States: loading skeleton, error with "Try again", empty ("No requests yet"), and the list with a count.
 - Contact details appear only here, behind sign-in. They must never be put in a notification preview or a URL.
+
+## Your listings (`agent/my-listings.tsx`, `/agent/listings`)
+
+The listings the signed-in person or their organisation manages, from `GET /v1/me/listings`. Linked as "Your listings" from the account menu, the account page and the request inbox. Not indexed.
+
+- Read-only, and it says so in an info panel at the top: "Creating and editing listings is not available here yet. To add a listing or change one, email …" with the support address from `src/lib/legal.ts`. Do not show an "Add listing" or "Edit" control until the API has one.
+- Each listing is a card: photo (or the "No photo yet" frame), status badge (Published in the success tone; Expired, Draft, Paused, Sold, Let and Closed neutral, always as a word), category and property type, the title (a link to the public page when it is published), place and reference, and the price in its own currency with what it is charged per.
+- A short stay adds a line with its shortest stay, how many it sleeps and when the calendar was last updated ("Calendar not updated yet: every night shows as available"), and a "Manage availability" link whose accessible name ends with the listing's title.
+- States: loading skeleton; error with "Try again"; empty ("You have no listings yet. …"); the "You do not have access to this page" state when the API answers 403 (the caller manages no listings), which is the same state `RequireAuth` shows; signed out, the sign-in prompt.
+
+## AvailabilityEditor (`agent/availability-editor.tsx`, `/agent/listings/<id>/availability`)
+
+Where a lister keeps the calendar of one short stay. Not indexed.
+
+- Order: a link back to "Your listings"; `h1` "Availability" with the listing's title and reference; the time zone the dates are in and the booking window (today and the next 365 days); a panel that says **reasons and notes are private**, that visitors only see available or not, and that **a request to stay does not block any nights** (the lister marks them booked here); the "Calendar" card; "Nights that are not available"; "Stay rules".
+- **Calendar card.** A `NightCalendar` whose cells say "Booked" or "Blocked" (tinted with the word, hatched with the word) and nothing for an available night. Choosing a night starts a range and choosing a second ends it, in either order; choosing again starts a new one. Under the grid, **"Change nights" is an ordinary form** that does the same without the grid: "First night" and "Last night" (native date inputs limited to the booking window; the grid fills them in), "What to do with these nights" (a `SearchableSelect`: Mark as booked, Block, Make available) and "Private note" (optional, 200 characters, switched off for Make available because the API keeps no note for an available night). The submit button carries the chosen action as its label. Everything can be done with a keyboard and a screen reader through this form alone.
+- **Saving** sends only that one change (`PUT …/availability`). The API answers with the calendar as it now is, and that answer is what is shown: nothing is assumed before it arrives. Success: a success `Alert` "Saved. 20–23 Dec 2026 blocked." and the form is cleared. Failure: the API's message for each field under its control (`changes[0].to` is the "Last night" control) and a danger `Alert` with the support reference. Dates outside the booking window or the wrong way round are caught before sending, in the same words under the control.
+- **"Nights that are not available"** lists every stored range: its dates, the number of nights, a "Booked" or "Blocked" badge, the private note, and "Make available", whose accessible name includes the dates. Blocking part of a booked range splits it, as the API does. Empty: "Every night in the booking window is available."
+- **"Stay rules"**: "Shortest stay, in nights" (1 to 365) and "Guests, at most" (1 to 50), saved with `PATCH …/stay-rules`; only what changed is sent. The API's message appears under the field.
+- A closing line says a change can take up to a minute to show on the public listing.
+- States: loading skeleton; error with "Try again"; "We could not find that listing" (unknown, or not one the caller manages); "This listing has no availability calendar" (not a short stay); no access; signed out.
+- Never call a night "reserved" or a request "confirmed" here: the product takes no bookings. "Booked" is the lister's own word for a night they have agreed with a guest.
 
 ## Appointments (`appointments/appointment-card.tsx`, `appointments/appointment-lists.tsx`)
 

@@ -429,7 +429,15 @@ export const faqCategories: FaqCategory[] = [
         question: "I am a Host. How do people see when my place is free?",
         answer: [
           p(
-            "A short-stay listing shows an availability calendar with the nights you have marked as free. Keep it up to date: guests rely on it when they ask to stay. It is a guide for them, not a booking system, so you still agree each stay with the guest.",
+            "A short-stay listing shows an availability calendar. Every night is shown as available until you say otherwise. Sign in, open ",
+            link("Your listings", "/agent/listings"),
+            " and choose “Manage availability”. There you mark nights as booked or blocked, or make them available again, and set the shortest stay and the number of guests.",
+          ),
+          p(
+            "Visitors only see whether a night is available. Why it is not, and any note you add, stay private to you and your organisation.",
+          ),
+          p(
+            "A request to stay does not block any nights. When you agree a stay with a guest, mark its nights as booked yourself. Keep the calendar up to date: guests rely on it when they ask to stay, and searches by date use it. It is a guide for them, not a booking system.",
           ),
         ],
       },

@@ -13,6 +13,26 @@ type Props = {
 };
 
 /**
+ * The "no access" state of the screens for people who list or manage
+ * property. Also shown when the API itself answers 403 for such a screen.
+ */
+export function NoAccess() {
+  return (
+    <div className="rounded-lg border border-dashed border-line-strong p-10 text-center">
+      <h1 className="text-2xl">You do not have access to this page</h1>
+      <p className="mx-auto mt-2 max-w-md text-muted">
+        It is for members of a Real Estate Agency or another verified business, Landlords and
+        Property Sellers (Vendors). If you work for an agency, ask the Agency Principal to add
+        you.
+      </p>
+      <ButtonLink href="/account" variant="secondary" className="mt-6">
+        Back to your account
+      </ButtonLink>
+    </div>
+  );
+}
+
+/**
  * Shows its children only to a signed-in user. This decides what to display;
  * it is not a security boundary. Every API call is authorised on the server.
  */
@@ -41,21 +61,7 @@ export function RequireAuth({ allow, children }: Props) {
     );
   }
 
-  if (allow && !allow(user)) {
-    return (
-      <div className="rounded-lg border border-dashed border-line-strong p-10 text-center">
-        <h1 className="text-2xl">You do not have access to this page</h1>
-        <p className="mx-auto mt-2 max-w-md text-muted">
-          It is for members of a Real Estate Agency or another verified business, Landlords and
-          Property Sellers (Vendors). If you work for an agency, ask the Agency Principal to add
-          you.
-        </p>
-        <ButtonLink href="/account" variant="secondary" className="mt-6">
-          Back to your account
-        </ButtonLink>
-      </div>
-    );
-  }
+  if (allow && !allow(user)) return <NoAccess />;
 
   return <>{children(user)}</>;
 }

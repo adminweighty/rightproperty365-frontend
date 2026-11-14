@@ -259,7 +259,7 @@ export function NightCalendar({
                               }}
                               onKeyDown={(event) => handleKey(event, day)}
                               className={cn(
-                                "relative h-11 select-none rounded-md border p-0 text-center align-middle text-sm tabular-nums outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus",
+                                "relative h-11 select-none overflow-hidden rounded-md border p-0 text-center align-middle text-sm tabular-nums outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus",
                                 // One look at a time, so a selected night never keeps the fill of its kind.
                                 end
                                   ? "border-primary bg-primary font-semibold text-on-primary"
@@ -277,7 +277,7 @@ export function NightCalendar({
                                 {Number(day.slice(8))}
                               </span>
                               {mark && (
-                                <span aria-hidden="true" className="block text-[0.625rem] leading-none tracking-tight no-underline">
+                                <span aria-hidden="true" className="block text-[0.5625rem] leading-none tracking-tighter sm:text-[0.625rem] sm:tracking-tight">
                                   {mark}
                                 </span>
                               )}

@@ -84,8 +84,14 @@ export type AvailabilityChange = { from: string; to: string; status: Availabilit
 export const listMyListings = (page = 1) =>
   apiFetch<MyListingPage>(`/v1/me/listings?page=${page}&page_size=48`);
 
-export const getMyAvailability = (listingId: string, from: string, to: string) =>
-  apiFetch<ListerAvailability>(`/v1/me/listings/${encodeURIComponent(listingId)}/availability?from=${from}&to=${to}`);
+/**
+ * The lister’s calendar. Without a span the API returns today and the next 90
+ * days; every stored range and the booking window come with any span.
+ */
+export const getMyAvailability = (listingId: string, span?: { from: string; to: string }) =>
+  apiFetch<ListerAvailability>(
+    `/v1/me/listings/${encodeURIComponent(listingId)}/availability${span ? `?from=${span.from}&to=${span.to}` : ""}`,
+  );
 
 /** Applies the changes in order, all or none. Field errors are named `changes[i].from` and so on. */
 export const changeMyAvailability = (listingId: string, changes: AvailabilityChange[]) =>

@@ -1,5 +1,6 @@
 import { countryInSentence } from "@/lib/countries";
 import { faqAnswerText, type FaqCategory } from "@/lib/faq";
+import { SHORT_STAY } from "@/lib/api/types";
 import type {
   AdvertiserType,
   DirectoryKindInfo,
@@ -51,12 +52,7 @@ export const listedWithinChoices = [1, 7, 14, 30, 90];
 export const locationKinds = ["country", "region", "city", "suburb"] as const;
 export type LocationKind = (typeof locationKinds)[number];
 
-/**
- * The category of places let by the night. The one category the app knows by
- * code, because behaviour hangs on it: stay dates, guests, the availability
- * calendar and the request to stay exist only there.
- */
-export const SHORT_STAY = "short-stay";
+export { SHORT_STAY };
 
 /** The filters a visitor can set, in the order they appear in a URL. */
 export type ListingFilters = {

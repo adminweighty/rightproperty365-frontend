@@ -197,6 +197,11 @@ function Details({ user, roleLabels, organisationKindLabels }: Props & { user: U
             Appointments received
           </ButtonLink>
         )}
+        {canUseInbox(user) && (
+          <ButtonLink href="/agent/listings" variant="secondary">
+            Your listings
+          </ButtonLink>
+        )}
         <ButtonLink href="/account/appointments" variant="secondary">
           Your appointments
         </ButtonLink>

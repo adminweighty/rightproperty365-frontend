@@ -261,6 +261,10 @@ export function RequestInbox({ requestTypeLabels, contactMethodLabels }: Props) 
               Appointments
               <AppointmentsWaiting />
             </Link>
+            {" · "}
+            <Link href="/agent/listings" className="font-medium text-primary-ink hover:underline">
+              Your listings
+            </Link>
           </p>
           <div className="mt-8 space-y-12">
             <InboxSection

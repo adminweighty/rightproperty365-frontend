@@ -4,6 +4,13 @@
  * label in the app comes from the API at run time, never from this file.
  */
 
+/**
+ * The category of places let by the night. The one category the app knows by
+ * code, because behaviour hangs on it: stay dates, guests, the availability
+ * calendar and the request to stay exist only there.
+ */
+export const SHORT_STAY = "short-stay";
+
 /** A reference-data code with its current label. */
 export type Coded = { code: string; label: string };
 

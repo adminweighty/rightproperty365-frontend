@@ -27,7 +27,7 @@ Sources: Google Search Central, schema.org and the Next.js 16 documentation bund
 | `/faq` | index | itself | yes |
 | `/legal`, `/legal/privacy-policy`, `/legal/terms-and-conditions`, `/legal/refund-policy`, `/legal/eula` | index | itself | yes, with the date the document last changed |
 | Any public page while the API cannot be reached (error state) | noindex, follow | none | the sitemap answers 500 |
-| Sign-in, register, password reset, account, appointments, agent inbox, design system | noindex | none | no |
+| Sign-in, register, password reset, account, appointments, agent inbox, "Your listings" and the availability editor, design system | noindex | none | no |
 
 Rules behind the table:
 
