@@ -127,7 +127,7 @@ design/                 Design system: tokens, foundations, component specs, gui
 src/app/                Routes (App Router)
   page.tsx              Home
   listings/             Search results (filters, pages) and listing detail
-  directory/            Directories, directory lists and profiles
+  directory/            "Professionals": the hub, a list per kind, and profiles (the directory)
   error.tsx             Fallback for an unexpected rendering error
   sitemap.ts            Built from GET /v1/sitemap
   (auth)/               Sign in, register, confirm email, password reset
@@ -180,6 +180,7 @@ src/lib/
 - **Public content is HTML first.** A public component that reads the API sits inside `ApiBoundary`, never a plain `<Suspense>`, and a public page that reads `params` or `searchParams` exports `instant = false` (see "Builds and the API"). Signed-in screens keep request-time data behind `<Suspense>`.
 - **No lists in code.** A drop-down, filter or label for a value the API returns comes from the API's reference data. Add a row in the database, not an array in the app.
 - **Every drop-down is a `SearchableSelect`** (`src/components/ui/searchable-select.tsx`): a native select in the HTML, searchable by typing once the page is interactive. Do not render a bare `<select>`.
+- **"Professionals" is the user-facing name for the directory.** Visitors read "Professionals", "Find a property professional" and "your public profile"; the word "directory" is not shown to them. The code, the addresses (`/directory/<kind>/<slug>`), the cache tag and the API (`/v1/directory`, `directory_kinds`) keep the name, so links in emails, the mobile app and search engines keep working.
 - **WCAG 2.2 AA** is required. See `design/guidelines/accessibility.md`.
 
 ## Legal pages

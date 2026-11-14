@@ -59,7 +59,7 @@ function outcomeText(
   const directory = requirement?.directory_kind
     ? (directoryLabels[requirement.directory_kind] ?? requirement.directory_kind)
     : null;
-  const profile = directory ? ` and a public profile in “${directory}” with a Verified badge` : "";
+  const profile = directory ? ` and a public profile under Professionals, in “${directory}”, with a Verified badge` : "";
   if (application.outcome === "ORGANISATION") {
     // The kind is a title from the API: "Law Firm", "Real Estate Agency".
     const kind = requirement?.organisation_kind
@@ -252,7 +252,7 @@ function Review({ id, requirements, lists, directoryLabels, organisationKindLabe
                 {approval.profile ? (
                   <li>
                     A verified public profile was published. It can take about a minute to appear
-                    in the directory.
+                    under Professionals.
                   </li>
                 ) : (
                   <li>No public profile was created for this role.</li>

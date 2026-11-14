@@ -11,7 +11,8 @@ export const navItems: NavItem[] = [
   { href: "/listings?category=commercial", label: "Commercial" },
   { href: "/listings?category=land", label: "Land" },
   { href: "/directory/agencies", label: "Agents" },
-  { href: "/directory", label: "Directory" },
+  // "Professionals" is the name people see for what the code and the addresses call the directory.
+  { href: "/directory", label: "Professionals" },
 ];
 
 /** Where professionals learn what an account gives them and register. */

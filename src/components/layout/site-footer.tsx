@@ -31,7 +31,7 @@ const columns: { title: string; links: NavItem[] }[] = [
   },
 ];
 
-const directoryHome: NavItem = { href: "/directory", label: "Property directory" };
+const directoryHome: NavItem = { href: "/directory", label: "Find a professional" };
 
 const headingClass = "font-sans text-sm font-semibold tracking-normal text-ink";
 const linkClass = "flex min-h-11 items-center text-sm text-muted hover:text-primary-ink hover:underline md:min-h-9";
@@ -86,10 +86,10 @@ export function SiteFooter() {
               <h2 className={headingClass}>{column.title}</h2>
               <LinkList links={column.links} />
             </nav>
-            {/* The directory column sits between "Property" and "Account". */}
+            {/* The "Professionals" column (the directories) sits between "Property" and "Account". */}
             {index === 0 && (
-              <nav aria-label="Directory">
-                <h2 className={headingClass}>Directory</h2>
+              <nav aria-label="Professionals">
+                <h2 className={headingClass}>Professionals</h2>
                 <ApiBoundary fallback={<LinkList links={[directoryHome]} />}>
                   <DirectoryLinks />
                 </ApiBoundary>

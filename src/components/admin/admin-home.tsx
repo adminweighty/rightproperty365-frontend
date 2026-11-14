@@ -41,7 +41,7 @@ function Home({ user }: { user: User }) {
           <p className="mt-2 leading-relaxed text-muted">
             Applications from people who signed up to list or manage property, or to work at an
             agency. Approving one confirms the role and, where the role has one, publishes a
-            verified directory profile.
+            verified public profile under Professionals.
           </p>
           <p className="mt-4 text-ink" role="status">
             {waiting === null ? (

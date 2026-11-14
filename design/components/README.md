@@ -234,14 +234,14 @@ The landing-page search, inside the hero's white panel.
 - One white card per role group, in the API's order (today: Property Seekers, Real Estate Professionals, Real Estate Businesses, Property Owners, Other property businesses). Three columns from `lg`, two from `sm`, one on phones.
 - A card has the group's label as an `h3`, then a `dl` of its roles: the role's title in `ink` weight 600 and its one-line description in `muted`. Groups, titles and descriptions are the API's `account_roles` reference set (`groupRoles` in `src/lib/roles.ts`); the component names no role.
 - One action per card, at the bottom. A group whose roles need no verification links to "Browse listings". Every other group says "Verified before the role is active" (with a shield icon) and links to "Create an account". Which case applies comes from the API's `requires_verification`.
-- Under the grid, one `soft` panel with the page's single "Register as a professional" button. It says what registering leads to today: verification, an active role, a directory profile for roles that have one, and the request inbox. It promises nothing that is not built.
+- Under the grid, one `soft` panel with the page's single "Register as a professional" button. It says what registering leads to today: verification, an active role, a public profile for roles that have one, and the request inbox. It promises nothing that is not built.
 - The section has the id `for-professionals`, which the header's "For professionals" link targets. It is left out when the reference data has no roles.
 
 ## SectionHeading (`landing/section-heading.tsx`)
 
 The heading of a landing-page section.
 
-- A 48px `rule-brand`, an `h2`, an optional sentence in `muted`, and an optional link at the right ("View all", "Open the directory") in `primary-ink`, 44px tall.
+- A 48px `rule-brand`, an `h2`, an optional sentence in `muted`, and an optional link at the right ("View all", "All professionals") in `primary-ink`, 44px tall.
 - Titles name what is in the row in plain words: "New listings", "Featured homes", "Explore by city". Row titles for a deal type come from the API's labels.
 
 ## PhotoTile and PhotoTileRow (`landing/photo-tile.tsx`)
@@ -262,11 +262,11 @@ A slim band under the hero with three counts from the API: properties listed, ci
 
 ## Tiles (`app/page.tsx`, `app/directory/page.tsx`)
 
-Category and directory tiles: a white card with a `line` border that links to a search or a directory.
+Category tiles and the tiles under "Find a professional": a white card with a `line` border that links to a search or to a kind of professional.
 
-- A category tile has an icon in a `primary-soft` square, the category and its property types, and its listing count at the right. A directory tile leads with its profile count in `primary-ink`, then the label and description.
+- A category tile has an icon in a `primary-soft` square, the category and its property types, and its listing count at the right. A professionals tile leads with its profile count in `primary-ink`, then the label and description.
 - The whole tile is one link with the `frame-brand` outline on hover and focus. Counts carry a screen-reader unit ("13 properties").
-- Chips (popular suburbs, trades, other directories) are 44px pills with a `line-strong` border; on hover they take the `primary-soft` fill and a `primary` border.
+- Chips (popular suburbs, trades, other kinds of professional) are 44px pills with a `line-strong` border; on hover they take the `primary-soft` fill and a `primary` border.
 
 ## PropertyRequestForm (`requests/property-request-form.tsx`)
 
@@ -301,8 +301,8 @@ The navigation below `lg`: a 44px menu button at the right of the header that op
 ## SiteFooter (`layout/site-footer.tsx`)
 
 - Light: a `soft` background with a hairline and the 3px logo-colour band along its top. No dark or indigo footer.
-- Five columns from `lg`: the logo with one sentence, then "Property", "Directory" and "Account" link columns and "Markets". Two columns from `sm`, one on phones. Each link column is a `nav` named by its heading; links are 44px tall on phones.
-- "Directory" lists every directory the API returns, by its label (Real Estate Agencies, Estate Agents, Solicitors and so on), then "Property directory". If the directories cannot be loaded it shows that one link.
+- Five columns from `lg`: the logo with one sentence, then "Property", "Professionals" and "Account" link columns and "Markets". Two columns from `sm`, one on phones. Each link column is a `nav` named by its heading; links are 44px tall on phones.
+- "Professionals" lists every kind the API returns, by its label (Real Estate Agencies, Estate Agents, Solicitors and so on), then "Find a professional". If they cannot be loaded it shows that one link.
 - "Markets" lists every market with its status, which keeps the multi-country roadmap honest. It comes from the API (`layout/market-info.tsx`); if it cannot be loaded the footer says so.
 - Under the logo's sentence, "Get the app": the two app-store links (`AppLinks`).
 - Under the columns, a row of links in a `nav` named "Help and legal": Frequently asked questions, then Privacy Policy, Terms and Conditions, Refund Policy, End User Licence Agreement, from `src/lib/legal.ts`. One per line and 44px tall on phones; one wrapping row from `sm`.
@@ -382,8 +382,8 @@ Wraps content that depends on the session and renders one of four states: loadin
 
 The list of customer requests routed to the signed-in person: an Estate Agent's own listings, everything in the organisation for its principal or a manager, or an individual owner's own listings. It is shown to organisation members (a Real Estate Agency, a Law Firm and so on), Landlords and Property Sellers (Vendors) (`canUseInbox`); the API decides which requests each may read.
 
-- Two sections, each with its own `h2`, count and states: "Property requests" (about listings) and "Business enquiries" (sent from a directory profile). Landlords and Property Sellers (Vendors) see only the first, because business enquiries go to organisations.
-- A directory profile never shows a phone number or email address. The enquiry form is the only way to reach a business, and the customer's details appear only in this inbox.
+- Two sections, each with its own `h2`, count and states: "Property requests" (about listings) and "Business enquiries" (sent from a public profile). Landlords and Property Sellers (Vendors) see only the first, because business enquiries go to organisations.
+- A public profile never shows a phone number or email address. The enquiry form is the only way to reach a business, and the customer's details appear only in this inbox.
 - Each request is a card: type and status badges, received time in the viewer's time zone, customer name and listing, the message, then contact links and the reference. The listing's title comes with the request from the API; when it does not, the card says "about a listing". Request type and contact method labels come from the API's reference data.
 - States: loading skeleton, error with "Try again", empty ("No requests yet"), and the list with a count.
 - Contact details appear only here, behind sign-in. They must never be put in a notification preview or a URL.
@@ -403,7 +403,7 @@ Viewings and consultations. The mobile app is the main place for them; the web p
 - States: loading skeleton, signed out (`RequireAuth`), error with "Try again", empty (with "Browse listings" for a customer with nothing upcoming).
 - Links: "Your appointments" in the account menu and on the account page; "Appointments received" for professionals in both; "Appointments" at the top of the request inbox with a badge counting those waiting for an answer (`GET /v1/inbox/summary`).
 - When a viewing or consultation request with a preferred time is received, the request form's receipt adds the appointment's reference, says it is not confirmed until the advertiser accepts it, and (signed in) links to the person's appointments.
-- Not built: assigning an appointment to a colleague (the API has `can_assign` but no endpoint that lists an organisation's members), paging beyond the first page of a list, and asking for an appointment from a directory profile.
+- Not built: assigning an appointment to a colleague (the API has `can_assign` but no endpoint that lists an organisation's members), paging beyond the first page of a list, and asking for an appointment from a public profile.
 
 ## OnboardingHub (`onboarding/onboarding-hub.tsx`)
 
@@ -454,7 +454,7 @@ One row per document type in an application.
 `/admin/verifications/<id>`: one application for a decision.
 
 - Header: applicant name as `h1`, role and status badges.
-- "Applicant" card: name, email with "Confirmed" or "Not confirmed", account age, market, and one sentence beginning "Approving creates:" that says in plain words what an approval does (a new organisation and a verified profile in a named directory, a membership in a named agency, or nothing beyond making the role active).
+- "Applicant" card: name, email with "Confirmed" or "Not confirmed", account age, market, and one sentence beginning "Approving creates:" that says in plain words what an approval does (a new organisation and a verified public profile under Professionals, in a named kind, a membership in a named agency, or nothing beyond making the role active).
 - "Details" card: every detail the role has. Private ones (phone, registration number) carry a "Private" badge. A missing required detail reads "Not given (required)".
 - "Documents" card: one row per document type with "Attached", "Missing" or "Not attached", the file name, size and upload time, and "Open" (the admin file route, new tab, downloads). A line says every open is recorded in the audit log.
 - "History" card: an ordered list of every status change in the API's words (`to_label`, `from_label`) with who made it, when, and the reason.
@@ -463,13 +463,15 @@ One row per document type in an application.
 - After a decision: a success `Alert` ("Application approved." with what was created, and a link to the public profile when there is one).
 - A 409 (already decided, or the named agency is no longer verified) shows a warning `Alert` that says so and the page reloads the application.
 
-## Directory profiles (`directory/profile-card.tsx`, `app/directory`)
+## Professionals: hub, lists and profiles (`directory/profile-card.tsx`, `app/directory`)
 
-Every directory the API lists has a tile on `/directory`, a list at `/directory/<kind>` and a profile page per entry. Nothing in these pages names a directory: Solicitors appeared when the API added the kind.
+**"Professionals" is the name people see for what the code, the addresses and the API call the directory.** The navigation says "Professionals", the hub's `h1` is "Find a property professional", and copy says "your public profile" or "under Professionals". The word "directory" is not shown to visitors. Addresses (`/directory/...`), the API (`/v1/directory`, `directory_kinds`) and file and component names keep it, so existing links keep working.
+
+Every kind the API lists has a tile on `/directory`, a list at `/directory/<kind>` and a profile page per entry. Nothing in these pages names a kind: Solicitors appeared when the API added it. Breadcrumbs read Home, Professionals, the kind, the profile.
 
 - `ProfileCard`: avatar with initials (round for a person, square for a business), name, one line under it, tagline, then city, listing count, "Verified" and "Sponsored" badges. The line under the name is the agent's specialism when the API sends one ("Sales Agent", "Lettings Agent"), otherwise the profile's role line or trade, followed by the agency for an agent.
-- A directory list has a small GET form above it: Country and Region or province (each a `SearchableSelect`), "Apply" and, when a filter is in use, "Clear". A filtered list has its own address (`/directory/agencies?region=bulawayo`), is `noindex`, and says "No profiles match those filters." when empty.
-- Profile page: breadcrumb, a header with the directory's singular label, trade or specialism, "Verified" and "Sponsored" badges, then About, Services (offerings with descriptions when the API has them), Areas covered, and the enquiry card. A law firm, an agency and a plumber use the same page.
+- A list has a small GET form above it: Country and Region or province (each a `SearchableSelect`), "Apply" and, when a filter is in use, "Clear". A filtered list has its own address (`/directory/agencies?region=bulawayo`), is `noindex`, and says "No profiles match those filters." when empty.
+- Profile page: breadcrumb, a header with the kind's singular label, trade or specialism, "Verified" and "Sponsored" badges, then About, Services (offerings with descriptions when the API has them), Areas covered, and the enquiry card. A law firm, an agency and a plumber use the same page.
 - Contact is enquiry-only on every kind. No phone number, email or address is shown.
 - Structured data picks a schema.org type per kind code (`profileEntityType` in `src/lib/seo.ts`): agencies `RealEstateAgent`, agents `Person`, solicitors `LegalService`, anything else `Organization`.
 

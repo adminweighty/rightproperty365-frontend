@@ -54,7 +54,7 @@ const formatWhen = (iso: string) =>
 function outcomeText(requirement: OnboardingRequirements): string {
   if (requirement.outcome === "ORGANISATION") {
     return requirement.directory_kind
-      ? "When we approve it, your business gets a public profile in the directory with a Verified badge."
+      ? "When we approve it, your business appears under Professionals with a public profile and a Verified badge."
       : "When we approve it, your business is set up on RightProperty365.";
   }
   if (requirement.outcome === "AGENCY_MEMBER") {

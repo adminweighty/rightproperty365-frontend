@@ -19,7 +19,7 @@ The scale is Tailwind's default, in rem so it respects the reader's browser sett
 
 | Class | Size | Use |
 | --- | --- | --- |
-| `text-5xl` | 48px | Home hero on desktop, the directory title |
+| `text-5xl` | 48px | Home hero on desktop, the "Find a property professional" title |
 | `text-4xl` | 36px | Page title, detail price |
 | `text-3xl` | 30px | Section title, hero on phones |
 | `text-2xl` | 24px | Sub-section, card price |

@@ -455,7 +455,7 @@ async function HomeContent() {
           title="Find a professional"
           note="Estate agents, solicitors, developers, property managers, hosts and the services around a move."
           href="/directory"
-          linkLabel="Open the directory"
+          linkLabel="All professionals"
           className={advertisers.length > 0 ? "mt-14 md:mt-20" : undefined}
         />
         <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -534,7 +534,7 @@ async function HomeContent() {
                 <h3 className="text-xl">Work in property?</h3>
                 <p className="mt-1 max-w-2xl leading-relaxed text-muted">
                   Register, choose your role and send us your details. Once we have verified you,
-                  the role is active on your account. Roles with a directory profile get one with
+                  the role is active on your account. Roles with a public profile get one with
                   a Verified badge, and enquiries reach you in your request inbox.
                 </p>
               </div>

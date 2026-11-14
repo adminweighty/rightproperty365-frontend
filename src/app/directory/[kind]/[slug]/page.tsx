@@ -105,7 +105,7 @@ async function ProfileContent({ params }: Pick<Props, "params">) {
         <ol className="flex flex-wrap items-center gap-1.5 text-sm text-muted">
           <li>
             <Link href="/directory" className="hover:text-ink hover:underline">
-              Directory
+              Professionals
             </Link>
           </li>
           <ChevronRight className="size-4" aria-hidden="true" />

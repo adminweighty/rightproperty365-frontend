@@ -21,8 +21,8 @@ Sources: Google Search Central, schema.org and the Next.js 16 documentation bund
 | `/listings/[slug]`, published | index, with `unavailable_after` set to the end of the 90-day publication | itself | yes |
 | `/listings/[slug]`, no longer available (the API answers 410) | "This listing is no longer available" page: noindex, follow | none | no |
 | `/listings/[slug]`, unknown (the API answers 404) | `notFound()`: noindex | none | no |
-| `/directory`, `/directory/[kind]` (every directory the API lists) | index | itself | yes |
-| `/directory/[kind]?country=…` or `?region=…` (a filtered directory list) | noindex, follow | none | no |
+| `/directory` ("Find a property professional") and `/directory/[kind]` (every kind of professional the API lists). Visitors see "Professionals"; the addresses keep `directory` | index | itself | yes |
+| `/directory/[kind]?country=…` or `?region=…` (a filtered list of professionals) | noindex, follow | none | no |
 | `/directory/[kind]/[slug]` profile | index | itself | yes |
 | `/faq` | index | itself | yes |
 | `/legal`, `/legal/privacy-policy`, `/legal/terms-and-conditions`, `/legal/refund-policy`, `/legal/eula` | index | itself | yes, with the date the document last changed |
@@ -64,9 +64,9 @@ Titles, headings, canonicals and structured data are built from what the API ret
 | Home | `Organization`, `WebSite` (name and URL only) |
 | Listing search, indexable pages only | `CollectionPage` with `BreadcrumbList` and an `ItemList` of the results |
 | Listing detail | `RealEstateListing` with `BreadcrumbList`, the property as `mainEntity` and an `Offer` |
-| Directory list | `CollectionPage` with `BreadcrumbList` and an `ItemList` of the profiles |
+| List of professionals (`/directory/[kind]`) | `CollectionPage` with `BreadcrumbList` and an `ItemList` of the profiles |
 | FAQ (`/faq`) | `FAQPage` with one `Question` per entry and its `acceptedAnswer` as plain text, from the same data as the page (`src/lib/faq.ts`) |
-| Directory profile | `ProfilePage` whose `mainEntity` is a `RealEstateAgent` (agency), `Person` (agent, with `worksFor`), `LegalService` (solicitor) or `Organization` (everyone else) |
+| Profile (`/directory/[kind]/[slug]`) | `ProfilePage` whose `mainEntity` is a `RealEstateAgent` (agency), `Person` (agent, with `worksFor`), `LegalService` (solicitor) or `Organization` (everyone else) |
 
 - The property's `PostalAddress` has the suburb and city as `addressLocality`, the region or province as `addressRegion` and the country code as `addressCountry`.
 - The property is `House` or `Apartment` when the listing has a bedroom count (a home) and `Place` otherwise (commercial property and land), because `floorSize` and bedroom counts are only valid on accommodation types.
@@ -80,9 +80,9 @@ Titles, headings, canonicals and structured data are built from what the API ret
 
 - Listing search ends with "Popular searches": plain links to every curated result page that has listings, including country and region pages. Filter chips above the results are plain links too. The landing page links each city tile to its city page and each suburb chip to its (noindex, follow) suburb search.
 - Result pages link to each other with ordinary page links (`Pagination`), so every listing is reachable by crawling.
-- Listing detail has a full breadcrumb and "Similar properties", and links the agent and agency to their directory profiles.
-- Directory profiles list the agency's agents and every property they are marketing, so listings, agents and agencies all link to each other.
-- Sponsored directory profiles are labelled "Sponsored" wherever they appear and are sorted first; the label is part of the page, not hidden from crawlers.
+- Listing detail has a full breadcrumb and "Similar properties", and links the agent and agency to their public profiles.
+- Profiles list the agency's agents and every property they are marketing, so listings, agents and agencies all link to each other.
+- Sponsored profiles are labelled "Sponsored" wherever they appear and are sorted first; the label is part of the page, not hidden from crawlers.
 - Listing photos are real `<img>` elements through `next/image`, with the alt text the API returns and fixed aspect ratios (no layout shift).
 
 ## Known gaps
@@ -92,8 +92,8 @@ Titles, headings, canonicals and structured data are built from what the API ret
 - **No image sitemap.** `GET /v1/sitemap` returns each listing's slug and `updated_at` but not its photo, so the sitemap no longer names a photo per listing. Google still finds the photos on the pages.
 - **The sitemap is one file.** It holds every public listing and profile. Split it with `generateSitemaps` before it nears 50,000 URLs.
 - **Suburb and property-type pages are not indexed** (see the rules above), and there is no `hreflang` for other markets.
-- **Directory lists are not paginated.** A directory page shows every profile (the API is read 48 at a time, up to 480). Add `Pagination` before a directory grows past that.
-- **Directory profiles** have no logos, photos, reviews or street addresses yet, so they cannot qualify for Google's local business features.
+- **Lists of professionals are not paginated.** A list page shows every profile (the API is read 48 at a time, up to 480). Add `Pagination` before a list grows past that.
+- **Profiles** have no logos, photos, reviews or street addresses yet, so they cannot qualify for Google's local business features.
 - **Not measured:** Core Web Vitals on a deployed site (targets: LCP 2.5s, INP 200ms, CLS 0.1), and validation in Google's Rich Results Test or Search Console.
 
 ## Checking a change

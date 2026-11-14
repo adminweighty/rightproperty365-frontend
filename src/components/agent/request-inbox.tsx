@@ -266,7 +266,7 @@ export function RequestInbox({ requestTypeLabels, contactMethodLabels }: Props) 
                 id="inbox-business"
                 title="Business enquiries"
                 noun={["enquiry", "enquiries"]}
-                emptyText="When a customer contacts you from your directory profile, the enquiry appears here."
+                emptyText="When a customer contacts you from your public profile, the enquiry appears here."
                 load={loadBusinessEnquiries}
                 contactMethodLabels={contactMethodLabels}
               />

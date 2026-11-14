@@ -66,7 +66,7 @@ The logo colours draw thin lines. These utilities are defined in `src/app/global
 | Class | Looks like | Use |
 | --- | --- | --- |
 | `rule-brand` | 3px indigo-to-turquoise bar | A short rule (48px) above a section heading and at the top of the hero panel; the full-width band along the top of the header and the footer |
-| `frame-brand` | 1.5px indigo-to-turquoise outline that fades in on hover and keyboard focus | Interactive cards: listings, profiles, category and directory tiles |
+| `frame-brand` | 1.5px indigo-to-turquoise outline that fades in on hover and keyboard focus | Interactive cards: listings, profiles, category and professionals tiles |
 | `frame-brand-on` | The same outline, always visible | Sponsored profiles |
 | `mark-brand` | Turquoise underline behind a phrase | One phrase in the page's main heading |
 

@@ -10,9 +10,10 @@ import { load } from "@/lib/api/server/load";
 import { absoluteUrl, breadcrumbJsonLd } from "@/lib/seo";
 import { ApiBoundary } from "@/components/api-boundary";
 
-const title = "Property directory: agents, solicitors, developers and services in Zimbabwe";
+// "Professionals" is the name people see for what the code and the addresses call the directory.
+const title = "Find a property professional";
 const description =
-  "Find real estate agencies and estate agents, solicitors, property developers, property managers, hosts and property service providers in Zimbabwe.";
+  "Find Real Estate Agencies, Estate Agents, Solicitors, Property Managers, Property Developers, Hosts and Property Services, each checked before they appear.";
 
 export const metadata: Metadata = {
   title,
@@ -33,7 +34,7 @@ async function Directories() {
   });
 
   if (!loaded.ok) {
-    return <ErrorState title="We could not load the directory." retryHref="/directory" className="mt-10" />;
+    return <ErrorState title="We could not load the professionals." retryHref="/directory" className="mt-10" />;
   }
   const { kinds, sponsored } = loaded.data;
 
@@ -86,17 +87,17 @@ export default function DirectoryPage() {
           name: title,
           breadcrumb: breadcrumbJsonLd([
             { name: "Home", path: "/" },
-            { name: "Directory", path: "/directory" },
+            { name: "Professionals", path: "/directory" },
           ]),
         }}
       />
-      <h1 className="text-3xl md:text-5xl">Property directory</h1>
+      <h1 className="text-3xl md:text-5xl">Find a property professional</h1>
       <p className="mt-3 max-w-2xl text-lg text-muted">
         The people and businesses behind property in Zimbabwe: who sells it, builds it, manages it
         and keeps it running.
       </p>
 
-      <ApiBoundary fallback={<div aria-busy="true" aria-label="Loading the directory" className="mt-10 h-96 rounded-lg bg-sunken" />}>
+      <ApiBoundary fallback={<div aria-busy="true" aria-label="Loading professionals and businesses" className="mt-10 h-96 rounded-lg bg-sunken" />}>
         <Directories />
       </ApiBoundary>
     </Container>

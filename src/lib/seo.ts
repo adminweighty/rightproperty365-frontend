@@ -564,7 +564,7 @@ export function listingsCollectionJsonLd(
 export function directoryCrumbs(kind: DirectoryKindInfo, profile?: DirectoryProfile): Crumb[] {
   const crumbs: Crumb[] = [
     { name: "Home", path: "/" },
-    { name: "Directory", path: "/directory" },
+    { name: "Professionals", path: "/directory" },
     { name: kind.label, path: `/directory/${kind.code}` },
   ];
   if (profile) crumbs.push({ name: profile.name, path: profilePath(profile) });

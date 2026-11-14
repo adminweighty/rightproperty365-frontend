@@ -52,10 +52,10 @@ async function readDirectory(kind: string, params: RawParams = {}) {
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const [{ kind }, query] = await Promise.all([params, searchParams]);
   const loaded = await load(() => readDirectory(kind, query));
-  if (!loaded.ok) return { title: "Directory", robots: { index: false, follow: true } };
+  if (!loaded.ok) return { title: "Professionals", robots: { index: false, follow: true } };
 
   const { list, catalogue } = loaded.data;
-  if (!list) return { title: "Directory not found", robots: { index: false, follow: true } };
+  if (!list) return { title: "Page not found", robots: { index: false, follow: true } };
 
   const title = catalogue.market ? `${list.kind.label} in ${catalogue.market.name}` : list.kind.label;
   const { description } = list.kind;
@@ -147,7 +147,7 @@ async function DirectoryList({ params, searchParams }: Pick<Props, "params" | "s
   const [{ kind: kindCode }, query] = await Promise.all([params, searchParams]);
   const loaded = await load(() => readDirectory(kindCode, query));
   if (!loaded.ok) {
-    return <ErrorState title="We could not load this directory." retryHref={`/directory/${kindCode}`} />;
+    return <ErrorState title="We could not load these profiles." retryHref={`/directory/${kindCode}`} />;
   }
   const { list, kinds, catalogue, filters, filtered } = loaded.data;
   if (!list) notFound();
@@ -171,7 +171,7 @@ async function DirectoryList({ params, searchParams }: Pick<Props, "params" | "s
           <ChevronRight className="size-4" aria-hidden="true" />
           <li>
             <Link href="/directory" className="hover:text-ink hover:underline">
-              Directory
+              Professionals
             </Link>
           </li>
           <ChevronRight className="size-4" aria-hidden="true" />
@@ -242,8 +242,8 @@ async function DirectoryList({ params, searchParams }: Pick<Props, "params" | "s
         </div>
       )}
 
-      <nav aria-label="Other directories" className="mt-16 border-t border-line pt-10">
-        <h2 className="text-xl">Other directories</h2>
+      <nav aria-label="Other professionals and businesses" className="mt-16 border-t border-line pt-10">
+        <h2 className="text-xl">Other professionals and businesses</h2>
         <ul className="mt-4 flex flex-wrap gap-2">
           {kinds
             .filter((other) => other.code !== kind.code)
