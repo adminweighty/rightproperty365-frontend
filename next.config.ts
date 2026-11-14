@@ -57,6 +57,12 @@ const nextConfig = async (phase: string): Promise<NextConfig> => ({
   // Browsers keep streaming metadata and the prerendered shell.
   htmlLimitedBots:
     /Googlebot|[\w-]+-Google|Google-[\w-]+|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight|bot\b|crawler|spider/i,
+  images: {
+    // AVIF where the browser takes it (about a fifth smaller than WebP), WebP
+    // otherwise, the original format for anything older. Each size is encoded
+    // once and then served from the image cache.
+    formats: ["image/avif", "image/webp"],
+  },
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {

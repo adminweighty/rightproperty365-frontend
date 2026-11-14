@@ -11,6 +11,11 @@ type Props = {
   sizes: string;
   /** Set on the one image that is the page's main content (listing detail). */
   priority?: boolean;
+  /**
+   * Load at once instead of when it nears the screen, without raising its
+   * priority: for photos that are on screen as the page opens.
+   */
+  eager?: boolean;
   /** Zoom slightly when the surrounding `group` is hovered. */
   zoomOnHover?: boolean;
   /** Override the alt text, e.g. "" when the photo is decorative. */
@@ -26,7 +31,7 @@ type Props = {
  * placeholder; any other photo is loaded from the URL the API gave
  * (src/lib/photos.ts). A listing without photos shows a neutral frame.
  */
-export function ListingMedia({ photo, sizes, priority, zoomOnHover, alt, className }: Props) {
+export function ListingMedia({ photo, sizes, priority, eager, zoomOnHover, alt, className }: Props) {
   const resolved = photo ? resolvePhoto(photo) : undefined;
 
   return (
@@ -40,7 +45,7 @@ export function ListingMedia({ photo, sizes, priority, zoomOnHover, alt, classNa
           placeholder={resolved.bundled ? "blur" : "empty"}
           // Photos outside the bundle come from a host we do not know yet.
           unoptimized={!resolved.bundled}
-          loading={priority ? "eager" : "lazy"}
+          loading={priority || eager ? "eager" : "lazy"}
           fetchPriority={priority ? "high" : undefined}
           className={cn(
             "object-cover",

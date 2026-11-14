@@ -43,6 +43,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${sans.variable} ${mono.variable} h-full antialiased`}
     >
+      <head>
+        {/* Logos and every request the page makes go to the API: open that connection early. */}
+        <link rel="preconnect" href={env.apiUrl} />
+      </head>
       <body className="flex min-h-full flex-col">
         <AuthProvider>
           <TestSiteBanner />

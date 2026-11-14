@@ -106,7 +106,18 @@ function listingHref(listing: Listing, stay: StayQuery | undefined): string {
   return text ? `${path}?${text}` : path;
 }
 
-type CardProps = { listing: Listing; isNew?: boolean; periods?: PeriodLabels; stay?: StayQuery };
+type CardProps = {
+  listing: Listing;
+  isNew?: boolean;
+  periods?: PeriodLabels;
+  stay?: StayQuery;
+  /**
+   * How soon the photo loads. "high": the first card of a results page, the
+   * largest thing on a phone screen. "eager": the rest of the first row.
+   * Unset: when the card nears the screen.
+   */
+  photoLoading?: "high" | "eager";
+};
 
 /**
  * A listing in a grid or a row: a large photo with the status tag on it, then
@@ -117,7 +128,7 @@ type CardProps = { listing: Listing; isNew?: boolean; periods?: PeriodLabels; st
  * names (suburb and city, or city and country); a listing that names none has
  * no place line.
  */
-export function ListingCard({ listing, isNew, periods, stay }: CardProps) {
+export function ListingCard({ listing, isNew, periods, stay, photoLoading }: CardProps) {
   const place = shortPlace(listing);
   return (
     <article className="group frame-brand flex flex-col overflow-hidden rounded-lg border border-line bg-surface shadow-xs transition-shadow duration-200 hover:shadow-md focus-within:shadow-md">
@@ -125,6 +136,8 @@ export function ListingCard({ listing, isNew, periods, stay }: CardProps) {
         <ListingMedia
           photo={listing.photos[0]}
           sizes="(min-width: 1024px) 380px, (min-width: 640px) 50vw, 100vw"
+          priority={photoLoading === "high"}
+          eager={photoLoading === "eager"}
           zoomOnHover
           className="aspect-[4/3]"
         />
@@ -166,9 +179,15 @@ type GridProps = { listings: Listing[]; periods?: PeriodLabels; stay?: StayQuery
 export function ListingGrid({ listings, periods, stay }: GridProps) {
   return (
     <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      {listings.map((listing) => (
+      {listings.map((listing, index) => (
         <li key={listing.id} className="flex [&>article]:w-full">
-          <ListingCard listing={listing} periods={periods} stay={stay} />
+          <ListingCard
+            listing={listing}
+            periods={periods}
+            stay={stay}
+            // The first row is on screen when the page opens: do not wait for it.
+            photoLoading={index === 0 ? "high" : index < 3 ? "eager" : undefined}
+          />
         </li>
       ))}
     </ul>
