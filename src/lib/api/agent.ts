@@ -6,6 +6,11 @@ export type AgentPropertyRequest = {
   request_id: string;
   reference: string;
   listing_id: string;
+  /**
+   * A summary of the listing the request is about. Optional: older API builds
+   * do not send it, and it is null when the listing can no longer be read.
+   */
+  listing?: { slug: string; title: string; reference: string } | null;
   request_type: RequestType;
   status: string;
   message: string;

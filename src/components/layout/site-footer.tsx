@@ -1,8 +1,8 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { Logo } from "@/components/layout/logo";
-import { Badge } from "@/components/ui/badge";
+import { MarketList } from "@/components/layout/market-info";
 import { Container } from "@/components/ui/container";
-import { markets } from "@/lib/data/markets";
 
 const browse = [
   { href: "/listings?deal=sale", label: "Property for sale" },
@@ -41,18 +41,9 @@ export function SiteFooter() {
 
         <div>
           <h2 className="font-sans text-sm font-semibold tracking-normal text-ink">Markets</h2>
-          <ul className="mt-3 space-y-2">
-            {markets.map((market) => (
-              <li key={market.code} className="flex items-center gap-2 text-sm text-muted">
-                {market.name}
-                {market.status === "ACTIVE" ? (
-                  <Badge tone="success">Live</Badge>
-                ) : (
-                  <Badge>Planned</Badge>
-                )}
-              </li>
-            ))}
-          </ul>
+          <Suspense fallback={<div aria-busy="true" className="mt-3 h-24 rounded-md bg-surface" />}>
+            <MarketList />
+          </Suspense>
         </div>
       </Container>
       <div className="border-t border-line">

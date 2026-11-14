@@ -1,67 +1,124 @@
 import { Search } from "lucide-react";
+import { GetForm } from "@/components/listings/get-form";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/field";
 import { cn } from "@/lib/cn";
+import { optionText, type SearchOptions } from "@/lib/search-options";
 
-const modes = [
-  { value: "sale", label: "Buy" },
-  { value: "rent", label: "Rent" },
-];
+type Props = {
+  /** Every list in the form, built from the API by `buildSearchOptions`. */
+  options: SearchOptions;
+  className?: string;
+};
 
 /**
- * The landing-page search: Buy / Rent tabs over a location, type and submit
- * row. The tabs are native radio buttons and the whole thing is a GET form, so
- * it works without JavaScript and with a keyboard (arrow keys switch tabs).
+ * The landing-page search: one tab per deal type over city, suburb, property
+ * type, highest price and bedrooms. The tabs are native radio buttons and the
+ * whole thing is a GET form, so it works without JavaScript and with a
+ * keyboard (arrow keys switch tabs). All lists come from the API.
  */
-export function HeroSearch({ className }: { className?: string }) {
+export function HeroSearch({ options, className }: Props) {
   return (
-    <form
+    <GetForm
       action="/listings"
       role="search"
       aria-label="Property search"
       className={cn("frame-brand-on overflow-hidden rounded-xl bg-surface text-ink shadow-lg", className)}
     >
-      <fieldset className="flex border-b border-line">
-        <legend className="sr-only">Buy or rent</legend>
-        {modes.map((mode, index) => (
-          <label
-            key={mode.value}
-            className="relative flex-1 cursor-pointer px-4 py-3.5 text-center text-sm font-semibold text-muted transition-colors hover:text-ink has-checked:text-primary-ink has-checked:after:absolute has-checked:after:inset-x-0 has-checked:after:bottom-0 has-checked:after:h-0.5 has-checked:after:bg-primary has-focus-visible:outline-2 has-focus-visible:-outline-offset-2 has-focus-visible:outline-focus"
-          >
-            <input
-              type="radio"
-              name="deal"
-              value={mode.value}
-              defaultChecked={index === 0}
-              className="sr-only"
-            />
-            {mode.label}
-          </label>
-        ))}
-      </fieldset>
+      {options.deals.length > 0 && (
+        <fieldset className="flex border-b border-line">
+          <legend className="sr-only">Buy or rent</legend>
+          {options.deals.map((deal, index) => (
+            <label
+              key={deal.value}
+              className="relative flex-1 cursor-pointer px-4 py-3.5 text-center text-sm font-semibold text-muted transition-colors hover:text-ink has-checked:text-primary-ink has-checked:after:absolute has-checked:after:inset-x-0 has-checked:after:bottom-0 has-checked:after:h-0.5 has-checked:after:bg-primary has-focus-visible:outline-2 has-focus-visible:-outline-offset-2 has-focus-visible:outline-focus"
+            >
+              <input
+                type="radio"
+                name="deal"
+                value={deal.value}
+                defaultChecked={index === 0}
+                className="sr-only"
+              />
+              {deal.label}
+            </label>
+          ))}
+        </fieldset>
+      )}
 
-      <div className="grid gap-3 p-3 sm:grid-cols-[1fr_12rem_auto] sm:p-4">
+      <div className="grid gap-3 p-3 sm:grid-cols-2 sm:p-4 lg:grid-cols-3">
         <div>
-          <label htmlFor="hero-q" className="sr-only">
-            Suburb or city
+          <label htmlFor="hero-city" className="sr-only">
+            City or town
+          </label>
+          <Select id="hero-city" name="city" defaultValue="">
+            <option value="">Any city or town</option>
+            {options.cities.map((option) => (
+              <option key={option.value} value={option.value}>
+                {optionText(option)}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div>
+          <label htmlFor="hero-suburb" className="sr-only">
+            Suburb
+          </label>
+          <Select id="hero-suburb" name="suburb" defaultValue="">
+            <option value="">Any suburb</option>
+            {options.suburbs.map((group) => (
+              <optgroup key={group.label} label={group.label}>
+                {group.options.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {optionText(option)}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </Select>
+        </div>
+        <div>
+          <label htmlFor="hero-property-type" className="sr-only">
+            Property type
+          </label>
+          <Select id="hero-property-type" name="property_type" defaultValue="">
+            <option value="">Any property type</option>
+            {options.propertyTypes.map((group) => (
+              <optgroup key={group.label} label={group.label}>
+                {group.options.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {optionText(option)}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </Select>
+        </div>
+        <div>
+          <label htmlFor="hero-max-price" className="sr-only">
+            Highest price{options.currency ? ` in ${options.currency}` : ""}
           </label>
           <Input
-            id="hero-q"
-            name="q"
-            type="search"
-            placeholder="Search by suburb or city"
-            autoComplete="off"
+            id="hero-max-price"
+            name="max_price"
+            type="number"
+            inputMode="numeric"
+            min={0}
+            step="any"
+            placeholder={`Highest price${options.currency ? ` (${options.currency})` : ""}`}
           />
         </div>
         <div>
-          <label htmlFor="hero-category" className="sr-only">
-            Property type
+          <label htmlFor="hero-bedrooms" className="sr-only">
+            Bedrooms
           </label>
-          <Select id="hero-category" name="category" defaultValue="">
-            <option value="">Any property type</option>
-            <option value="residential">Residential</option>
-            <option value="commercial">Commercial</option>
-            <option value="land">Land</option>
+          <Select id="hero-bedrooms" name="bedrooms_min" defaultValue="">
+            <option value="">Any bedrooms</option>
+            {options.bedrooms.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label} bedrooms
+              </option>
+            ))}
           </Select>
         </div>
         <Button type="submit" className="px-6">
@@ -69,6 +126,6 @@ export function HeroSearch({ className }: { className?: string }) {
           Search
         </Button>
       </div>
-    </form>
+    </GetForm>
   );
 }

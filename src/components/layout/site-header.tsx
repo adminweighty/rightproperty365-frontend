@@ -1,9 +1,10 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { AccountMenu } from "@/components/auth/account-menu";
 import { HeaderScrollWatcher } from "@/components/layout/header-scroll-watcher";
 import { Logo } from "@/components/layout/logo";
+import { ActiveMarketLabel } from "@/components/layout/market-info";
 import { Container } from "@/components/ui/container";
-import { activeMarket } from "@/lib/data/markets";
 
 const navItems = [
   { href: "/listings?deal=sale", label: "Buy" },
@@ -48,9 +49,10 @@ export function SiteHeader() {
         </nav>
 
         <div className="ml-auto flex items-center gap-3">
-          <span data-overlay-part className="hidden text-sm text-muted lg:inline" title="Current market">
-            {activeMarket.name} · {activeMarket.currency}
-          </span>
+          {/* The active market comes from the API; the header does not wait for it. */}
+          <Suspense fallback={null}>
+            <ActiveMarketLabel />
+          </Suspense>
           <Link
             href="/#for-agents"
             data-overlay-part

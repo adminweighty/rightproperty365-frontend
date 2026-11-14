@@ -1,4 +1,4 @@
-import type { Money } from "@/lib/data/listings";
+import type { Money } from "@/lib/api/types";
 
 /**
  * Formats a decimal-string amount with its explicit ISO 4217 currency.

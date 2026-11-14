@@ -1,7 +1,7 @@
 "use client";
 
 import { Mail, Phone } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { RequireAuth } from "@/components/auth/require-auth";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -10,15 +10,9 @@ import { Card } from "@/components/ui/card";
 import { listAgentPropertyRequests, listBusinessEnquiries } from "@/lib/api/agent";
 import { canUseInbox, isProfessional } from "@/lib/api/auth";
 import type { ApiFailure, ApiResult } from "@/lib/api/http";
-import { contactMethods, requestTypes } from "@/lib/api/property-requests";
-import { listings } from "@/lib/data/listings";
 
-const typeLabel = (value: string) => requestTypes.find((type) => type.value === value)?.label ?? value;
-const methodLabel = (value: string) =>
-  contactMethods.find((method) => method.value === value)?.label ?? value;
-
-// Sample listings stand in until the API returns a listing summary with each request.
-const listingTitle = (id: string) => listings.find((listing) => listing.id === id)?.title;
+/** code -> label maps of the API's reference sets, loaded by the page. */
+type Labels = Record<string, string>;
 
 const statusLabels: Record<string, string> = {
   RECEIVED: "New",
@@ -46,18 +40,19 @@ type InboxItem = {
   reference: string;
 };
 
-async function loadPropertyRequests(): Promise<ApiResult<InboxItem[]>> {
+async function loadPropertyRequests(typeLabels: Labels): Promise<ApiResult<InboxItem[]>> {
   const result = await listAgentPropertyRequests();
   if (!result.ok) return result;
   return {
     ...result,
     data: result.data.items.map((item) => ({
       id: item.request_id,
-      label: typeLabel(item.request_type),
+      label: typeLabels[item.request_type] ?? item.request_type,
       status: item.status,
       createdAt: item.created_at,
       customer: item.contact.name,
-      subject: `about ${listingTitle(item.listing_id) ?? "a listing"}`,
+      // The API sends a listing summary with each request; older builds do not.
+      subject: `about ${item.listing?.title ?? "a listing"}`,
       message: item.message,
       email: item.contact.email,
       phone: item.contact.phone,
@@ -100,9 +95,10 @@ type SectionProps = {
   noun: [string, string];
   emptyText: string;
   load: () => Promise<ApiResult<InboxItem[]>>;
+  contactMethodLabels: Labels;
 };
 
-function InboxSection({ id, title, noun, emptyText, load }: SectionProps) {
+function InboxSection({ id, title, noun, emptyText, load, contactMethodLabels }: SectionProps) {
   const [state, setState] = useState<State>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
 
@@ -194,7 +190,7 @@ function InboxSection({ id, title, noun, emptyText, load }: SectionProps) {
                       </a>
                     )}
                     <span className="text-muted">
-                      Prefers {methodLabel(item.contactMethod).toLowerCase()}
+                      Prefers {(contactMethodLabels[item.contactMethod] ?? item.contactMethod).toLowerCase()}
                     </span>
                     <span className="font-mono text-xs text-subtle sm:ml-auto">{item.reference}</span>
                   </div>
@@ -208,7 +204,17 @@ function InboxSection({ id, title, noun, emptyText, load }: SectionProps) {
   );
 }
 
-export function RequestInbox() {
+type Props = {
+  /** code -> label of the API's `request_types` reference set. */
+  requestTypeLabels: Labels;
+  /** code -> label of the API's `contact_methods` reference set. */
+  contactMethodLabels: Labels;
+};
+
+export function RequestInbox({ requestTypeLabels, contactMethodLabels }: Props) {
+  // A stable function, so the section does not reload on every render.
+  const loadRequests = useCallback(() => loadPropertyRequests(requestTypeLabels), [requestTypeLabels]);
+
   return (
     <RequireAuth allow={canUseInbox}>
       {(user) => (
@@ -221,7 +227,8 @@ export function RequestInbox() {
               title="Property requests"
               noun={["request", "requests"]}
               emptyText="When a customer enquires about one of your listings, the request appears here."
-              load={loadPropertyRequests}
+              load={loadRequests}
+              contactMethodLabels={contactMethodLabels}
             />
             {/* Business enquiries go to organisations, so private sellers have none. */}
             {isProfessional(user) && (
@@ -231,6 +238,7 @@ export function RequestInbox() {
                 noun={["enquiry", "enquiries"]}
                 emptyText="When a customer contacts you from your directory profile, the enquiry appears here."
                 load={loadBusinessEnquiries}
+                contactMethodLabels={contactMethodLabels}
               />
             )}
           </div>

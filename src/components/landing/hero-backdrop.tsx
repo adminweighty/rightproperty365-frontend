@@ -7,8 +7,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { cn } from "@/lib/cn";
-import { dealLabels, type Listing } from "@/lib/data/listings";
+import type { Listing } from "@/lib/api/types";
 import { formatMoney } from "@/lib/format";
+import { coverPhoto } from "@/lib/photos";
 
 gsap.registerPlugin(useGSAP);
 
@@ -86,24 +87,30 @@ export function HeroBackdrop({ listings }: { listings: Listing[] }) {
 
   return (
     <div ref={root} className="absolute inset-0 -z-10">
-      {listings.map((slide, index) => (
-        <div
-          key={slide.id}
-          data-slide={index}
-          className={cn("absolute inset-0 overflow-hidden", index !== 0 && "invisible opacity-0")}
-        >
-          <Image
-            src={slide.image.src}
-            alt=""
-            fill
-            sizes="100vw"
-            placeholder="blur"
-            loading={index === 0 ? "eager" : "lazy"}
-            fetchPriority={index === 0 ? "high" : undefined}
-            className="object-cover"
-          />
-        </div>
-      ))}
+      {listings.map((slide, index) => {
+        const photo = coverPhoto(slide.photos);
+        return (
+          <div
+            key={slide.id}
+            data-slide={index}
+            className={cn("absolute inset-0 overflow-hidden", index !== 0 && "invisible opacity-0")}
+          >
+            {photo && (
+              <Image
+                src={photo.src}
+                alt=""
+                fill
+                sizes="100vw"
+                placeholder={photo.bundled ? "blur" : "empty"}
+                unoptimized={!photo.bundled}
+                loading={index === 0 ? "eager" : "lazy"}
+                fetchPriority={index === 0 ? "high" : undefined}
+                className="object-cover"
+              />
+            )}
+          </div>
+        );
+      })}
 
       {/* Indigo scrims keep white text readable over any photo. */}
       <div aria-hidden="true" className="absolute inset-0 bg-linear-to-r from-brand-deep/95 via-brand-deep/55 to-transparent" />
@@ -123,17 +130,17 @@ export function HeroBackdrop({ listings }: { listings: Listing[] }) {
         >
           <span className="flex items-center justify-between gap-3">
             <span className="rounded-full bg-brand-accent px-2.5 py-0.5 text-xs font-bold text-brand-deep">
-              {dealLabels[listing.deal]}
+              {listing.deal.label}
             </span>
             <ArrowUpRight className="size-5 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />
           </span>
           <span className="mt-3 block text-2xl font-bold tabular-nums">
             {formatMoney(listing.price)}
-            {listing.pricePeriod && <span className="text-sm font-medium"> per month</span>}
+            {listing.price_period === "month" && <span className="text-sm font-medium"> per month</span>}
           </span>
           <span className="mt-1 block font-medium">{listing.title}</span>
           <span className="block text-sm opacity-85">
-            {listing.suburb}, {listing.city}
+            {listing.suburb.label}, {listing.city.label}
           </span>
         </Link>
 

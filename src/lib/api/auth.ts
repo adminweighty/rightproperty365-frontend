@@ -30,47 +30,21 @@ export type Membership = {
 };
 
 /**
- * Roles a person can choose for themselves at sign-up. Platform administrator
- * roles are never in this list; the API rejects them.
+ * A role a person can choose for themselves at sign-up: a code from the API's
+ * `account_roles` reference set (GET /v1/reference). The roles, their groups
+ * and their labels are loaded on the server and passed to the sign-up form and
+ * the account page as props. Platform administrator roles are never in that
+ * set, and the API rejects them.
  */
-export const accountRoleGroups = [
-  {
-    legend: "Looking for property",
-    professional: false,
-    roles: [
-      { value: "CONSUMER", label: "Buyer or renter" },
-      { value: "TENANT", label: "Tenant" },
-    ],
-  },
-  {
-    legend: "Listing or managing property",
-    professional: true,
-    roles: [
-      { value: "PRIVATE_SELLER", label: "Private seller" },
-      { value: "LANDLORD", label: "Landlord or property manager" },
-      { value: "HOST", label: "Host: short stays and venues" },
-      { value: "DEVELOPER", label: "Property developer" },
-      { value: "SERVICE_PROVIDER", label: "Service provider" },
-    ],
-  },
-  {
-    legend: "Working at an agency",
-    professional: true,
-    roles: [
-      { value: "AGENT", label: "Estate agent" },
-      { value: "AGENCY_STAFF", label: "Agency staff" },
-      { value: "AGENCY_ADMIN", label: "Agency administrator" },
-      { value: "AGENCY_OWNER", label: "Agency owner" },
-    ],
-  },
-] as const;
-
-export type AccountRole = (typeof accountRoleGroups)[number]["roles"][number]["value"];
+export type AccountRole = string;
 export type AccountRoleStatus = "ACTIVE" | "PENDING_VERIFICATION";
 
-export const accountRoleLabels = Object.fromEntries(
-  accountRoleGroups.flatMap((group) => group.roles.map((role) => [role.value, role.label])),
-) as Record<AccountRole, string>;
+/** One heading of the sign-up role picker with its roles, in the API's order. */
+export type AccountRoleGroup = {
+  code: string;
+  label: string;
+  roles: { code: AccountRole; label: string; requiresVerification: boolean }[];
+};
 
 export type User = {
   id: string;
@@ -91,6 +65,8 @@ export type SessionScope = "customer" | "admin";
 
 export type SessionResponse = { user: User; session: { scope: SessionScope; expires_at: string } };
 
+// The three maps below label fixed enums of the identity API (the User schema).
+// They are not reference sets, so GET /v1/reference has no rows for them.
 export const platformRoleLabels: Record<PlatformRole, string> = {
   SUPER_ADMIN: "Super admin",
   PLATFORM_ADMIN: "Platform admin",

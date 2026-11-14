@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { ListingCard } from "@/components/listings/listing-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
-import { listings } from "@/lib/data/listings";
+import { ErrorState } from "@/components/ui/error-state";
+import { Pagination } from "@/components/ui/pagination";
+import { listListings } from "@/lib/api/server/listings";
+import { load } from "@/lib/api/server/load";
 
 export const metadata: Metadata = {
   title: "Design system",
@@ -47,6 +51,16 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <div className="mt-6">{children}</div>
     </section>
   );
+}
+
+/** A real listing from the API, so the card is shown with live data. */
+async function ListingCardExample() {
+  const loaded = await load(() => listListings({ page_size: 1 }));
+  const listing = loaded.ok ? loaded.data?.items[0] : undefined;
+  if (!loaded.ok) {
+    return <ErrorState title="We could not load a listing for this example." retryHref="/design-system" />;
+  }
+  return listing ? <ListingCard listing={listing} /> : <p className="text-muted">No listings are published.</p>;
 }
 
 /** Living reference for the tokens and components documented in /design. */
@@ -142,7 +156,19 @@ export default function DesignSystemPage() {
                 content, not to decorate.
               </p>
             </Card>
-            <ListingCard listing={listings[0]} />
+            <Suspense fallback={<div aria-busy="true" className="h-80 rounded-lg bg-sunken" />}>
+              <ListingCardExample />
+            </Suspense>
+          </div>
+        </Section>
+
+        <Section title="Pagination">
+          <Pagination page={3} totalPages={8} hrefFor={(page) => `/design-system?page=${page}`} label="Example" />
+        </Section>
+
+        <Section title="Error state">
+          <div className="max-w-xl">
+            <ErrorState title="We could not load the listings." retryHref="/design-system" />
           </div>
         </Section>
       </div>

@@ -8,8 +8,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
-import { dealLabels, type Listing } from "@/lib/data/listings";
+import type { Listing } from "@/lib/api/types";
 import { formatMoney } from "@/lib/format";
+import { coverPhoto } from "@/lib/photos";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
 
@@ -86,20 +87,25 @@ export function ShowcaseScroll({ listings, heading }: { listings: Listing[]; hea
           pinned ? "w-max" : "snap-x snap-mandatory overflow-x-auto pb-4 [scrollbar-width:thin]",
         )}
       >
-        {listings.map((listing, index) => (
+        {listings.map((listing, index) => {
+          const photo = coverPhoto(listing.photos);
+          return (
           <li key={listing.id} className="w-[19rem] shrink-0 snap-start sm:w-[26rem] lg:w-[34rem]">
             <Link href={`/listings/${listing.slug}`} className="group block">
               <span className="relative block aspect-[4/3] overflow-hidden rounded-xl bg-brand">
-                <Image
-                  src={listing.image.src}
-                  alt={listing.image.alt}
-                  fill
-                  sizes="(min-width: 1024px) 544px, (min-width: 640px) 416px, 304px"
-                  placeholder="blur"
-                  className="object-cover transition-transform duration-700 ease-standard group-hover:scale-105"
-                />
+                {photo && (
+                  <Image
+                    src={photo.src}
+                    alt={photo.alt}
+                    fill
+                    sizes="(min-width: 1024px) 544px, (min-width: 640px) 416px, 304px"
+                    placeholder={photo.bundled ? "blur" : "empty"}
+                    unoptimized={!photo.bundled}
+                    className="object-cover transition-transform duration-700 ease-standard group-hover:scale-105"
+                  />
+                )}
                 <span className="absolute left-4 top-4 rounded-full bg-brand-accent px-3 py-1 text-xs font-bold text-brand-deep">
-                  {dealLabels[listing.deal]}
+                  {listing.deal.label}
                 </span>
                 <span className="absolute right-4 top-4 flex size-11 items-center justify-center rounded-full bg-white text-brand-deep opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
                   <ArrowUpRight className="size-5" aria-hidden="true" />
@@ -112,18 +118,19 @@ export function ShowcaseScroll({ listings, heading }: { listings: Listing[]; hea
                 <span className="min-w-0">
                   <span className="block text-2xl font-bold tabular-nums text-brand-accent md:text-3xl">
                     {formatMoney(listing.price)}
-                    {listing.pricePeriod && <span className="text-sm font-medium"> per month</span>}
+                    {listing.price_period === "month" && <span className="text-sm font-medium"> per month</span>}
                   </span>
                   <span className="mt-1 block text-lg font-semibold group-hover:underline">{listing.title}</span>
                   <span className="mt-1 flex items-center gap-1.5 text-sm opacity-85">
                     <MapPin className="size-4" aria-hidden="true" />
-                    {listing.suburb}, {listing.city}
+                    {listing.suburb.label}, {listing.city.label}
                   </span>
                 </span>
               </span>
             </Link>
           </li>
-        ))}
+          );
+        })}
       </ul>
     </section>
   );

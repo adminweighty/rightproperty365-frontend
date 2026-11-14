@@ -10,23 +10,35 @@ Sources: Google Search Central, schema.org and the Next.js 16 documentation bund
 | --- | --- | --- | --- |
 | `/` | index | itself | yes |
 | `/listings` | index | itself | yes |
-| `/listings?deal=…`, `?category=…`, `?deal=…&category=…` with results | index | itself, parameters in the order `deal`, `category` | yes |
-| The same with no results | noindex, follow | none | no |
+| Curated result pages with results: `?deal=…`, `?category=…`, `?deal=…&category=…`, `?city=…`, `?deal=…&city=…` | index | itself, parameters in the order `deal`, `category`, `city` | yes |
+| Page 2 and later of `/listings` or a curated result page (`…&page=2`), with results | index | itself, with `page` last. Never page 1 | no |
+| A curated page with no results, or a page number past the last page | noindex, follow | none | no |
 | `/listings?q=…` (free-text search) | noindex, follow | none | no |
+| Any other filter, alone or combined: `property_type`, `suburb`, `min_price`, `max_price`, `bedrooms_min`, `bathrooms_min`, `features`, `sort`, and `city` together with `category` | noindex, follow | none | no |
 | `/listings` with unknown parameters or invalid values | noindex, follow | none | no |
-| `/listings/[slug]`, published | index, with `unavailable_after` set to the end of the 90-day publication | itself | yes, with its photo |
-| `/directory`, `/directory/[kind]` (agencies, agents, developers, property managers, hosts, service providers) | index | itself | yes |
+| `/listings/[slug]`, published | index, with `unavailable_after` set to the end of the 90-day publication | itself | yes |
+| `/listings/[slug]`, no longer available (the API answers 410) | "This listing is no longer available" page: noindex, follow | none | no |
+| `/listings/[slug]`, unknown (the API answers 404) | `notFound()`: noindex | none | no |
+| `/directory`, `/directory/[kind]` (every directory the API lists) | index | itself | yes |
 | `/directory/[kind]/[slug]` profile | index | itself | yes |
-| `/listings/[slug]`, unknown or expired | `notFound()`: noindex | none | no |
+| Any public page while the API cannot be reached (error state) | noindex, follow | none | the sitemap answers 500 |
 | Sign-in, register, password reset, account, agent inbox, design system | noindex | none | no |
 
 Rules behind the table:
 
-- **Only curated result pages are indexed.** Deal and category combinations are a small, fixed set of useful pages. Free-text search can produce unlimited near-duplicate URLs, so it is never indexed.
+- **Only curated result pages are indexed.** They are a small set that people search for by name: each deal, each category, deal with category, each city, and deal with city. The deals, categories and cities come from the API's reference data, so the set grows only when a market administrator adds one. Free-text search can produce unlimited near-duplicate URLs, so it is never indexed.
+- **Every other filter is `noindex, follow`.** Property type, suburb, price, bedrooms, bathrooms, features and sort order multiply into thousands of thin or duplicate pages (a different sort order is the same content). They stay crawlable so the listings on them are found, but they carry no canonical and are not in the sitemap. This is deliberately conservative: with one or two listings per suburb today, suburb and property-type pages would be thin. Promote a filter to the curated set only when its pages have enough listings to stand on their own, and change `parseListingsSearch` and `getCuratedListingPages` together.
+- **A code that is not in the reference data is an invalid value.** The page is `noindex`, the filter is ignored, and the API is never sent a code it would refuse.
+- **Paginated pages are self-canonical.** `/listings?deal=rent&page=2` is its own canonical; it is never pointed at page 1, because it lists different properties. `page=1` is the same page as no `page`, so the canonical drops it. Pages 2 and later are indexable when their base page is, but stay out of the sitemap. Submitting the search form always starts again at page 1.
 - **Private pages use a `noindex` meta tag and are not blocked in `robots.txt`.** A crawler that is blocked from a page never sees its `noindex`.
-- **Empty parameters do not create duplicates.** The search forms submit empty fields (`?deal=rent&category=&q=`); the canonical drops them and fixes the parameter order.
-- **Expired listings leave the index.** `unavailable_after` tells Google when to drop the page, the sitemap lists only published listings, and an expired listing is not found. Expired listings are never redirected to a category page.
+- **Empty parameters do not create duplicates.** With JavaScript the search forms leave empty fields out of the address. Without it they submit them (`?deal=rent&category=&q=`); the page ignores them, and the canonical drops them and fixes the parameter order.
+- **Expired listings leave the index.** `unavailable_after` (the API's `expires_at`) tells Google when to drop the page, and the sitemap lists only published listings. A listing that was public and no longer is shows "This listing is no longer available" with `noindex`; a slug that never existed is not found. Neither is redirected to a category page.
+- **An error state is never indexed and never cached.** When the API cannot be reached a page shows an error state with `noindex` and no canonical, and the next request tries again. The sitemap answers 500 rather than listing fewer pages.
 - **Crawlers get metadata in `<head>`.** By default Next.js streams request-time metadata into `<body>` for browsers and for Googlebot, but Google honours `rel=canonical` only in `<head>`. `htmlLimitedBots` in `next.config.ts` lists crawler user agents (Next's default list plus Googlebot and generic crawler names) that receive complete `<head>` metadata instead. Browsers keep the faster streamed behaviour.
+
+## Where the data comes from
+
+Titles, headings, canonicals and structured data are built from what the API returns: listings and profiles, and the labels of deals, categories, cities and directories in its reference data. Nothing in `src/lib/seo.ts` names a deal, category or city. The sitemap is built from `GET /v1/sitemap` (published, unexpired listings and active profiles only) and its data is cached for no longer than an hour, so expired listings drop out.
 
 ## Metadata
 
@@ -47,7 +59,7 @@ Rules behind the table:
 | Directory list | `CollectionPage` with `BreadcrumbList` and an `ItemList` of the profiles |
 | Directory profile | `ProfilePage` whose `mainEntity` is a `RealEstateAgent` (agency), `Person` (agent, with `worksFor`) or `Organization` (everyone else) |
 
-- The property is `House` or `Apartment` for homes and `Place` for commercial property and land, because `floorSize` and bedroom counts are only valid on accommodation types.
+- The property is `House` or `Apartment` when the listing has a bedroom count (a home) and `Place` otherwise (commercial property and land), because `floorSize` and bedroom counts are only valid on accommodation types.
 - The `Offer` sits on the listing, not the property. Rentals use a `UnitPriceSpecification` per month.
 - Google has **no rich result for real-estate listings**. This markup helps machines understand the page; it will not add stars or prices to results. `BreadcrumbList` and `Organization` are supported Google features.
 - Deliberately not used: `Product` for property, `FAQPage`, and `WebSite` `SearchAction` (Google retired the sitelinks search box in November 2024).
@@ -55,21 +67,24 @@ Rules behind the table:
 
 ## Internal links and images
 
-- Listing search ends with "Popular searches": plain links to every indexed result page.
+- Listing search ends with "Popular searches": plain links to every curated result page that has listings. The landing page links each city tile to its city page and each suburb chip to its (noindex, follow) suburb search.
+- Result pages link to each other with ordinary page links (`Pagination`), so every listing is reachable by crawling.
 - Listing detail has a full breadcrumb and "Similar properties", and links the agent and agency to their directory profiles.
 - Directory profiles list the agency's agents and every property they are marketing, so listings, agents and agencies all link to each other.
 - Sponsored directory profiles are labelled "Sponsored" wherever they appear and are sorted first; the label is part of the page, not hidden from crawlers.
-- Listing photos are real `<img>` elements through `next/image`, with descriptive alt text, fixed aspect ratios (no layout shift) and an entry in the image sitemap.
+- Listing photos are real `<img>` elements through `next/image`, with the alt text the API returns and fixed aspect ratios (no layout shift).
 
 ## Known gaps
 
 - **Unknown listings return HTTP 200 with `noindex`, not 404.** With Cache Components the page shell is sent before the listing is looked up. Google treats this as a soft 404, which is acceptable; a real 404 needs a slug check in a proxy before the response starts.
-- **The sitemap and expiry are static while listings are sample data.** When listings come from the API, list only published, unexpired listings and revalidate the sitemap at least hourly.
-- **No pagination yet.** When added: each page gets its own URL (`?page=2`) with a self-referencing canonical, never a canonical to page 1, and stays out of the sitemap.
-- **Not built:** location landing pages (city and suburb) and `hreflang` for other markets.
-- **Directory profiles are sample data** with no logos, photos, reviews or street addresses yet, so they cannot qualify for Google's local business features.
+- **A listing that is no longer available also returns HTTP 200 with `noindex`,** for the same reason. A 410 needs the same proxy check.
+- **No image sitemap.** `GET /v1/sitemap` returns each listing's slug and `updated_at` but not its photo, so the sitemap no longer names a photo per listing. Google still finds the photos on the pages.
+- **The sitemap is one file.** It holds every public listing and profile. Split it with `generateSitemaps` before it nears 50,000 URLs.
+- **Suburb and property-type pages are not indexed** (see the rules above), and there is no `hreflang` for other markets.
+- **Directory lists are not paginated.** A directory page shows every profile (the API is read 48 at a time, up to 480). Add `Pagination` before a directory grows past that.
+- **Directory profiles** have no logos, photos, reviews or street addresses yet, so they cannot qualify for Google's local business features.
 - **Not measured:** Core Web Vitals on a deployed site (targets: LCP 2.5s, INP 200ms, CLS 0.1), and validation in Google's Rich Results Test or Search Console.
 
 ## Checking a change
 
-Build, start the production server, and fetch pages with a crawler user agent. For each public page confirm the title, description, robots, canonical and JSON-LD are present in `<head>` and match the table above, then check `/sitemap.xml` and `/robots.txt`.
+Start the API, build, start the production server, and fetch pages with a crawler user agent. For each public page confirm the title, description, robots, canonical and JSON-LD are present in `<head>` and match the table above, then check `/sitemap.xml` and `/robots.txt`. Cases worth fetching every time: a curated page (`?deal=rent&city=harare`), its page 2, a free-text search, a filtered search (`?suburb=…`), an unknown code (`?deal=x`), a page past the end, a published listing, a listing that is no longer available, and an unknown slug.

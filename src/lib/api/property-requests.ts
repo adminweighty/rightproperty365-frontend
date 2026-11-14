@@ -9,21 +9,13 @@ import { apiFetch, type ApiFailure } from "@/lib/api/http";
 
 export type { ApiFailure };
 
-export const requestTypes = [
-  { value: "ENQUIRY", label: "General enquiry" },
-  { value: "PROPERTY_INFORMATION", label: "More information" },
-  { value: "VIEWING_REQUEST", label: "Book a viewing" },
-  { value: "CONSULTATION_REQUEST", label: "Speak to the agent" },
-] as const;
-
-export const contactMethods = [
-  { value: "EMAIL", label: "Email" },
-  { value: "PHONE", label: "Phone call" },
-  { value: "WHATSAPP", label: "WhatsApp" },
-] as const;
-
-export type RequestType = (typeof requestTypes)[number]["value"];
-export type ContactMethod = (typeof contactMethods)[number]["value"];
+/**
+ * Codes from the API's `request_types` and `contact_methods` reference sets
+ * (GET /v1/reference). The lists and their labels are loaded on the server and
+ * passed to the forms as props; nothing is listed here.
+ */
+export type RequestType = string;
+export type ContactMethod = string;
 
 export type PropertyRequestInput = {
   listing_id: string;

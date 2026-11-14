@@ -7,35 +7,55 @@ import { ListingFacts, ListingGrid, ListingPrice } from "@/components/listings/l
 import { ListingMedia } from "@/components/listings/listing-media";
 import { PropertyRequestForm } from "@/components/requests/property-request-form";
 import { Badge } from "@/components/ui/badge";
+import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
+import { ErrorState } from "@/components/ui/error-state";
 import { JsonLd } from "@/components/seo/json-ld";
-import { profilePath, profilesForListing } from "@/lib/data/directory";
+import { getListing, getSitemapEntries, listListings } from "@/lib/api/server/listings";
+import { load, readAtBuild } from "@/lib/api/server/load";
+import { getCatalogue } from "@/lib/api/server/reference";
+import { toOptions, type Listing } from "@/lib/api/types";
+import { coverPhoto } from "@/lib/photos";
 import {
-  categoryLabels,
-  dealLabels,
-  getListingBySlug,
-  listingExpiresAt,
-  listings,
-} from "@/lib/data/listings";
-import { listingJsonLd, listingPath, listingSeoDescription, listingSeoTitle } from "@/lib/seo";
+  listingJsonLd,
+  listingPath,
+  listingSeoDescription,
+  listingSeoTitle,
+  listingsPath,
+  profilePath,
+} from "@/lib/seo";
 
 type Props = PageProps<"/listings/[slug]">;
 
-// Known listings are prerendered. Once listings come from the API this list
-// becomes the published set and unknown slugs resolve at request time.
-export function generateStaticParams() {
-  return listings.map((listing) => ({ slug: listing.slug }));
+/** Newest listings prerendered at build; the rest are rendered on first visit and then cached. */
+const PRERENDER_LIMIT = 100;
+/** Cache Components needs at least one param to build the route's shell. This slug is never a listing. */
+const SHELL_ONLY = [{ slug: "not-prerendered" }];
+
+// When the API is not reachable during the build (CI), nothing is prerendered
+// and every listing is rendered on its first request instead.
+export async function generateStaticParams() {
+  const entries = await readAtBuild(getSitemapEntries);
+  const params = (entries?.listings ?? []).slice(0, PRERENDER_LIMIT).map(({ slug }) => ({ slug }));
+  return params.length > 0 ? params : SHELL_ONLY;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const listing = getListingBySlug(slug);
-  if (!listing) return { title: "Listing not found", robots: { index: false, follow: true } };
+  const loaded = await load(() => getListing(slug));
+  if (!loaded.ok) return { title: "Listing", robots: { index: false, follow: true } };
+  if (loaded.data.status === "gone") {
+    return { title: "This listing is no longer available", robots: { index: false, follow: true } };
+  }
+  if (loaded.data.status === "missing") {
+    return { title: "Listing not found", robots: { index: false, follow: true } };
+  }
 
+  const { listing } = loaded.data;
   const title = listingSeoTitle(listing);
   const description = listingSeoDescription(listing);
-  const { src, width, height } = listing.image.src;
+  const cover = coverPhoto(listing.photos);
 
   return {
     title,
@@ -46,16 +66,23 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       index: true,
       follow: true,
       "max-image-preview": "large",
-      unavailable_after: listingExpiresAt(listing),
+      unavailable_after: listing.expires_at,
     },
     openGraph: {
       type: "website",
       title,
       description,
       url: listingPath(listing),
-      images: [{ url: src, width, height, alt: listing.image.alt }],
+      images: cover
+        ? [{ url: cover.url, width: cover.width, height: cover.height, alt: cover.alt }]
+        : ["/opengraph-image"],
     },
-    twitter: { card: "summary_large_image", title, description, images: [src] },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [cover?.url ?? "/opengraph-image"],
+    },
   };
 }
 
@@ -81,20 +108,58 @@ function ListingFallback() {
   );
 }
 
+/** The listing was public once and is not any more (expired, sold, let or paused). */
+function ListingGone() {
+  return (
+    <div className="py-12 text-center">
+      <h1 className="text-3xl md:text-4xl">This listing is no longer available</h1>
+      <p className="mx-auto mt-3 max-w-md text-muted">
+        It has been sold or let, or its 90-day publication has ended. Enquiries can no longer be
+        sent for it. Current listings are a search away.
+      </p>
+      <ButtonLink href="/listings" className="mt-8">
+        Browse current listings
+      </ButtonLink>
+    </div>
+  );
+}
+
+/**
+ * Related listings: same city first, then same category. Internal links like
+ * these are how crawlers and people move between listings.
+ */
+async function similarListings(listing: Listing): Promise<Listing[]> {
+  const [sameCity, sameCategory] = await Promise.all([
+    listListings({ city: listing.city.code, page_size: 4 }),
+    listListings({ category: listing.category.code, page_size: 4 }),
+  ]);
+  const seen = new Set([listing.id]);
+  return [...(sameCity?.items ?? []), ...(sameCategory?.items ?? [])]
+    .filter((other) => !seen.has(other.id) && seen.add(other.id))
+    .slice(0, 3);
+}
+
 async function ListingContent({ params }: Pick<Props, "params">) {
   const { slug } = await params;
-  const listing = getListingBySlug(slug);
-  if (!listing) notFound();
+  const loaded = await load(async () => {
+    const lookup = await getListing(slug);
+    if (lookup.status !== "found") return { lookup, catalogue: undefined, similar: [] };
+    const [catalogue, similar] = await Promise.all([getCatalogue(), similarListings(lookup.listing)]);
+    return { lookup, catalogue, similar };
+  });
 
-  const { agency, agent } = profilesForListing(listing);
+  if (!loaded.ok) {
+    return <ErrorState title="We could not load this listing." retryHref={`/listings/${slug}`} />;
+  }
+  const { lookup, catalogue, similar } = loaded.data;
+  if (lookup.status === "gone") return <ListingGone />;
+  if (lookup.status === "missing" || !catalogue) notFound();
 
-  // Related listings: same city first, then same category. Internal links
-  // like these are how crawlers and people move between listings.
-  const similar = listings
-    .filter((other) => other.id !== listing.id)
-    .filter((other) => other.city === listing.city || other.category === listing.category)
-    .sort((a, b) => Number(b.city === listing.city) - Number(a.city === listing.city))
-    .slice(0, 3);
+  const { listing } = lookup;
+  const { advertiser } = listing;
+  const [cover, ...morePhotos] = listing.photos;
+  // The agent for an agency listing; the seller's own name for a private sale.
+  const contact = advertiser.agent ?? advertiser.agency;
 
   return (
     <>
@@ -114,35 +179,51 @@ async function ListingContent({ params }: Pick<Props, "params">) {
           </li>
           <ChevronRight className="size-4" aria-hidden="true" />
           <li>
-            <Link href={`/listings?deal=${listing.deal}`} className="hover:text-ink hover:underline">
-              {dealLabels[listing.deal]}
+            <Link
+              href={listingsPath({ deal: listing.deal.code })}
+              className="hover:text-ink hover:underline"
+            >
+              {listing.deal.label}
             </Link>
           </li>
           <ChevronRight className="size-4" aria-hidden="true" />
           <li aria-current="page" className="text-ink">
-            {listing.suburb}
+            {listing.suburb.label}
           </li>
         </ol>
       </nav>
 
       <ListingMedia
-        image={listing.image}
+        photo={cover}
         sizes="(min-width: 1280px) 1136px, 100vw"
         priority
         className="mt-6 aspect-[16/9] rounded-xl md:aspect-[21/9]"
       />
+      {morePhotos.length > 0 && (
+        <ul aria-label="More photos" className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+          {morePhotos.map((photo) => (
+            <li key={photo.url}>
+              <ListingMedia
+                photo={photo}
+                sizes="(min-width: 768px) 280px, 50vw"
+                className="aspect-[4/3] rounded-lg"
+              />
+            </li>
+          ))}
+        </ul>
+      )}
 
       <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_24rem]">
         <div>
           <div className="flex flex-wrap gap-2">
-            <Badge tone="primary">{dealLabels[listing.deal]}</Badge>
-            <Badge>{categoryLabels[listing.category]}</Badge>
-            <Badge>{listing.propertyType}</Badge>
+            <Badge tone="primary">{listing.deal.label}</Badge>
+            <Badge>{listing.category.label}</Badge>
+            <Badge>{listing.property_type.label}</Badge>
           </div>
           <h1 className="mt-4 text-3xl md:text-4xl">{listing.title}</h1>
           <p className="mt-3 flex items-center gap-1.5 text-muted">
             <MapPin className="size-4 shrink-0" aria-hidden="true" />
-            {listing.suburb}, {listing.city}
+            {listing.suburb.label}, {listing.city.label}
           </p>
           <ListingPrice listing={listing} className="mt-6 text-4xl" />
           <div className="mt-6 border-y border-line py-4">
@@ -150,17 +231,23 @@ async function ListingContent({ params }: Pick<Props, "params">) {
           </div>
 
           <h2 className="mt-10 text-2xl">About this property</h2>
-          <p className="mt-3 max-w-prose leading-relaxed text-muted">{listing.description}</p>
+          <p className="mt-3 max-w-prose whitespace-pre-line leading-relaxed text-muted">
+            {listing.description}
+          </p>
 
-          <h2 className="mt-10 text-2xl">Features</h2>
-          <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-            {listing.features.map((feature) => (
-              <li key={feature} className="flex items-center gap-2.5 text-ink">
-                <Check className="size-4 shrink-0 text-primary-ink" aria-hidden="true" />
-                {feature}
-              </li>
-            ))}
-          </ul>
+          {listing.features.length > 0 && (
+            <>
+              <h2 className="mt-10 text-2xl">Features</h2>
+              <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+                {listing.features.map((feature) => (
+                  <li key={feature.code} className="flex items-center gap-2.5 text-ink">
+                    <Check className="size-4 shrink-0 text-primary-ink" aria-hidden="true" />
+                    {feature.label}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
 
           <p className="mt-10 text-sm text-subtle">Listing reference {listing.reference}</p>
         </div>
@@ -168,25 +255,26 @@ async function ListingContent({ params }: Pick<Props, "params">) {
         <aside aria-labelledby="contact-heading">
           <Card className="lg:sticky lg:top-24">
             <h2 id="contact-heading" className="text-2xl">
-              Contact the {listing.advertiser.kind === "agency" ? "agent" : "seller"}
+              Contact the {advertiser.type === "agency" ? "agent" : "seller"}
             </h2>
+            {/* Profile links only. Phone numbers and email addresses are never shown. */}
             <p className="mt-2 flex flex-wrap items-center gap-1.5 text-sm text-muted">
-              {agent ? (
-                <Link href={profilePath(agent)} className="font-semibold text-primary-ink hover:underline">
-                  {listing.listedBy}
+              {contact ? (
+                <Link href={profilePath(contact)} className="font-semibold text-primary-ink hover:underline">
+                  {contact.name}
                 </Link>
               ) : (
-                <span className="font-semibold text-ink">{listing.listedBy}</span>
+                <span className="font-semibold text-ink">{advertiser.name}</span>
               )}
-              <span aria-hidden="true">·</span>
-              {agency ? (
-                <Link href={profilePath(agency)} className="text-primary-ink hover:underline">
-                  {listing.advertiser.name}
-                </Link>
-              ) : (
-                listing.advertiser.name
+              {advertiser.agent && advertiser.agency && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <Link href={profilePath(advertiser.agency)} className="text-primary-ink hover:underline">
+                    {advertiser.agency.name}
+                  </Link>
+                </>
               )}
-              {listing.advertiser.verified && (
+              {advertiser.verified && (
                 <Badge tone="success">
                   <BadgeCheck className="size-3.5" aria-hidden="true" />
                   Verified
@@ -197,7 +285,9 @@ async function ListingContent({ params }: Pick<Props, "params">) {
               <PropertyRequestForm
                 listingId={listing.id}
                 listingReference={listing.reference}
-                advertiserName={listing.advertiser.name}
+                advertiserName={advertiser.name}
+                requestTypes={toOptions(catalogue.sets.request_types)}
+                contactMethods={toOptions(catalogue.sets.contact_methods)}
               />
             </div>
           </Card>

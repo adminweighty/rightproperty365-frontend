@@ -7,19 +7,28 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field, fieldDescribedBy, Input, Select, Textarea } from "@/components/ui/field";
 import {
-  contactMethods,
-  requestTypes,
   submitPropertyRequest,
   type ApiFailure,
   type ContactMethod,
   type PropertyRequestReceipt,
   type RequestType,
 } from "@/lib/api/property-requests";
+import type { Option } from "@/lib/api/types";
 import { PRIVACY_NOTICE_VERSION } from "@/lib/env";
 
-type Props = { listingId: string; listingReference: string; advertiserName: string };
+type Props = {
+  listingId: string;
+  listingReference: string;
+  advertiserName: string;
+  /** The API's `request_types` and `contact_methods` reference sets, in display order. */
+  requestTypes: Option[];
+  contactMethods: Option[];
+};
 
+// Behaviour tied to API codes (not lists): these request types can carry a
+// preferred time, and only an email reply needs no phone number.
 const slotTypes: RequestType[] = ["VIEWING_REQUEST", "CONSULTATION_REQUEST"];
+const EMAIL: ContactMethod = "EMAIL";
 
 // Field names the API may report, mapped to the control that should show them.
 const apiFieldToControl: Record<string, string> = {
@@ -34,11 +43,17 @@ const apiFieldToControl: Record<string, string> = {
   consent: "consent",
 };
 
-export function PropertyRequestForm({ listingId, listingReference, advertiserName }: Props) {
+export function PropertyRequestForm({
+  listingId,
+  listingReference,
+  advertiserName,
+  requestTypes,
+  contactMethods,
+}: Props) {
   const { user } = useAuth();
-  const [requestType, setRequestType] = useState<RequestType>("ENQUIRY");
-  const [contactMethod, setContactMethod] = useState<ContactMethod>("EMAIL");
-  const phoneRequired = contactMethod !== "EMAIL";
+  const [requestType, setRequestType] = useState<RequestType>(requestTypes[0]?.value ?? "");
+  const [contactMethod, setContactMethod] = useState<ContactMethod>(contactMethods[0]?.value ?? "");
+  const phoneRequired = contactMethod !== EMAIL;
   const phoneHint = phoneRequired
     ? "Needed so they can reach you. Include the country code, for example +263 77 123 4567."
     : "Include the country code, for example +263 77 123 4567.";
@@ -125,7 +140,7 @@ export function PropertyRequestForm({ listingId, listingReference, advertiserNam
           id="request_type"
           name="request_type"
           value={requestType}
-          onChange={(event) => setRequestType(event.target.value as RequestType)}
+          onChange={(event) => setRequestType(event.target.value)}
         >
           {requestTypes.map((type) => (
             <option key={type.value} value={type.value}>
@@ -194,7 +209,7 @@ export function PropertyRequestForm({ listingId, listingReference, advertiserNam
           id="preferred_contact_method"
           name="preferred_contact_method"
           value={contactMethod}
-          onChange={(event) => setContactMethod(event.target.value as ContactMethod)}
+          onChange={(event) => setContactMethod(event.target.value)}
         >
           {contactMethods.map((method) => (
             <option key={method.value} value={method.value}>

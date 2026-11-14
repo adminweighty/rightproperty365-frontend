@@ -11,16 +11,22 @@ import {
   type BusinessEnquiryReceipt,
 } from "@/lib/api/business-enquiries";
 import type { ApiFailure } from "@/lib/api/http";
-import { contactMethods, type ContactMethod } from "@/lib/api/property-requests";
-import type { DirectoryKind } from "@/lib/data/directory";
+import type { ContactMethod } from "@/lib/api/property-requests";
+import type { Option } from "@/lib/api/types";
 import { PRIVACY_NOTICE_VERSION } from "@/lib/env";
 
 type Props = {
-  kind: DirectoryKind;
+  /** The profile's directory kind code, from the API. */
+  kind: string;
   slug: string;
   name: string;
   services: string[];
+  /** The API's `contact_methods` reference set, in display order. */
+  contactMethods: Option[];
 };
+
+// Only an email reply needs no phone number.
+const EMAIL: ContactMethod = "EMAIL";
 
 // Field names the API may report, mapped to the control that should show them.
 const apiFieldToControl: Record<string, string> = {
@@ -38,10 +44,10 @@ const apiFieldToControl: Record<string, string> = {
  * The only way to contact a directory profile. Ids are prefixed with "enquiry-"
  * so the form can share a page with other forms.
  */
-export function ProfileEnquiryForm({ kind, slug, name, services }: Props) {
+export function ProfileEnquiryForm({ kind, slug, name, services, contactMethods }: Props) {
   const { user } = useAuth();
-  const [contactMethod, setContactMethod] = useState<ContactMethod>("EMAIL");
-  const phoneRequired = contactMethod !== "EMAIL";
+  const [contactMethod, setContactMethod] = useState<ContactMethod>(contactMethods[0]?.value ?? "");
+  const phoneRequired = contactMethod !== EMAIL;
   const phoneHint = phoneRequired
     ? "Needed so they can reach you. Include the country code, for example +263 77 123 4567."
     : "Include the country code, for example +263 77 123 4567.";
@@ -173,7 +179,7 @@ export function ProfileEnquiryForm({ kind, slug, name, services }: Props) {
           id="enquiry-contact-method"
           name="preferred_contact_method"
           value={contactMethod}
-          onChange={(event) => setContactMethod(event.target.value as ContactMethod)}
+          onChange={(event) => setContactMethod(event.target.value)}
         >
           {contactMethods.map((method) => (
             <option key={method.value} value={method.value}>

@@ -3,7 +3,7 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRef } from "react";
 import { ListingCard } from "@/components/listings/listing-card";
-import type { Listing } from "@/lib/data/listings";
+import type { Listing } from "@/lib/api/types";
 
 type Props = {
   /** Names the scrolling region for assistive technology, e.g. "Just listed". */

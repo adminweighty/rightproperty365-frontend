@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { ProfileAvatar, ProfileGrid } from "@/components/directory/profile-card";
+import { ProfileAvatar, ProfileGrid, ProfileRefGrid } from "@/components/directory/profile-card";
 import { ProfileEnquiryForm } from "@/components/directory/profile-enquiry-form";
 import { ListingGrid } from "@/components/listings/listing-card";
 import { JsonLd } from "@/components/seo/json-ld";
@@ -11,30 +11,55 @@ import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
-import {
-  agencyOfAgent,
-  agentsOfAgency,
-  directories,
-  getProfile,
-  listingsForProfile,
-  profilePath,
-  profiles,
-} from "@/lib/data/directory";
-import { profileJsonLd } from "@/lib/seo";
+import { ErrorState } from "@/components/ui/error-state";
+import { getDirectoryKinds, getDirectoryList, getDirectoryProfile } from "@/lib/api/server/directory";
+import { getSitemapEntries } from "@/lib/api/server/listings";
+import { load, readAtBuild } from "@/lib/api/server/load";
+import { getCatalogue } from "@/lib/api/server/reference";
+import { toOptions } from "@/lib/api/types";
+import { profileJsonLd, profilePath } from "@/lib/seo";
 
 type Props = PageProps<"/directory/[kind]/[slug]">;
 
-export function generateStaticParams() {
-  return profiles.map(({ kind, slug }) => ({ kind, slug }));
+/** Profiles prerendered at build; the rest are rendered on first visit and then cached. */
+const PRERENDER_LIMIT = 200;
+/** Cache Components needs at least one param to build the route's shell. This is never a profile. */
+const SHELL_ONLY = [{ kind: "not-prerendered", slug: "not-prerendered" }];
+
+export async function generateStaticParams() {
+  const entries = await readAtBuild(getSitemapEntries);
+  const params = (entries?.profiles ?? []).slice(0, PRERENDER_LIMIT).map(({ kind, slug }) => ({ kind, slug }));
+  return params.length > 0 ? params : SHELL_ONLY;
+}
+
+async function readProfile(kindCode: string, slug: string) {
+  const profile = await getDirectoryProfile(kindCode, slug);
+  if (!profile) return null;
+  const [kinds, catalogue] = await Promise.all([getDirectoryKinds(), getCatalogue()]);
+  const kind = kinds.find((item) => item.code === profile.kind);
+  if (!kind) return null;
+
+  // The API lists an agency's agents as references (name and verification).
+  // Their full cards come from the directory they are listed in.
+  const teamKinds = [...new Set(profile.agents.map((agent) => agent.kind))];
+  const teamLists = await Promise.all(teamKinds.map((code) => getDirectoryList(code)));
+  const directory = teamLists.flatMap((list) => list?.profiles ?? []);
+  const team = profile.agents
+    .map((agent) => directory.find((item) => item.kind === agent.kind && item.slug === agent.slug))
+    .filter((item) => item !== undefined);
+
+  return { profile, kind, catalogue, team };
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { kind, slug } = await params;
-  const profile = getProfile(kind, slug);
-  if (!profile) return { title: "Profile not found", robots: { index: false, follow: true } };
+  const loaded = await load(() => readProfile(kind, slug));
+  if (!loaded.ok) return { title: "Profile", robots: { index: false, follow: true } };
+  if (!loaded.data) return { title: "Profile not found", robots: { index: false, follow: true } };
 
-  const title = `${profile.name}: ${profile.role.toLowerCase()} in ${profile.city}`;
-  const description = `${profile.tagline} ${profile.about}`.slice(0, 300);
+  const { profile } = loaded.data;
+  const title = `${profile.name}: ${profile.role.toLowerCase()} in ${profile.city.label}`;
+  const description = `${profile.tagline} ${profile.description}`.slice(0, 300);
   const path = profilePath(profile);
   return {
     title,
@@ -55,18 +80,19 @@ export default function ProfilePage({ params }: Props) {
 }
 
 async function ProfileContent({ params }: Pick<Props, "params">) {
-  const { kind, slug } = await params;
-  const profile = getProfile(kind, slug);
-  if (!profile) notFound();
+  const { kind: kindCode, slug } = await params;
+  const loaded = await load(() => readProfile(kindCode, slug));
+  if (!loaded.ok) {
+    return <ErrorState title="We could not load this profile." retryHref={`/directory/${kindCode}/${slug}`} />;
+  }
+  if (!loaded.data) notFound();
 
-  const listings = listingsForProfile(profile);
-  const agency = profile.kind === "agents" ? agencyOfAgent(profile) : undefined;
-  const team = profile.kind === "agencies" ? agentsOfAgency(profile) : [];
-  const directory = directories[profile.kind];
+  const { profile, kind, catalogue, team } = loaded.data;
+  const { agency, agents, listings } = profile;
 
   return (
     <>
-      <JsonLd data={profileJsonLd(profile)} />
+      <JsonLd data={profileJsonLd(profile, kind, catalogue.market)} />
       <nav aria-label="Breadcrumb">
         <ol className="flex flex-wrap items-center gap-1.5 text-sm text-muted">
           <li>
@@ -76,8 +102,8 @@ async function ProfileContent({ params }: Pick<Props, "params">) {
           </li>
           <ChevronRight className="size-4" aria-hidden="true" />
           <li>
-            <Link href={`/directory/${profile.kind}`} className="hover:text-ink hover:underline">
-              {directory.title}
+            <Link href={`/directory/${kind.code}`} className="hover:text-ink hover:underline">
+              {kind.label}
             </Link>
           </li>
           <ChevronRight className="size-4" aria-hidden="true" />
@@ -92,12 +118,14 @@ async function ProfileContent({ params }: Pick<Props, "params">) {
         <div aria-hidden="true" className="rule-brand rounded-none" />
         <div className="flex flex-col gap-5 px-6 pb-6 md:flex-row md:items-end md:px-8">
           <ProfileAvatar
-            profile={profile}
+            name={profile.name}
+            person={agency !== null}
             className="-mt-10 size-24 text-3xl ring-4 ring-surface md:-mt-12 md:size-28"
           />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap gap-2">
-              <Badge>{directory.singular}</Badge>
+              <Badge>{kind.singular_label}</Badge>
+              {profile.trade && <Badge tone="primary">{profile.trade.label}</Badge>}
               {profile.verified && (
                 <Badge tone="success">
                   <BadgeCheck className="size-3.5" aria-hidden="true" />
@@ -121,7 +149,7 @@ async function ProfileContent({ params }: Pick<Props, "params">) {
             <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
               <span className="flex items-center gap-1.5">
                 <MapPin className="size-4" aria-hidden="true" />
-                {profile.city}
+                {profile.city.label}
               </span>
               {profile.since && <span>Established {profile.since}</span>}
             </p>
@@ -132,10 +160,14 @@ async function ProfileContent({ params }: Pick<Props, "params">) {
       <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_22rem]">
         <div>
           <h2 className="text-2xl">About</h2>
-          <p className="mt-3 max-w-prose leading-relaxed text-muted">{profile.about}</p>
+          <p className="mt-3 max-w-prose whitespace-pre-line leading-relaxed text-muted">
+            {profile.description}
+          </p>
 
-          <h2 className="mt-10 text-2xl">Services</h2>
-          {profile.offerings ? (
+          {(profile.offerings.length > 0 || profile.services.length > 0) && (
+            <h2 className="mt-10 text-2xl">Services</h2>
+          )}
+          {profile.offerings.length > 0 ? (
             <ul className="mt-4 grid gap-4 sm:grid-cols-2">
               {profile.offerings.map((offering) => (
                 <li key={offering.name} className="rounded-lg border border-line bg-surface p-5">
@@ -158,14 +190,18 @@ async function ProfileContent({ params }: Pick<Props, "params">) {
             </ul>
           )}
 
-          <h2 className="mt-10 text-2xl">Areas covered</h2>
-          <ul className="mt-4 flex flex-wrap gap-2">
-            {profile.areas.map((area) => (
-              <li key={area}>
-                <Badge tone="primary">{area}</Badge>
-              </li>
-            ))}
-          </ul>
+          {profile.areas.length > 0 && (
+            <>
+              <h2 className="mt-10 text-2xl">Areas covered</h2>
+              <ul className="mt-4 flex flex-wrap gap-2">
+                {profile.areas.map((area) => (
+                  <li key={area}>
+                    <Badge tone="primary">{area}</Badge>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </div>
 
         <aside aria-labelledby="enquiry-heading">
@@ -186,6 +222,7 @@ async function ProfileContent({ params }: Pick<Props, "params">) {
                 slug={profile.slug}
                 name={profile.name}
                 services={profile.services}
+                contactMethods={toOptions(catalogue.sets.contact_methods)}
               />
             </div>
             {listings.length > 0 && (
@@ -197,13 +234,17 @@ async function ProfileContent({ params }: Pick<Props, "params">) {
         </aside>
       </div>
 
-      {team.length > 0 && (
+      {agents.length > 0 && (
         <section aria-labelledby="team-heading" className="mt-16 border-t border-line pt-12">
           <h2 id="team-heading" className="text-2xl md:text-3xl">
             Agents at {profile.name}
           </h2>
           <div className="mt-8">
-            <ProfileGrid profiles={team} />
+            {team.length === agents.length ? (
+              <ProfileGrid profiles={team} />
+            ) : (
+              <ProfileRefGrid profiles={agents} person />
+            )}
           </div>
         </section>
       )}

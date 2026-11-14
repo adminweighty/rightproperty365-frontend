@@ -61,17 +61,75 @@ The unit of search results.
 - Facts show at most three items; missing values are left out rather than shown as a dash.
 - `ListingPrice` always shows the ISO currency code, because markets and currencies are mixed across the platform.
 
+- A listing without a photo shows a neutral frame that says "No photo yet", never a placeholder picture.
+- Deal, suburb, city and price come from the API. The card has no text of its own apart from "Featured", "New" and "per month".
+
 ## SearchBar (`listings/search-bar.tsx`)
 
-A GET form that works without JavaScript and produces shareable URLs. Each control has a screen-reader label. On phones it stacks to one column; from `lg` it is a single row.
+The listing search on results pages. A GET form (`GetForm`) that works without JavaScript and produces shareable URLs.
+
+- First row: buy or rent, category, keyword and the "Search" button. Each control has a screen-reader label. On phones it stacks to one column; from `lg` it is a single row.
+- Below it, `ListingFilterPanel` holds the rest of the filters.
+- **Every option list is a prop** (`options`, built on the server by `buildSearchOptions` from the API's reference data and search facets). The component contains no list of its own.
+- An option shows how many listings it has for the current search: "Harare (12)". The count is in the option text, so it is read out with the option. A value with no listings shows "(0)" and stays selectable.
+- Submitting returns to page 1 of the new result. With JavaScript, empty fields are left out of the address (`/listings?deal=rent&city=harare`); without it they are submitted empty and ignored.
+
+## ListingFilterPanel (`listings/listing-filters.tsx`)
+
+The extra filters, inside the `SearchBar` form: property type, city or town, suburb, sort order, lowest and highest price, bedrooms, bathrooms and features.
+
+- A native `<details>` with the summary "More filters" / "Fewer filters", so it opens with a click, Enter or Space and needs no JavaScript. The summary is 44px tall and shows how many of its filters are in use. It starts open when one is in use.
+- Every control has a visible label (`Field`). Property types are grouped under their category and suburbs under their city with `<optgroup>`. Choosing a category or a city narrows the next list after the form is submitted.
+- Prices are number inputs, not a list of ranges, with the currency in the label and a hint giving the price range of the current search. Bathrooms is a number input because the API has no bathroom facet.
+- Bedrooms lists "n+" for the bedroom counts in the result, each with the number of listings that have at least n.
+- Features are checkboxes in a `fieldset` with the legend "Features": the twelve most common in the result, plus any that are ticked. Each label row is 44px tall and the whole row is the target.
+- Sort order starts on the API's default (newest first, or best match when there is a keyword), which adds nothing to the address.
+- Actions: "Apply filters" (submits the form) and "Clear filters" (a link to `/listings`).
+- Do not add a filter the API does not support, and do not fetch options in the browser.
+
+## Pagination (`ui/pagination.tsx`)
+
+Page links under a list that is split across addresses (`?page=2`).
+
+- A `nav` named for the list ("Listing results pages") containing "Previous", the first page, the current page with its neighbours, the last page, and "Next". Gaps are an ellipsis hidden from assistive technology.
+- Every page is an ordinary link, so it works without JavaScript and each page can be shared, bookmarked and indexed. Page 1 links to the list's plain address, without `page=1`.
+- The current page is not a link and has `aria-current="page"`. It is marked by a filled background as well as its position. Page numbers are announced as "Page 2".
+- "Previous" and "Next" are greyed text with `aria-disabled` at the ends, not hidden, so the control does not move.
+- Each item is at least 44 by 44px. On phones the row wraps.
+- It renders nothing when there is one page. Say the page in the status line above the list as well: "18 properties · page 2 of 2".
+- A page number past the last page gets the empty state "There is no page 5 of these results" with a link to page 1.
+
+## ErrorState (`ui/error-state.tsx`)
+
+Shown in place of content when the RightProperty365 API cannot be reached or returns an error.
+
+- A danger `Alert` that says what could not be loaded ("We could not load the listings."), one sentence that it is our side and not theirs, and a "Try again" link.
+- "Try again" is a plain link to the same address. It works without JavaScript and makes a fresh request; a failure is never cached, so it works as soon as the service is back.
+- Never show old, sample or placeholder content in its place, and never an empty state ("No properties match") for a failure: empty means the search ran and found nothing.
+- Use it for the main content of a page. Secondary content that fails (the "Popular searches" links, the market in the header) is left out instead, or replaced by one plain sentence (the market list in the footer).
+- Where a page still works without the data, keep the page: the account page and the request inbox show a role or request type by its code if the labels cannot be loaded.
+- The page is marked `noindex` while it shows an error state.
+- `src/app/error.tsx` is the fallback for any other rendering error: the same wording with a "Try again" button and a link home.
+
+## Empty states
+
+A dashed `line-strong` border, a heading that says what is (not) there in plain words, one sentence on what to do next, and one secondary action.
+
+| Situation | Heading | Action |
+| --- | --- | --- |
+| A search found nothing | No properties match that search | Clear filters (and suggested places when a keyword was used) |
+| A page number past the end | There is no page 5 of these results | Go to page 1 |
+| A filter the API no longer accepts | That search could not be run | Clear filters |
+| A listing that was public and is not any more | This listing is no longer available | Browse current listings |
 
 ## HeroSearch (`listings/hero-search.tsx`)
 
 The landing-page search, shown on the brand indigo hero.
 
-- Buy and Rent tabs sit above a row with location, property type and the submit button. The tabs are native radio buttons in a `fieldset`, so arrow keys switch between them and the choice is sent as the `deal` parameter.
-- Like `SearchBar`, it is a GET form to `/listings`: it works without JavaScript and produces a shareable URL.
+- One tab per deal type (the API's labels, "For sale" and "To rent" today) sits above city, suburb, property type, highest price, bedrooms and the submit button. The tabs are native radio buttons in a `fieldset`, so arrow keys switch between them and the choice is sent as the `deal` parameter.
+- Like `SearchBar`, it is a GET form to `/listings` whose option lists are a prop built from the API: it works without JavaScript and produces a shareable URL.
 - The selected tab is shown by text colour and an underline, not colour alone. The focus outline is drawn on the tab label.
+- Two rows of three from `lg`, two columns from `sm`, one column on phones.
 - Use it once, on the landing page. Results pages use `SearchBar`.
 
 ## PropertyRequestForm (`requests/property-request-form.tsx`)
@@ -83,12 +141,13 @@ The only route by which a customer contacts an advertiser. It posts to the Right
 - Field errors returned by the API appear under the matching control.
 - A retry of unchanged content reuses the same idempotency key; any edit starts a new request.
 - Consent is an unticked checkbox that names who the details are shared with.
+- The request types and contact methods are props from the API's reference data, in the API's order; the first of each is selected. The business enquiry form on a directory profile (`directory/profile-enquiry-form.tsx`) takes its contact methods the same way.
 
 ## SiteHeader and SiteFooter (`layout/`)
 
 - The header is sticky, 64px tall, and begins with a "Skip to content" link.
 - Primary navigation shows inline from `md`; on phones it is a horizontally scrolling row under the header, so no menu button is needed.
-- The footer lists markets with their status, which keeps the multi-country roadmap honest.
+- The footer lists markets with their status, which keeps the multi-country roadmap honest. The markets, and the active market's name and currency in the header, come from the API (`layout/market-info.tsx`). If they cannot be loaded the header shows no market and the footer says the list could not be loaded.
 
 ## Alert (`ui/alert.tsx`)
 
@@ -113,10 +172,12 @@ The frame for sign-in, registration and account recovery: a 448px card centred o
 
 The sign-up question "How will you use RightProperty365?". People choose one or more roles; any combination is allowed.
 
-- One outer `fieldset` with the question as its `legend` and the hint "Choose all that apply", then one nested `fieldset` per group: Looking for property, Listing or managing property, Working at an agency.
-- Native checkboxes named `roles`. Each label row is at least 44px tall and the whole row is the target. "Buyer or renter" is ticked by default.
+- The roles, their groups and every label are a prop (`groups`) from the API's `account_roles` reference set, in the API's order. Today that is three groups: Looking for property, Listing or managing property, Working at an agency.
+- One outer `fieldset` with the question as its `legend` and the hint "Choose all that apply", then one nested `fieldset` per group with the group's label as its `legend`.
+- Native checkboxes named `roles`. Each label row is at least 44px tall and the whole row is the target. The buyer or renter role (`CONSUMER`) is ticked by default.
 - At least one is required. The error ("Choose at least one option.", or the API's `roles` message) appears under the groups and is linked to the outer fieldset with `aria-describedby`.
-- A note under the groups says listing, managing and agency roles are confirmed after verification. Choosing one records a request; it grants no access by itself.
+- A role the API marks `requires_verification` says "Needs verification" in its label, and a note under the groups explains that those roles are confirmed after we verify the person or their organisation. Choosing one records a request; it grants no access by itself.
+- If the roles cannot be loaded the form is replaced by an `ErrorState`: an account cannot be created without choosing a role.
 - Platform administrator roles never appear here. The API also rejects them, so this list is not the safeguard.
 - On the account page each chosen role is shown with a status badge: "Active" (`success`) or "Pending verification" (`warning`), separate from organisation memberships and staff access.
 
@@ -152,10 +213,10 @@ The list of customer requests routed to the signed-in person: an agent's own lis
 
 - Two sections, each with its own `h2`, count and states: "Property requests" (about listings) and "Business enquiries" (sent from a directory profile). Private sellers see only the first, because business enquiries go to organisations.
 - A directory profile never shows a phone number or email address. The enquiry form is the only way to reach a business, and the customer's details appear only in this inbox.
-- Each request is a card: type and status badges, received time in the viewer's time zone, customer name and listing, the message, then contact links and the reference.
+- Each request is a card: type and status badges, received time in the viewer's time zone, customer name and listing, the message, then contact links and the reference. The listing's title comes with the request from the API; when it does not, the card says "about a listing". Request type and contact method labels come from the API's reference data.
 - States: loading skeleton, error with "Try again", empty ("No requests yet"), and the list with a count.
 - Contact details appear only here, behind sign-in. They must never be put in a notification preview or a URL.
 
 ## Not built yet
 
-Dialog, toast, tabs, pagination, data table, date and slot picker, file upload, map, YouTube embed. Specify each here before building it.
+Dialog, toast, tabs, data table, date and slot picker, file upload, map, YouTube embed. Specify each here before building it.

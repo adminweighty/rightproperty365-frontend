@@ -5,7 +5,7 @@ import gsap from "gsap";
 import { Pause, Play } from "lucide-react";
 import Link from "next/link";
 import { useRef, useState } from "react";
-import type { Listing } from "@/lib/data/listings";
+import type { Listing } from "@/lib/api/types";
 import { formatMoney } from "@/lib/format";
 
 gsap.registerPlugin(useGSAP);
@@ -22,11 +22,11 @@ function Items({ listings, hidden }: { listings: Listing[]; hidden?: boolean }) 
           >
             <span className="font-bold tabular-nums text-brand-accent">
               {formatMoney(listing.price)}
-              {listing.pricePeriod && <span className="font-medium"> /mo</span>}
+              {listing.price_period === "month" && <span className="font-medium"> /mo</span>}
             </span>
             <span>{listing.title}</span>
             <span className="opacity-70">
-              {listing.suburb}, {listing.city}
+              {listing.suburb.label}, {listing.city.label}
             </span>
           </Link>
           <span aria-hidden="true" className="size-1 rounded-full bg-brand-accent" />

@@ -1,6 +1,5 @@
 import { apiFetch, type ApiFailure } from "@/lib/api/http";
 import type { ContactMethod } from "@/lib/api/property-requests";
-import type { DirectoryKind } from "@/lib/data/directory";
 
 /**
  * Client for POST /v1/business-enquiries: an enquiry to a directory profile
@@ -12,7 +11,8 @@ import type { DirectoryKind } from "@/lib/data/directory";
  */
 
 export type BusinessEnquiryInput = {
-  recipient: { kind: DirectoryKind; slug: string };
+  /** `kind` is a `directory_kinds` code from the API. */
+  recipient: { kind: string; slug: string };
   /** One of the recipient's listed services, when the customer picked one. */
   service?: string;
   message: string;

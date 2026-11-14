@@ -6,12 +6,13 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field, fieldDescribedBy, Input } from "@/components/ui/field";
 import { RoleSelect } from "@/components/auth/role-select";
-import { register, type AccountRole } from "@/lib/api/auth";
+import { register, type AccountRole, type AccountRoleGroup } from "@/lib/api/auth";
 import type { ApiFailure } from "@/lib/api/http";
 
 export const PASSWORD_HINT = "At least 10 characters. A short phrase works well.";
 
-export function RegisterForm() {
+/** `roleGroups` is the API's `account_roles` reference set, loaded by the page. */
+export function RegisterForm({ roleGroups }: { roleGroups: AccountRoleGroup[] }) {
   const [pending, setPending] = useState(false);
   const [failure, setFailure] = useState<ApiFailure | null>(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
@@ -105,7 +106,7 @@ export function RegisterForm() {
         />
       </Field>
 
-      <RoleSelect error={rolesError ?? errors.roles} />
+      <RoleSelect groups={roleGroups} error={rolesError ?? errors.roles} />
 
       <div>
         <label className="flex items-start gap-3 text-sm leading-relaxed text-muted">

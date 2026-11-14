@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
-  accountRoleLabels,
   canUseInbox,
   membershipRoleLabels,
   organisationKindLabels,
@@ -17,7 +16,10 @@ import {
   type User,
 } from "@/lib/api/auth";
 
-function Details({ user }: { user: User }) {
+/** code -> label of the API's `account_roles` reference set. */
+type RoleLabels = Record<string, string>;
+
+function Details({ user, roleLabels }: { user: User; roleLabels: RoleLabels }) {
   const { signOut } = useAuth();
   const router = useRouter();
   const welcome = useSearchParams().get("welcome") === "1";
@@ -58,7 +60,7 @@ function Details({ user }: { user: User }) {
           <ul className="mt-2 space-y-3">
             {user.account_roles.map(({ role, status }) => (
               <li key={role} className="flex items-center justify-between gap-3">
-                <span className="text-ink">{accountRoleLabels[role] ?? role}</span>
+                <span className="text-ink">{roleLabels[role] ?? role}</span>
                 {status === "ACTIVE" ? (
                   <Badge tone="success">Active</Badge>
                 ) : (
@@ -66,7 +68,7 @@ function Details({ user }: { user: User }) {
                 )}
               </li>
             ))}
-            {user.account_roles.length === 0 && <li className="text-muted">Buyer or renter</li>}
+            {user.account_roles.length === 0 && <li className="text-muted">No roles chosen yet</li>}
           </ul>
           {user.account_roles.some(({ status }) => status === "PENDING_VERIFICATION") && (
             <p className="mt-3 text-sm leading-relaxed text-muted">
@@ -129,6 +131,6 @@ function Details({ user }: { user: User }) {
   );
 }
 
-export function AccountOverview() {
-  return <RequireAuth>{(user) => <Details user={user} />}</RequireAuth>;
+export function AccountOverview({ roleLabels }: { roleLabels: RoleLabels }) {
+  return <RequireAuth>{(user) => <Details user={user} roleLabels={roleLabels} />}</RequireAuth>;
 }

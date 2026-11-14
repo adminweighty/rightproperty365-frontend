@@ -1,39 +1,54 @@
 import type { MetadataRoute } from "next";
-import { directoryKinds, profilePath, profiles } from "@/lib/data/directory";
-import { findListings, listings } from "@/lib/data/listings";
-import { absoluteUrl, curatedFacets, listingPath, listingsPath } from "@/lib/seo";
+import { getCuratedListingPages } from "@/lib/api/server/curated";
+import { getDirectoryKinds } from "@/lib/api/server/directory";
+import { getSitemapEntries } from "@/lib/api/server/listings";
+import { load } from "@/lib/api/server/load";
+import { getCatalogue } from "@/lib/api/server/reference";
+import { absoluteUrl, listingPath, profilePath } from "@/lib/seo";
 
 /**
- * Only indexable URLs: home, the curated deal/category result pages that have
- * results, and published listings with their photo. Free-text searches and
- * private pages are left out. `priority` and `changefreq` are omitted because
- * Google ignores them.
+ * Only indexable URLs: home, the curated result pages that have listings
+ * (docs/seo.md), the directories, and every public listing and profile from
+ * GET /v1/sitemap, which returns only published, unexpired listings.
+ * Free-text and filtered searches, result pages 2 and later and private pages
+ * are left out. `priority` and `changefreq` are omitted because Google
+ * ignores them.
  *
- * When listings come from the API this must list only PUBLISHED, unexpired
- * listings and be revalidated at least hourly so expired ones drop out.
+ * The readers cache their data for no longer than an hour (`cacheLife`), so
+ * the sitemap is regenerated at least hourly and expired listings drop out.
+ * If the API cannot be reached the sitemap fails with a 500, which crawlers
+ * retry, rather than serving a sitemap with pages missing.
  */
-export default function sitemap(): MetadataRoute.Sitemap {
-  const newest = (items: typeof listings) =>
-    items.map((listing) => listing.publishedAt).sort().at(-1);
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const loaded = await load(async () => {
+    const [catalogue, entries, kinds] = await Promise.all([
+      getCatalogue(),
+      getSitemapEntries(),
+      getDirectoryKinds(),
+    ]);
+    return { entries, kinds, curated: await getCuratedListingPages(catalogue) };
+  });
+  if (!loaded.ok) throw new Error("The sitemap could not be built: the API is not available.");
 
-  const facetPages = curatedFacets()
-    .map((facet) => ({ facet, results: findListings(facet) }))
-    .filter(({ results }) => results.length > 0)
-    .map(({ facet, results }) => ({
-      url: absoluteUrl(listingsPath(facet.deal, facet.category)),
-      lastModified: newest(results),
-    }));
+  const { entries, kinds, curated } = loaded.data;
+  const newest = entries.listings
+    .map((listing) => listing.updated_at)
+    .sort()
+    .at(-1);
 
   return [
-    { url: absoluteUrl("/"), lastModified: newest(listings) },
-    ...facetPages,
+    { url: absoluteUrl("/"), lastModified: newest },
+    { url: absoluteUrl("/listings"), lastModified: newest },
+    ...curated.map((page) => ({ url: absoluteUrl(page.path) })),
     { url: absoluteUrl("/directory") },
-    ...directoryKinds.map((kind) => ({ url: absoluteUrl(`/directory/${kind}`) })),
-    ...profiles.map((profile) => ({ url: absoluteUrl(profilePath(profile)) })),
-    ...listings.map((listing) => ({
+    ...kinds.map((kind) => ({ url: absoluteUrl(`/directory/${kind.code}`) })),
+    ...entries.profiles.map((profile) => ({
+      url: absoluteUrl(profilePath(profile)),
+      lastModified: profile.updated_at,
+    })),
+    ...entries.listings.map((listing) => ({
       url: absoluteUrl(listingPath(listing)),
-      lastModified: listing.publishedAt,
-      images: [absoluteUrl(listing.image.src.src)],
+      lastModified: listing.updated_at,
     })),
   ];
 }
