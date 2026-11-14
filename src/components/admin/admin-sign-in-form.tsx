@@ -3,11 +3,16 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
+import { useFieldErrors } from "@/components/auth/use-field-errors";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field, fieldDescribedBy, Input } from "@/components/ui/field";
 import { adminLogin } from "@/lib/api/auth";
 import type { ApiFailure } from "@/lib/api/http";
+import { hasProblems, signInProblems } from "@/lib/auth-validation";
+
+/** Each field, in the order of the form, and the control that takes focus when it is invalid. */
+const FIELDS = { email: "#admin-email", password: "#admin-password" };
 
 /**
  * Sign-in for platform administrators only. The API answers every failure the
@@ -18,17 +23,22 @@ export function AdminSignInForm() {
   const { setSession } = useAuth();
   const [pending, setPending] = useState(false);
   const [failure, setFailure] = useState<ApiFailure | null>(null);
+  const { form, errors, show, onChange } = useFieldErrors(FIELDS);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
 
-    setPending(true);
+    const email = String(data.get("email") ?? "").trim();
+    const password = String(data.get("password") ?? "");
+
     setFailure(null);
-    const result = await adminLogin(
-      String(data.get("email") ?? "").trim(),
-      String(data.get("password") ?? ""),
-    );
+    const problems = signInProblems({ email, password });
+    show(problems);
+    if (hasProblems(problems)) return;
+
+    setPending(true);
+    const result = await adminLogin(email, password);
     setPending(false);
 
     if (result.ok) {
@@ -36,14 +46,14 @@ export function AdminSignInForm() {
       router.push("/admin");
     } else {
       setFailure(result.failure);
+      show(result.failure.fields ?? {});
     }
   }
 
-  const errors = failure?.fields ?? {};
   const credentialFailure = failure?.code === "INVALID_CREDENTIALS";
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <form ref={form} onSubmit={handleSubmit} onChange={onChange} noValidate className="flex flex-col gap-4">
       <Field id="admin-email" label="Work email address" error={errors.email}>
         <Input
           id="admin-email"

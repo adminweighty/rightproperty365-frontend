@@ -13,8 +13,9 @@ const itemClass =
   "flex min-h-11 w-full items-center rounded-sm px-3 text-left text-sm text-ink hover:bg-sunken focus-visible:bg-sunken";
 
 /**
- * Header control: "Sign in" when anonymous (with the link for professionals
- * beside it from `lg`), otherwise the account menu.
+ * Header control: when anonymous, "Sign in" (quiet) and, from `sm`, the
+ * primary "Sign up", with the link for professionals beside them from `xl`;
+ * otherwise the account menu. On phones "Sign up" is in the menu panel.
  */
 export function AccountMenu({ professionals }: { professionals?: NavItem }) {
   const { status, user, isAdmin, signOut } = useAuth();
@@ -38,7 +39,7 @@ export function AccountMenu({ professionals }: { professionals?: NavItem }) {
   }, [open]);
 
   // Reserve the space while the session loads so the header does not shift.
-  if (status === "loading") return <div className="h-11 w-11 sm:w-20" aria-hidden="true" />;
+  if (status === "loading") return <div className="h-11 w-11 sm:w-40" aria-hidden="true" />;
 
   if (status === "anonymous") {
     return (
@@ -46,12 +47,18 @@ export function AccountMenu({ professionals }: { professionals?: NavItem }) {
         {professionals && (
           <Link
             href={professionals.href}
-            className="hidden rounded-md px-3 py-2 text-sm font-semibold text-primary-ink decoration-line-accent decoration-2 underline-offset-8 hover:underline lg:block"
+            className="hidden rounded-md px-3 py-2 text-sm font-semibold text-primary-ink decoration-line-accent decoration-2 underline-offset-8 hover:underline xl:block"
           >
             {professionals.label}
           </Link>
         )}
-        <ButtonLink href="/sign-in">Sign in</ButtonLink>
+        <ButtonLink href="/sign-in" variant="ghost">
+          Sign in
+        </ButtonLink>
+        {/* Hidden on phones, where the bar has no room; the menu panel has it. */}
+        <ButtonLink href="/register" className="max-sm:hidden">
+          Sign up
+        </ButtonLink>
       </>
     );
   }

@@ -5,11 +5,16 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { authLinkClass } from "@/components/auth/auth-shell";
+import { useFieldErrors } from "@/components/auth/use-field-errors";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field, fieldDescribedBy, Input } from "@/components/ui/field";
 import { login, resendVerification } from "@/lib/api/auth";
 import type { ApiFailure } from "@/lib/api/http";
+import { hasProblems, signInProblems } from "@/lib/auth-validation";
+
+/** Each field, in the order of the form, and the control that takes focus when it is invalid. */
+const FIELDS = { email: "#email", password: "#password" };
 
 /** Only same-site paths are accepted, so `next` cannot send people elsewhere. */
 function safeNext(value: string | null): string {
@@ -24,17 +29,23 @@ export function SignInForm() {
   const [failure, setFailure] = useState<ApiFailure | null>(null);
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
   const [resent, setResent] = useState(false);
+  const { form, errors, show, onChange } = useFieldErrors(FIELDS);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const email = String(data.get("email") ?? "").trim();
+    const password = String(data.get("password") ?? "");
 
-    setPending(true);
     setFailure(null);
     setUnverifiedEmail(null);
     setResent(false);
-    const result = await login(email, String(data.get("password") ?? ""));
+    const problems = signInProblems({ email, password });
+    show(problems);
+    if (hasProblems(problems)) return;
+
+    setPending(true);
+    const result = await login(email, password);
     setPending(false);
 
     if (result.ok) {
@@ -44,12 +55,11 @@ export function SignInForm() {
     }
     if (result.failure.code === "EMAIL_NOT_VERIFIED") setUnverifiedEmail(email);
     setFailure(result.failure);
+    show(result.failure.fields ?? {});
   }
 
-  const errors = failure?.fields ?? {};
-
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <form ref={form} onSubmit={handleSubmit} onChange={onChange} noValidate className="flex flex-col gap-4">
       <Field id="email" label="Email address" error={errors.email}>
         <Input
           id="email"

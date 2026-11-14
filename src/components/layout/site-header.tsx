@@ -41,9 +41,16 @@ export function SiteHeader() {
 
         <div className="ml-auto flex shrink-0 items-center gap-2">
           <AccountMenu professionals={professionalsLink} />
-          {/* The session control needs JavaScript; without it, sign-in is still one tap away. */}
+          {/* The session control needs JavaScript; without it, sign-in and sign-up are still one tap away. */}
           <noscript>
-            <ButtonLink href="/sign-in">Sign in</ButtonLink>
+            <span className="flex items-center gap-2">
+              <ButtonLink href="/sign-in" variant="ghost">
+                Sign in
+              </ButtonLink>
+              <ButtonLink href="/register" className="max-sm:hidden">
+                Sign up
+              </ButtonLink>
+            </span>
           </noscript>
           <SiteMenu items={navItems} secondary={[professionalsLink]} />
         </div>

@@ -22,6 +22,8 @@ type Options = {
   /** Sent as JSON, or as multipart/form-data when it is a FormData (file uploads). */
   body?: unknown;
   headers?: Record<string, string>;
+  /** "no-store" for an answer that must never be reused, such as a captcha question. */
+  cache?: RequestCache;
 };
 
 const fallbackMessages: Record<number, string> = {
@@ -34,13 +36,14 @@ const fallbackMessages: Record<number, string> = {
 };
 
 export async function apiFetch<T>(path: string, options: Options = {}): Promise<ApiResult<T>> {
-  const { method = "GET", body, headers = {} } = options;
+  const { method = "GET", body, headers = {}, cache } = options;
 
   let response: Response;
   try {
     response = await fetch(`${env.apiUrl}${path}`, {
       method,
       credentials: "include",
+      cache,
       // For FormData the browser sets the multipart Content-Type and its boundary.
       headers:
         body === undefined || body instanceof FormData

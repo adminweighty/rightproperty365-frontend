@@ -3,7 +3,9 @@
 import { Menu, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { useAuth } from "@/components/auth/auth-provider";
 import type { NavItem } from "@/components/layout/nav-items";
+import { ButtonLink } from "@/components/ui/button";
 
 type Props = {
   items: NavItem[];
@@ -20,12 +22,16 @@ const linkClass =
  * JavaScript. With JavaScript, focus moves to the first link when it opens,
  * Escape closes it and returns focus to the button, and it closes when a link
  * is followed, on a click outside, and when focus leaves it.
+ *
+ * For a signed-out visitor it ends with "Sign in" and "Sign up", because the
+ * bar has no room for "Sign up" on phones.
  */
 export function SiteMenu({ items, secondary = [] }: Props) {
   const details = useRef<HTMLDetailsElement>(null);
   const button = useRef<HTMLElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
+  const { status } = useAuth();
 
   useEffect(() => {
     if (!open) return;
@@ -102,6 +108,20 @@ export function SiteMenu({ items, secondary = [] }: Props) {
                   </Link>
                 </li>
               ))}
+            </ul>
+          )}
+          {status === "anonymous" && (
+            <ul className="mt-2 grid gap-2 border-t border-line pt-3 sm:grid-cols-2">
+              <li>
+                <ButtonLink href="/sign-in" variant="secondary" size="lg" className="w-full">
+                  Sign in
+                </ButtonLink>
+              </li>
+              <li>
+                <ButtonLink href="/register" size="lg" className="w-full">
+                  Sign up
+                </ButtonLink>
+              </li>
             </ul>
           )}
         </nav>

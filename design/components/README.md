@@ -345,11 +345,11 @@ A month calendar of nights. One component for the visitor's availability calenda
 ## SiteHeader (`layout/site-header.tsx`)
 
 - White, sticky, 64px tall, with a hairline under it and the 3px logo-colour band along its top. It begins with a "Skip to content" link.
-- Left to right: the logo on white (`Logo` default tone), the main navigation, then at the right the session control (`AccountMenu`) and, below `lg`, the menu button (`SiteMenu`).
+- Left to right: the logo on white (`Logo` default tone), the main navigation, then at the right the session control (`AccountMenu`: "Sign in" and "Sign up" for a signed-out visitor) and, below `lg`, the menu button (`SiteMenu`).
 - The main navigation (`layout/nav-items.ts`) shows inline from `lg`. Links are `ink`, weight 600, and take a turquoise underline on hover.
 - **The bar is one row at every width and never wraps or scrolls sideways.** The logo is the one part that may shrink: 24px tall on phones, 32px from `sm`. Do not add items to the bar; add them to the navigation list, which moves into the menu on small screens.
 - The header shows no market or currency. Prices carry their currency code, and the footer lists the markets.
-- Without JavaScript the session control cannot load, so a plain "Sign in" link is rendered in a `noscript`.
+- Without JavaScript the session control cannot load, so plain "Sign in" and "Sign up" links are rendered in a `noscript`.
 
 ## SiteMenu (`layout/site-menu.tsx`)
 
@@ -358,6 +358,7 @@ The navigation below `lg`: a 44px menu button at the right of the header that op
 - A native `<details>`: the `<summary>` is the button, so the menu opens and closes without JavaScript.
 - The button is named "Menu", has `aria-expanded` and `aria-controls`, and shows a menu icon that becomes a close icon while open.
 - The panel spans the page width under the header, white with `shadow-lg`, and scrolls if it is taller than the screen. It holds the main navigation (one column on phones, two from `sm`) and, under a hairline, the link for professionals. Links are 48px tall.
+- For a signed-out visitor the panel ends, under another hairline, with "Sign in" (secondary) and "Sign up" (primary) as 48px buttons, side by side from `sm`. On phones this is where "Sign up" lives, because the bar has no room for it.
 - With JavaScript: opening moves focus to the first link; Escape closes it and returns focus to the button; it also closes when a link is followed, on a click outside, and when focus leaves it.
 - Its `nav` is named "Main menu"; the inline one is "Main". Only one is displayed at a time.
 
@@ -392,18 +393,41 @@ The frame for sign-in, registration and account recovery: a 448px white card cen
 
 ## RoleSelect (`auth/role-select.tsx`)
 
-The sign-up question "How will you use RightProperty365?". People choose one or more roles; any combination is allowed.
+The sign-up question "How will you use RightProperty365?". An account is either for a Property Seeker (Prospective Buyer, Prospective Tenant or both) or for roles from the other groups (any mix of those), never both. The API enforces the same rule.
 
 - The roles, their groups, their titles and their one-line descriptions are a prop (`groups`) from the API's `account_roles` reference set, in the API's order. Today that is five groups: Property Seekers, Real Estate Professionals, Real Estate Businesses, Property Owners, Other property businesses.
 - Each row is the role's title (weight 500) with its description under it in `muted` 14px. Role names are titles, as the API sends them (content and voice, "Role names").
-- One outer `fieldset` with the question as its `legend` and the hint "Choose all that apply", then one nested `fieldset` per group with the group's label as its `legend`.
-- Native checkboxes named `roles`. Each label row is at least 44px tall and the whole row is the target. The Prospective Buyer role (`CONSUMER`) is ticked by default.
+- One outer `fieldset` with the question as its `legend` and a hint that states the rule: "Choose one. An account is either for finding a property or for property work, not both."
+- The question is asked in two steps, so a combination the rule forbids cannot be made. First two radio buttons: "I am looking for a property" and "I work in property, or I own property to sell or let". Under the chosen one are its checkboxes: the Property Seekers roles, or one nested `fieldset` per other group with the group's label as its `legend` and "Choose all that apply". The group with the code `PROPERTY_SEEKERS` is the first kind; every other group is the second.
+- The checkboxes of the kind not chosen are hidden and disabled, so they are not sent. They keep their ticks if the person switches back. Nothing is unticked behind the person's back, and nothing is shown disabled without a reason.
+- If the API returns only one of the two kinds there are no radio buttons: the groups are listed with the hint "Choose all that apply".
+- Native checkboxes named `roles`. Each label row is at least 44px tall and the whole row is the target. "I am looking for a property" is chosen and the Prospective Buyer role (`CONSUMER`) is ticked by default.
 - At least one is required. The error ("Choose at least one option.", or the API's `roles` message) appears under the groups and is linked to the outer fieldset with `aria-describedby`.
 - A role the API marks `requires_verification` says "Needs verification" beside its title (on its own line on phones), and a note under the groups explains that those roles are confirmed after we verify the person or their organisation. Choosing one records a request; it grants no access by itself.
 - If the roles cannot be loaded the form is replaced by an `ErrorState`: an account cannot be created without choosing a role.
 - Platform administrator roles never appear here. The API also rejects them, so this list is not the safeguard.
 - On the account page each chosen role is shown with a status badge: "Active" (`success`), or the status of its onboarding application in the API's words ("Pending Verification", "Under Review", "Changes Requested", "Rejected"), separate from organisation memberships and staff access. A role with an application links to it, and an approved role links to its public profile when it has one.
 - A membership shows the organisation's name, its kind from the `organisation_kinds` reference set ("Law Firm", "Real Estate Agency") and the membership's `role_label` from the API as a badge ("Principal", "Agency Principal"). Staff access shows the platform role's title ("Super Administrator").
+
+## Validation on the account forms (`lib/auth-validation.ts`, `auth/use-field-errors.ts`)
+
+Sign-up, sign-in, administrator sign-in, "forgot password" and "reset password" check what was typed before anything is sent.
+
+- The forms are `noValidate`: the browser's own bubbles are off, so every message looks the same and sits under its field through `Field`.
+- On submit, every problem is shown at once and focus moves to the first invalid field, whose `aria-describedby` points at its message. Changing a field clears its message.
+- The rules repeat the API's: full name required, 120 characters at most; an email address that looks like one; a new password of 10 to 128 characters (sign-in asks only that a password was typed); at least one role and the role rule; consent ticked; the captcha answered in digits.
+- The API stays the authority. Its `fields` errors are shown in the same places, the same way. A failure with no field this form has is an `Alert` above the button.
+- The rules are pure functions, tested by `scripts/auth-validation.test.mjs`.
+
+## Captcha (`auth/captcha.tsx`)
+
+The site's own check against automated sign-ups on the create-account form: a sum to answer. Not a third-party service; nothing is loaded from elsewhere.
+
+- The question comes from `GET /v1/auth/captcha`, asked from the browser when the form appears and never cached. It can be answered once and lasts ten minutes. The answer is sent with the registration as `captcha: { captcha_id, answer }`.
+- The question is the label ("What is 7 + 5?") of a short text input with `inputMode="numeric"` and `autoComplete="off"`, beside a secondary "New question" button. The hint under it: "This quick question helps us keep automated sign-ups out."
+- A new question replaces the old one when the person asks, when the old one runs out of time, and after every failed attempt to create the account. The answer is cleared whenever the question changes, and a polite live region reads the new question (and says so visibly when the old one ran out of time).
+- A wrong or expired answer comes back from the API as the `captcha` field error and is shown under the input.
+- If the question cannot be loaded: a danger `Alert` with "Try again" replaces the input, a line under "Create account" says the account can be created once the question has loaded, and pressing "Create account" explains the same and moves focus to "Try again".
 
 ## Administrator sign-in and landing (`admin/admin-sign-in-form.tsx`, `admin/admin-home.tsx`)
 
@@ -430,7 +454,8 @@ A disclaimer across the top of every page on a test copy of the site (staging). 
 The session control at the right of the header.
 
 - Loading: an empty block the size of the button, so the header does not shift.
-- Signed out: a primary "Sign in" button, 44px tall, at every width. From `lg` the "For professionals" link sits beside it; it leads to the landing page's section for professionals, whose button goes to registration. Below `lg` that link is in the menu panel.
+- Signed out: "Sign in" as a ghost button at every width and, from `sm`, the primary "Sign up" button to its right, which goes to `/register`. Both are 44px tall. On phones the bar has no room for "Sign up"; it is in the menu panel with "Sign in".
+- From `xl` the "For professionals" link sits before them; it leads to the landing page's section for professionals, whose button goes to registration. Below `lg` that link is in the menu panel. Between `lg` and `xl` the bar has no room for it beside the navigation and the two buttons.
 - Signed in: a secondary button, 44px tall, that opens a menu with the person's email, "Your account", "Complete your profile" (while an onboarding application is not submitted or has changes requested), "Request inbox" (professional accounts only) and "Sign out". From `sm` the button shows the person's first name; on phones it is the account icon alone, with the name kept for screen readers ("Account menu for Tendai"), so the header fits a 320px screen.
 - The button has `aria-expanded` and `aria-controls`. The menu closes on Escape, on an outside click, and when an item is chosen. Items are 44px tall.
 

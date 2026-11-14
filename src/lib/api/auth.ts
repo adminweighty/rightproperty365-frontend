@@ -162,12 +162,28 @@ export const getMe = () => apiFetch<SessionResponse>("/v1/me");
 export const adminLogin = (email: string, password: string) =>
   apiFetch<SessionResponse>("/v1/admin/auth/login", { method: "POST", body: { email, password } });
 
+/**
+ * One question of the site's own sign-up captcha ("What is 7 + 5?"). It can
+ * be answered once, until `expires_at` (ten minutes after it was issued).
+ */
+export type CaptchaChallenge = {
+  captcha_id: string;
+  question: string;
+  /** RFC 3339. */
+  expires_at: string;
+};
+
+/** A new question each time: asked from the browser only and never cached. */
+export const getCaptcha = () => apiFetch<CaptchaChallenge>("/v1/auth/captcha", { cache: "no-store" });
+
 export const register = (input: {
   name: string;
   email: string;
   password: string;
   roles: AccountRole[];
   accepted: boolean;
+  /** The question being answered and the answer, as digits. A wrong or expired one comes back as `fields.captcha`. */
+  captcha: { captcha_id: string; answer: string };
 }) =>
   apiFetch<{ status: string }>("/v1/auth/register", {
     method: "POST",
@@ -176,6 +192,7 @@ export const register = (input: {
       email: input.email,
       password: input.password,
       roles: input.roles,
+      captcha: input.captcha,
       consent: { privacy_version: PRIVACY_NOTICE_VERSION, accepted: input.accepted },
     },
   });
