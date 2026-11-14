@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { buttonClasses, ButtonLink } from "@/components/ui/button";
-import { canUseInbox } from "@/lib/api/auth";
+import { canUseInbox, hasOnboardingToDo } from "@/lib/api/auth";
 
 const itemClass =
   "block w-full rounded-sm px-3 py-2.5 text-left text-sm text-ink hover:bg-sunken focus-visible:bg-sunken";
@@ -77,6 +77,13 @@ export function AccountMenu() {
                 </Link>
               )}
             </li>
+            {!isAdmin && hasOnboardingToDo(user) && (
+              <li>
+                <Link href="/onboarding" className={itemClass} onClick={() => setOpen(false)}>
+                  Complete your profile
+                </Link>
+              </li>
+            )}
             {!isAdmin && canUseInbox(user) && (
               <li>
                 <Link href="/agent/requests" className={itemClass} onClick={() => setOpen(false)}>

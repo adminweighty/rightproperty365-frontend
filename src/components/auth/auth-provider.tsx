@@ -13,6 +13,8 @@ type AuthContextValue = AuthState & {
   isAdmin: boolean;
   /** Call after the API has started a session (sign-in, email verification). */
   setSession: (response: SessionResponse) => void;
+  /** Reads the user again, after something changed their roles (an onboarding step). */
+  refresh: () => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -45,6 +47,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const setSession = useCallback((response: SessionResponse) => setState(fromResponse(response)), []);
 
+  const refresh = useCallback(async () => {
+    const result = await getMe();
+    if (result.ok) setState(fromResponse(result.data));
+  }, []);
+
   const signOut = useCallback(async () => {
     await logout();
     setState(anonymous);
@@ -55,9 +62,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ...state,
       isAdmin: state.scope === "admin" && state.user.platform_roles.length > 0,
       setSession,
+      refresh,
       signOut,
     }),
-    [state, setSession, signOut],
+    [state, setSession, refresh, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

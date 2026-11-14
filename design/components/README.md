@@ -179,7 +179,7 @@ The sign-up question "How will you use RightProperty365?". People choose one or 
 - A role the API marks `requires_verification` says "Needs verification" in its label, and a note under the groups explains that those roles are confirmed after we verify the person or their organisation. Choosing one records a request; it grants no access by itself.
 - If the roles cannot be loaded the form is replaced by an `ErrorState`: an account cannot be created without choosing a role.
 - Platform administrator roles never appear here. The API also rejects them, so this list is not the safeguard.
-- On the account page each chosen role is shown with a status badge: "Active" (`success`) or "Pending verification" (`warning`), separate from organisation memberships and staff access.
+- On the account page each chosen role is shown with a status badge: "Active" (`success`), or the status of its onboarding application ("Not submitted", "Submitted for review", "Changes requested", "Not approved"), separate from organisation memberships and staff access. A role with an application links to it, and an approved role links to its public profile when it has one.
 
 ## Administrator sign-in and landing (`admin/admin-sign-in-form.tsx`, `admin/admin-home.tsx`)
 
@@ -188,7 +188,7 @@ Platform administrators sign in at `/admin/sign-in`, a separate page from the cu
 - The page uses `AuthShell` with the heading "Administrator sign in". It has no "create an account" link, no role picker and no email password reset; a line of text says to ask a super administrator.
 - It is not linked from the header, footer or customer sign-in, is `noindex, nofollow`, and is not in the sitemap. Administrators are given the address.
 - Every failed attempt shows the same message, "That email and password do not match.", whether the address is unknown, the password is wrong, or the account is not an administrator. The customer sign-in shows the same message for an administrator account.
-- `/admin` states: loading skeleton; signed out (redirects to `/admin/sign-in`); signed in without an administrator session (the "You do not have access" state with links to the account page and customer sign-in); administrator (name, platform roles with their market, and an honest "not built yet" notice).
+- `/admin` states: loading skeleton; signed out (redirects to `/admin/sign-in`); signed in without an administrator session (the "You do not have access" state with links to the account page and customer sign-in); administrator (name, a "Verifications" card with the number of applications waiting and a link to the review queue, platform roles with their market, and an honest list of what is not built yet). `AdminGate` (`admin/admin-gate.tsx`) gives every admin page the same states.
 - For an administrator session the account menu shows "Administration" in place of "Your account", and signing out returns to `/admin/sign-in`.
 
 ## AccountMenu (`auth/account-menu.tsx`)
@@ -197,7 +197,7 @@ The session control at the right of the header.
 
 - Loading: an empty block the size of the button, so the header does not shift.
 - Signed out: a small primary "Sign in" button.
-- Signed in: a secondary button with the person's first name that opens a menu with their email, "Your account", "Request inbox" (professional accounts only) and "Sign out".
+- Signed in: a secondary button with the person's first name that opens a menu with their email, "Your account", "Complete your profile" (while an onboarding application is not submitted or has changes requested), "Request inbox" (professional accounts only) and "Sign out".
 - The button has `aria-expanded` and `aria-controls`. The menu closes on Escape, on an outside click, and when an item is chosen.
 
 ## RequireAuth (`auth/require-auth.tsx`)
@@ -216,6 +216,64 @@ The list of customer requests routed to the signed-in person: an agent's own lis
 - Each request is a card: type and status badges, received time in the viewer's time zone, customer name and listing, the message, then contact links and the reference. The listing's title comes with the request from the API; when it does not, the card says "about a listing". Request type and contact method labels come from the API's reference data.
 - States: loading skeleton, error with "Try again", empty ("No requests yet"), and the list with a count.
 - Contact details appear only here, behind sign-in. They must never be put in a notification preview or a URL.
+
+## OnboardingHub (`onboarding/onboarding-hub.tsx`)
+
+`/onboarding`: the signed-in person's applications for listing, managing and agency roles, one card per role.
+
+- An opening paragraph says in plain words that these roles are confirmed after RightProperty365 has checked who the person is, and that a role gives no extra access until then.
+- Each card: the role's label (from the API) as an `h2`, a status badge, what is still needed in words ("Details still needed: …", "Documents still needed: …"), and one primary action.
+- Status wording is exact. Use the API's `status_label` when it sends one; otherwise: "Not submitted", "Submitted for review", "Changes requested", "Approved", "Not approved". Never "Verified" before an approval. The badge always has text; tone is neutral, info, warning, success, danger in that order.
+- Action by status: "Start" (an untouched draft), "Continue", "Fix and resubmit" (changes requested, with the reviewer's reason on the card), "View" (submitted or approved, a secondary button), "Apply again" (not approved, with the reason). An approved role with a public profile also gets "View your public profile".
+- States: loading skeleton, signed out (`RequireAuth`), error with "Try again", and "Nothing to complete" for an account with no such role.
+
+## OnboardingForm (`onboarding/onboarding-form.tsx`)
+
+`/onboarding/<role>`: one application. Which details and documents it has, and which are required, come from `GET /v1/onboarding/requirements`; cities, trades and agencies come from reference data. The component holds only how each detail is labelled (`onboarding/fields.ts`); a detail it does not know falls back to a text field.
+
+- Order: a link back to the hub, the role as `h1` with the status badge, one sentence on what an approval leads to, any notice (see below), then two cards, "Details" and "Documents", then the actions.
+- Details use `Field`. Optional ones are marked "(optional)"; required ones carry `aria-required`. Lists (areas, services) are one text field with "Separate with commas".
+- **Private details say so.** The phone number's hint says it is used only by the verification team and is never shown publicly; the registration number likewise. In read-only views they carry a "Private" badge.
+- Actions: "Save draft" (secondary; saves the details and says "Draft saved. Nothing has been sent for review yet.") and "Submit for review" (primary; saves, then submits).
+- When submitting fails, every missing detail gets its message under its control and every missing document under its row, one summary `Alert` appears above the buttons, and focus moves to the first problem. The API's "is required" is rewritten to say what to do ("Enter business name before you submit.").
+- After submitting: an info `Alert` titled "Submitted for review" with the time, saying the role is not active yet and the application cannot be changed. The details and documents are then read-only.
+- "Changes requested" shows the reviewer's reason in a warning `Alert` above an editable form. "Not approved" shows the reason in a danger `Alert` with "Apply again", which starts a new application with the earlier details (documents are attached again).
+- "Approved" shows a success `Alert` and, when there is one, a link to the public profile.
+
+## DocumentUploader (`onboarding/document-uploader.tsx`)
+
+One row per document type in an application.
+
+- The row shows the type's label and description (from the API), "(optional)" when it is not required, and a badge: "Attached", "Needed" or "Not attached". With a file: its name and size.
+- Controls: "Choose a file" (primary) when nothing is attached; "Replace", "Open" and "Remove" when something is. They are real buttons, 44px tall, with the global focus outline; the native file input is hidden and driven by the button, so the control has one clear name and works with the keyboard.
+- "Open" is a link to the API's authenticated file route in a new tab. The file downloads; the link's accessible name says so.
+- Accepts PDF, JPEG and PNG up to 10 MB. Type and size are checked before sending as a convenience ("notes.txt is not a PDF, JPEG or PNG file…"); the API checks the content and its message is shown as it is.
+- Each row uploads on its own and shows its own state: the button reads "Uploading…" and is `aria-busy`, and a `role="status"` line announces "Uploading name…" then "name was uploaded." A failure is a `role="alert"` line in the danger colour and the row gets a danger border, so the problem is not shown by colour alone.
+- Files are saved as soon as they are uploaded; "Save draft" is not needed for them.
+- While an application is under review or decided, a row shows only the file and "Open".
+
+## ReviewQueue (`admin/review-queue.tsx`)
+
+`/admin/verifications`: applications waiting for a platform administrator. Shown only to an administrator session (`AdminGate`); customers get the "You do not have access" state.
+
+- Status tabs are links in a `nav` (Submitted for review first, the default), each with its count as text inside the link and `aria-current="page"` on the current one. The current tab is filled, not only coloured.
+- A GET form filters by role (the roles come from the API) and searches applicant, email or business. Status, filters and page live in the address, so a view can be bookmarked.
+- Each row is a card that is one link (the applicant's name, stretched): role and status badges, submitted time, applicant name and email, the business name or "Joining <agency>", and the number of documents. Oldest submission first, as the API returns them.
+- States: loading skeleton, error with "Try again", empty ("No applications are waiting for review." or "No applications match those filters" with "Clear filters"), and `Pagination`.
+
+## ReviewDetail (`admin/review-detail.tsx`)
+
+`/admin/verifications/<id>`: one application for a decision.
+
+- Header: applicant name as `h1`, role and status badges.
+- "Applicant" card: name, email with "Confirmed" or "Not confirmed", account age, market, and one sentence beginning "Approving creates:" that says in plain words what an approval does (a new organisation and a verified profile in a named directory, a membership in a named agency, or nothing beyond making the role active).
+- "Details" card: every detail the role has. Private ones (phone, registration number) carry a "Private" badge. A missing required detail reads "Not given (required)".
+- "Documents" card: one row per document type with "Attached", "Missing" or "Not attached", the file name, size and upload time, and "Open" (the admin file route, new tab, downloads). A line says every open is recorded in the audit log.
+- "History" card: an ordered list of every status change with who made it, when, and the reason.
+- "Decision" card (sticky on desktop): the requirement checklist in words ("provided", "missing (required)", "not provided (optional)") with an icon as a second cue, then three buttons: "Approve" (primary), "Request changes" (secondary), "Reject" (danger). They appear only while the application is submitted.
+- **Every decision has a confirmation step** in place: a panel that names the action, says what will happen, and has a labelled text area and "Confirm approval" / "Send request" / "Confirm rejection" plus "Cancel". Focus moves into the panel. The note is optional for an approval; a reason of at least 5 characters is required to request changes or reject, and it is shown to the applicant.
+- After a decision: a success `Alert` ("Application approved." with what was created, and a link to the public profile when there is one).
+- A 409 (already decided, or the named agency is no longer verified) shows a warning `Alert` that says so and the page reloads the application.
 
 ## Not built yet
 

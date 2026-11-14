@@ -1,54 +1,34 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { AdminGate } from "@/components/admin/admin-gate";
 import { useAuth } from "@/components/auth/auth-provider";
-import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { platformRoleLabels } from "@/lib/api/auth";
+import { platformRoleLabels, type User } from "@/lib/api/auth";
+import { listApplications } from "@/lib/api/onboarding";
 
-/**
- * Landing page for platform administrators. This chooses what to display; the
- * API only accepts administrator sessions for platform-role actions.
- */
-export function AdminHome() {
-  const { status, user, isAdmin, signOut } = useAuth();
-  const router = useRouter();
-
+/** How many applications are waiting for a decision. Null while loading or if it cannot be read. */
+function useSubmittedCount(): number | null {
+  const [count, setCount] = useState<number | null>(null);
   useEffect(() => {
-    if (status === "anonymous") router.replace("/admin/sign-in");
-  }, [status, router]);
+    let cancelled = false;
+    listApplications({ status: "SUBMITTED", page_size: 1 }).then((result) => {
+      if (!cancelled && result.ok) setCount(result.data.counts.SUBMITTED);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return count;
+}
 
-  if (status !== "authenticated") {
-    return (
-      <div aria-busy="true" aria-label="Loading" className="space-y-4">
-        <div className="h-10 max-w-xs rounded-md bg-sunken" />
-        <div className="h-40 rounded-lg bg-sunken" />
-      </div>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="rounded-lg border border-dashed border-line-strong p-10 text-center">
-        <h1 className="text-2xl">You do not have access to this page</h1>
-        <p className="mx-auto mt-2 max-w-md text-muted">
-          This area is for RightProperty365 administrators. Your account is signed in as a
-          customer account.
-        </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <ButtonLink href="/account" variant="secondary">
-            Go to your account
-          </ButtonLink>
-          <ButtonLink href="/sign-in" variant="ghost">
-            Customer sign in
-          </ButtonLink>
-        </div>
-      </div>
-    );
-  }
+function Home({ user }: { user: User }) {
+  const { signOut } = useAuth();
+  const router = useRouter();
+  const waiting = useSubmittedCount();
 
   return (
     <>
@@ -56,6 +36,28 @@ export function AdminHome() {
       <h1 className="mt-2 text-4xl">Welcome, {user.name}</h1>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
+        <Card>
+          <h2 className="text-2xl">Verifications</h2>
+          <p className="mt-2 leading-relaxed text-muted">
+            Applications from people who signed up to list or manage property, or to work at an
+            agency. Approving one confirms the role and, where the role has one, publishes a
+            verified directory profile.
+          </p>
+          <p className="mt-4 text-ink" role="status">
+            {waiting === null ? (
+              <span className="text-muted">Checking for applications…</span>
+            ) : (
+              <>
+                <span className="text-3xl font-bold tabular-nums">{waiting}</span>{" "}
+                {waiting === 1 ? "application is" : "applications are"} waiting for review
+              </>
+            )}
+          </p>
+          <ButtonLink href="/admin/verifications" className="mt-5">
+            Open the review queue
+          </ButtonLink>
+        </Card>
+
         <Card>
           <h2 className="text-2xl">Your administrator roles</h2>
           <ul className="mt-4 space-y-3">
@@ -72,14 +74,12 @@ export function AdminHome() {
           <p className="mt-4 break-all text-sm text-muted">{user.email}</p>
         </Card>
 
-        <Card>
-          <h2 className="text-2xl">Admin console</h2>
-          <Alert tone="info" title="The admin console has not been built yet." className="mt-4">
-            <p>
-              Moderation, markets, invoices, users and audit will appear here as each one is
-              released.
-            </p>
-          </Alert>
+        <Card className="lg:col-span-2">
+          <h2 className="text-2xl">Not built yet</h2>
+          <p className="mt-2 leading-relaxed text-muted">
+            Listing moderation, markets and reference data, invoices, user management and the audit
+            log are not in the admin console yet. They will appear here as each one is released.
+          </p>
           <p className="mt-4 text-sm leading-relaxed text-muted">
             Administrator sessions end after 30 minutes without activity.
           </p>
@@ -98,4 +98,9 @@ export function AdminHome() {
       </Button>
     </>
   );
+}
+
+/** Landing page for platform administrators. */
+export function AdminHome() {
+  return <AdminGate>{(user) => <Home user={user} />}</AdminGate>;
 }

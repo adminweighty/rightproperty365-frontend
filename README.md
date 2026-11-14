@@ -36,6 +36,7 @@ Open http://localhost:3000. Start the backend API on http://localhost:8080 as we
 | `API_URL` | run time, server only | Address the web server uses to read listings, directory and reference data, for example a cluster-internal one. Optional; defaults to `NEXT_PUBLIC_API_URL`. Never sent to browsers. |
 | `NEXT_PUBLIC_SITE_URL` | build time | Public origin of the site, for canonical URLs, the sitemap and structured data. |
 | `BUILD_WITHOUT_API` | build time | Set to `1` to build without reading the API even when one is reachable. See "Builds and the API". |
+| `REVALIDATE_SECRET` | run time, server only | Turns on `POST /api/revalidate` and is the bearer token it requires. Unset by default, which leaves the route off (404). See "Onboarding and verification". |
 
 ## Data from the API
 
@@ -59,6 +60,26 @@ How it is wired:
 - **Codes are checked against the reference data** before they are sent to the API, which answers 400 for a code it does not know.
 - **Photos.** The API returns a photo as `/assets/images/<file>.jpg` with alt text and size. Object storage and uploads are not built, so those files are the ones bundled from `src/assets/images`. `src/lib/photos.ts` maps the file name to the bundled import, which keeps hashed URLs, responsive sizes and blur placeholders. A photo that is not bundled is loaded from the URL the API gave, unoptimised, at the API's width and height.
 - **Not in the reference data**, so still labelled in code: the four sort orders of the listing search (an enum of that endpoint), and the labels of platform roles, organisation roles and organisation kinds on the account and admin pages (enums of the identity API). The main navigation and the landing page's marketing copy are written in the app.
+
+## Onboarding and verification
+
+A person who signs up with a listing, managing or agency role (every role except buyer and tenant) has one application per role. The role gives no access until a platform administrator approves the application.
+
+- **Applicant** (`/onboarding`, `/onboarding/<role>`): after confirming their email they land on the hub, which lists each application with its status and what is missing. The form for a role is built from `GET /v1/onboarding/requirements`: which details and documents the role has, and which are required, come from the API. Details are saved with "Save draft"; each document is uploaded on its own (PDF, JPEG or PNG, up to 10 MB); "Submit for review" sends it. The reviewer's reason is shown when changes are requested or the application is not approved, and a rejected applicant can apply again.
+- **Administrator** (`/admin/verifications`, `/admin/verifications/<id>`): the review queue (status tabs with counts, role filter, search, pages) and the review page (applicant, private details, requirement checklist, documents, history) with Approve, Request changes and Reject. Only an administrator session sees them; the API authorises every call.
+- **Documents are private.** They are read only through the API's authenticated file routes with the session cookie, and always download. The web app never stores or proxies them.
+- **The session lives in the browser.** These screens read and write the API from Client Components with the session cookie. The server only supplies the public lists they need (requirements, cities, trades, verified agencies).
+- **After an approval** the API creates the organisation or membership and, for roles that have one, a public directory profile with `verified: true`. The directory shows the Verified badge from that flag.
+
+**How soon an approved profile appears.** Directory data is cached for one minute (`cacheLife("minutes")`, tag `directory`). A directory page is regenerated in the background by the first request that arrives after that minute, and that request is still served the previous copy. So the worst case is one minute plus one more page view; on a page nobody visits, the first visitor after the minute sees the old copy once. Inside the app, a page a visitor already opened can be reused by their browser for up to five minutes.
+
+To remove the delay, set `REVALIDATE_SECRET` on the web server and have the API (or an operator) call:
+
+```bash
+curl -X POST https://<site>/api/revalidate -H "Authorization: Bearer $REVALIDATE_SECRET" -H "Content-Type: application/json" -d '{"tags":["directory"]}'
+```
+
+The route accepts only the cache tags listed under "Data from the API", returns 404 when the secret is not set and 401 for a wrong one, and must only be called server to server: never put the secret in a browser. Nothing calls it yet; the API would need to after an approval.
 
 ## Builds and the API
 
@@ -101,6 +122,9 @@ src/app/                Routes (App Router)
   error.tsx             Fallback for an unexpected rendering error
   sitemap.ts            Built from GET /v1/sitemap
   (auth)/               Sign in, register, confirm email, password reset
+  onboarding/           Applications for listing, managing and agency roles: hub and one form per role
+  admin/verifications/  Review queue and review page for platform administrators
+  api/revalidate/       Protected on-demand cache revalidation (off unless REVALIDATE_SECRET is set)
   account/              Profile, roles and memberships
   agent/requests/       Request inbox for professional accounts
   design-system/        Live token and component reference (not indexed)
@@ -112,6 +136,8 @@ src/components/
   directory/            Profile card, enquiry form
   requests/             Property request form
   auth/                 Auth provider, forms, account menu, RequireAuth
+  onboarding/           Onboarding hub, form and document uploader
+  admin/                Administrator gate, sign-in, landing, review queue and review detail
   agent/                Request inbox
 src/lib/
   api/                  Browser clients for the Go API (session cookie), and types.ts
@@ -162,6 +188,6 @@ The build reads the API if it can reach it (`--build-arg API_URL=...`, else `NEX
 
 ## Current state
 
-Built: design system, UI primitives, home page, listing search with filters, facet counts and pages, listing detail, the directories and profiles, the property request and business enquiry forms, sitemap and structured data, and authentication: register, email confirmation, sign in and out, password reset, an account page showing roles, and the request inbox. All of it reads the Go API; the listings and profiles it shows are the backend's seed data.
+Built: design system, UI primitives, home page, listing search with filters, facet counts and pages, listing detail, the directories and profiles, the property request and business enquiry forms, sitemap and structured data, and authentication: register, email confirmation, sign in and out, password reset, an account page showing roles, the request inbox, onboarding for listing and agency roles with document uploads, and the administrator review queue. All of it reads the Go API; the listings and profiles it shows are the backend's seed data.
 
-Not built yet: multi-factor authentication, organisation invitations and agent onboarding, account deletion, creating and editing listings, agent and admin portals, maps, media uploads and object storage (photos are bundled files), YouTube embeds, analytics events, and on-demand cache revalidation when the API changes (the cache tags are in place; nothing calls `revalidateTag` yet).
+Not built yet: multi-factor authentication, organisation invitations and agent onboarding, account deletion, creating and editing listings, the rest of the agent and admin portals (listing moderation, markets, invoices, users, audit), maps, media uploads and object storage (photos are bundled files), YouTube embeds, analytics events, and automatic cache revalidation when the API changes (`POST /api/revalidate` exists; the API does not call it yet).

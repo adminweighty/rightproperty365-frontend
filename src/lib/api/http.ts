@@ -18,7 +18,8 @@ export type ApiFailure = {
 export type ApiResult<T> = { ok: true; data: T; status: number } | { ok: false; failure: ApiFailure };
 
 type Options = {
-  method?: "GET" | "POST" | "PATCH" | "DELETE";
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+  /** Sent as JSON, or as multipart/form-data when it is a FormData (file uploads). */
   body?: unknown;
   headers?: Record<string, string>;
 };
@@ -27,6 +28,8 @@ const fallbackMessages: Record<number, string> = {
   401: "Please sign in to continue.",
   403: "You do not have access to this.",
   404: "We could not find that.",
+  413: "That file is too large.",
+  415: "That file type is not accepted.",
   429: "Too many attempts. Please wait a minute and try again.",
 };
 
@@ -38,8 +41,12 @@ export async function apiFetch<T>(path: string, options: Options = {}): Promise<
     response = await fetch(`${env.apiUrl}${path}`, {
       method,
       credentials: "include",
-      headers: body === undefined ? headers : { "Content-Type": "application/json", ...headers },
-      body: body === undefined ? undefined : JSON.stringify(body),
+      // For FormData the browser sets the multipart Content-Type and its boundary.
+      headers:
+        body === undefined || body instanceof FormData
+          ? headers
+          : { "Content-Type": "application/json", ...headers },
+      body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
     });
   } catch {
     return {

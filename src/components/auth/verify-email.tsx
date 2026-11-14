@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { Alert } from "@/components/ui/alert";
 import { ButtonLink } from "@/components/ui/button";
-import { verifyEmail } from "@/lib/api/auth";
+import { hasOnboarding, verifyEmail } from "@/lib/api/auth";
 import type { ApiFailure } from "@/lib/api/http";
 
 export function VerifyEmail() {
@@ -22,7 +22,8 @@ export function VerifyEmail() {
     verifyEmail(token).then((result) => {
       if (result.ok) {
         setSession(result.data);
-        router.replace("/account?welcome=1");
+        // A listing or agency role has an onboarding step before it is confirmed.
+        router.replace(hasOnboarding(result.data.user) ? "/onboarding?welcome=1" : "/account?welcome=1");
       } else {
         setFailure(result.failure);
       }

@@ -37,7 +37,10 @@ export type Membership = {
  * set, and the API rejects them.
  */
 export type AccountRole = string;
-export type AccountRoleStatus = "ACTIVE" | "PENDING_VERIFICATION";
+export type AccountRoleStatus = "ACTIVE" | "PENDING_VERIFICATION" | "REJECTED";
+
+/** Status of a role's onboarding application (src/lib/api/onboarding.ts). */
+export type OnboardingStatus = "DRAFT" | "SUBMITTED" | "CHANGES_REQUESTED" | "APPROVED" | "REJECTED";
 
 /** One heading of the sign-up role picker with its roles, in the API's order. */
 export type AccountRoleGroup = {
@@ -52,7 +55,12 @@ export type User = {
   email: string;
   email_verified: boolean;
   /** Self-selected roles. A pending role grants no access until it is verified. */
-  account_roles: { role: AccountRole; status: AccountRoleStatus }[];
+  account_roles: {
+    role: AccountRole;
+    status: AccountRoleStatus;
+    /** Null for a role that has no onboarding (buyer, tenant). Optional: older API builds do not send it. */
+    onboarding_status?: OnboardingStatus | null;
+  }[];
   platform_roles: { role: PlatformRole; market_code: string | null }[];
   memberships: Membership[];
 };
@@ -91,6 +99,18 @@ export const organisationKindLabels: Record<OrganisationKind, string> = {
   DEVELOPER: "Developer",
   SERVICE_PROVIDER: "Service provider",
 };
+
+/** True when the user chose a role that has an onboarding application. */
+export const hasOnboarding = (user: User | null) =>
+  Boolean(user?.account_roles?.some(({ onboarding_status }) => Boolean(onboarding_status)));
+
+/** True while an application still needs something from the user. */
+export const hasOnboardingToDo = (user: User | null) =>
+  Boolean(
+    user?.account_roles?.some(
+      ({ onboarding_status }) => onboarding_status === "DRAFT" || onboarding_status === "CHANGES_REQUESTED",
+    ),
+  );
 
 /** True when the user belongs to at least one organisation. */
 export const isProfessional = (user: User | null) => Boolean(user?.memberships.length);

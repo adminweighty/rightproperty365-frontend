@@ -57,8 +57,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!loaded.ok) return { title: "Profile", robots: { index: false, follow: true } };
   if (!loaded.data) return { title: "Profile not found", robots: { index: false, follow: true } };
 
-  const { profile } = loaded.data;
-  const title = `${profile.name}: ${profile.role.toLowerCase()} in ${profile.city.label}`;
+  const { profile, kind: directory } = loaded.data;
+  // A profile created by an approval may have no role line yet: fall back to its trade or directory.
+  const what = profile.role || profile.trade?.label || directory.singular_label;
+  const title = `${profile.name}: ${what.toLowerCase()} in ${profile.city.label}`;
   const description = `${profile.tagline} ${profile.description}`.slice(0, 300);
   const path = profilePath(profile);
   return {
@@ -136,7 +138,7 @@ async function ProfileContent({ params }: Pick<Props, "params">) {
             </div>
             <h1 className="mt-2 text-3xl md:text-4xl">{profile.name}</h1>
             <p className="mt-1 text-muted">
-              {profile.role}
+              {profile.role || profile.trade?.label || kind.singular_label}
               {agency && (
                 <>
                   {" at "}
