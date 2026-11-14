@@ -15,7 +15,7 @@ import { getDirectoryKinds, getDirectoryList, getDirectoryProfile } from "@/lib/
 import { getSitemapEntries } from "@/lib/api/server/listings";
 import { load, readAtBuild } from "@/lib/api/server/load";
 import { getCatalogue } from "@/lib/api/server/reference";
-import { toOptions } from "@/lib/api/types";
+import { toLabels, toOptions } from "@/lib/api/types";
 import { profilePlace } from "@/lib/places";
 import { profileJsonLd, profilePath } from "@/lib/seo";
 import { ApiBoundary } from "@/components/api-boundary";
@@ -272,7 +272,7 @@ async function ProfileContent({ params }: Pick<Props, "params">) {
             {listings.length === 1 ? "1 property" : `${listings.length} properties`} from {profile.name}
           </h2>
           <div className="mt-8">
-            <ListingGrid listings={listings} />
+            <ListingGrid listings={listings} periods={toLabels(catalogue.sets.price_periods)} />
           </div>
         </section>
       )}

@@ -17,6 +17,8 @@ type Props = {
   advanced?: boolean;
   /** The API's message for each parameter it refused. */
   errors?: Record<string, string>;
+  /** The earliest night the stay dates accept (`YYYY-MM-DD`). */
+  today: string;
   className?: string;
 };
 
@@ -27,7 +29,7 @@ type Props = {
  * (country, region, city, suburb), then the advanced search panel.
  * Submitting always returns to page 1 of the new result.
  */
-export function SearchBar({ options, defaults = {}, advanced, errors = {}, className }: Props) {
+export function SearchBar({ options, defaults = {}, advanced, errors = {}, today, className }: Props) {
   // A new key when the address changes, so the selects show the new search after a client navigation.
   const locationKey = [defaults.country, defaults.region, defaults.city, defaults.suburb].join("|");
 
@@ -96,7 +98,7 @@ export function SearchBar({ options, defaults = {}, advanced, errors = {}, class
         </div>
       </fieldset>
 
-      <ListingFilterPanel options={options} defaults={defaults} open={advanced} errors={errors} />
+      <ListingFilterPanel options={options} defaults={defaults} open={advanced} errors={errors} today={today} />
     </GetForm>
   );
 }

@@ -1,5 +1,6 @@
 import type { ReferenceItem } from "@/lib/api/types";
 import { formatArea, formatMoney } from "@/lib/format";
+import { formatStay, guestCount, isNight, formatNight } from "@/lib/nights";
 import { advertiserLabels, listedWithinLabel } from "@/lib/search-options";
 import { filterParams, listingsPath, type ListingFilters, type SearchContext } from "@/lib/seo";
 
@@ -24,6 +25,8 @@ export function activeFilterChips(
     const next: ListingFilters = { ...filters };
     if (feature) next.features = filters.features?.filter((code) => code !== feature);
     else delete next[key];
+    // The two dates of a stay are one filter: both or neither.
+    if (key === "check_in") delete next.check_out;
     if (next.features?.length === 0) delete next.features;
     return listingsPath(next);
   };
@@ -32,6 +35,11 @@ export function activeFilterChips(
     deal: (value) => label(sets.deal_types, value),
     category: (value) => label(sets.property_categories, value),
     property_type: (value) => label(sets.property_types, value),
+    // "17–20 Nov 2026 · 3 nights": one chip for the two dates.
+    check_in: (value) =>
+      filters.check_out && isNight(filters.check_out) ? formatStay(value, filters.check_out) : `From ${formatNight(value)}`,
+    check_out: (value) => `Until ${formatNight(value)}`,
+    guests_min: (value) => guestCount(value),
     country: (value) => countries.find((country) => country.code === value)?.name ?? value,
     region: (value) => label(sets.regions, value),
     city: (value) => label(sets.cities, value),
@@ -65,6 +73,8 @@ export function activeFilterChips(
     const value = filters[key];
     const describe = text[key] as ((value: unknown) => string) | undefined;
     if (value === undefined || !describe) continue;
+    // Said by the chip of the first night.
+    if (key === "check_out" && filters.check_in !== undefined) continue;
     chips.push({ key, label: describe(value), href: without(key) });
   }
   return chips;

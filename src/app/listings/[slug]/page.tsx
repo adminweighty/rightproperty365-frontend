@@ -2,6 +2,8 @@ import { BadgeCheck, Check, ChevronRight, MapPin } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { ReactNode } from "react";
+import { StayCalendar, StayProvider } from "@/components/availability/stay-calendar";
 import { ListingFacts, ListingGrid, ListingPrice } from "@/components/listings/listing-card";
 import { ListingMedia } from "@/components/listings/listing-media";
 import { PropertyRequestForm } from "@/components/requests/property-request-form";
@@ -11,10 +13,11 @@ import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
 import { ErrorState } from "@/components/ui/error-state";
 import { JsonLd } from "@/components/seo/json-ld";
-import { getListing, getSitemapEntries, listListings } from "@/lib/api/server/listings";
+import { getListing, getListingAvailability, getSitemapEntries, listListings } from "@/lib/api/server/listings";
 import { load, readAtBuild } from "@/lib/api/server/load";
 import { getCatalogue } from "@/lib/api/server/reference";
-import { toOptions, type Listing } from "@/lib/api/types";
+import { toLabels, toOptions, type Listing } from "@/lib/api/types";
+import { toStayCalendarData, type StayCalendarData } from "@/lib/stay-calendar";
 import { coverPhoto } from "@/lib/photos";
 import { fullPlace, narrowestPlace } from "@/lib/places";
 import {
@@ -24,6 +27,7 @@ import {
   listingSeoTitle,
   listingsPath,
   profilePath,
+  SHORT_STAY,
 } from "@/lib/seo";
 import { ApiBoundary } from "@/components/api-boundary";
 
@@ -148,19 +152,32 @@ async function similarListings(listing: Listing): Promise<Listing[]> {
     .slice(0, 3);
 }
 
+/**
+ * On a short stay, the calendar and the request form share the dates being
+ * chosen. Any other listing has no stay to choose.
+ */
+function StayScope({ calendar, children }: { calendar: StayCalendarData | null; children: ReactNode }) {
+  return calendar ? <StayProvider calendar={calendar}>{children}</StayProvider> : children;
+}
+
 async function ListingContent({ params }: Pick<Props, "params">) {
   const { slug } = await params;
   const loaded = await load(async () => {
     const lookup = await getListing(slug);
-    if (lookup.status !== "found") return { lookup, catalogue: undefined, similar: [] };
-    const [catalogue, similar] = await Promise.all([getCatalogue(), similarListings(lookup.listing)]);
-    return { lookup, catalogue, similar };
+    if (lookup.status !== "found") return { lookup, catalogue: undefined, similar: [], availability: null };
+    const [catalogue, similar, availability] = await Promise.all([
+      getCatalogue(),
+      similarListings(lookup.listing),
+      // Only a short stay has a calendar.
+      lookup.listing.category.code === SHORT_STAY ? getListingAvailability(slug) : null,
+    ]);
+    return { lookup, catalogue, similar, availability };
   });
 
   if (!loaded.ok) {
     return <ErrorState title="We could not load this listing." retryHref={`/listings/${slug}`} />;
   }
-  const { lookup, catalogue, similar } = loaded.data;
+  const { lookup, catalogue, similar, availability } = loaded.data;
   if (lookup.status === "gone") return <ListingGone />;
   if (lookup.status === "missing" || !catalogue) notFound();
 
@@ -170,6 +187,8 @@ async function ListingContent({ params }: Pick<Props, "params">) {
   // The agent for an agency listing; the seller's own name for a private sale.
   const contact = advertiser.agent ?? advertiser.agency;
   const place = fullPlace(listing);
+  const periods = toLabels(catalogue.sets.price_periods);
+  const calendar = availability ? toStayCalendarData(availability) : null;
 
   return (
     <>
@@ -223,6 +242,7 @@ async function ListingContent({ params }: Pick<Props, "params">) {
         </ul>
       )}
 
+      <StayScope calendar={calendar}>
       <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_24rem]">
         <div>
           <div className="flex flex-wrap gap-2">
@@ -238,7 +258,7 @@ async function ListingContent({ params }: Pick<Props, "params">) {
               {place}
             </p>
           )}
-          <ListingPrice listing={listing} className="mt-6 text-4xl" />
+          <ListingPrice listing={listing} periods={periods} className="mt-6 text-4xl" />
           <div className="mt-6 border-y border-line py-4">
             <ListingFacts listing={listing} />
           </div>
@@ -262,13 +282,21 @@ async function ListingContent({ params }: Pick<Props, "params">) {
             </>
           )}
 
+          {calendar && (
+            <StayCalendar
+              listingTitle={listing.title}
+              nextAvailable={listing.availability?.next_available ?? null}
+              formId="contact-heading"
+            />
+          )}
+
           <p className="mt-10 text-sm text-subtle">Listing reference {listing.reference}</p>
         </div>
 
         <aside aria-labelledby="contact-heading">
           <Card className="lg:sticky lg:top-24">
-            <h2 id="contact-heading" className="text-2xl">
-              Contact the {advertiser.type === "agency" ? "agent" : "seller"}
+            <h2 id="contact-heading" className="scroll-mt-24 text-2xl">
+              {calendar ? "Ask the host" : `Contact the ${advertiser.type === "agency" ? "agent" : "seller"}`}
             </h2>
             {/* Profile links only. Phone numbers and email addresses are never shown. */}
             <p className="mt-2 flex flex-wrap items-center gap-1.5 text-sm text-muted">
@@ -301,11 +329,13 @@ async function ListingContent({ params }: Pick<Props, "params">) {
                 advertiserName={advertiser.name}
                 requestTypes={toOptions(catalogue.sets.request_types)}
                 contactMethods={toOptions(catalogue.sets.contact_methods)}
+                nightlyPrice={calendar && listing.price_period === "night" ? listing.price : undefined}
               />
             </div>
           </Card>
         </aside>
       </div>
+      </StayScope>
 
       {similar.length > 0 && (
         <section aria-labelledby="similar-heading" className="mt-16 border-t border-line pt-12">
@@ -313,7 +343,7 @@ async function ListingContent({ params }: Pick<Props, "params">) {
             Similar properties
           </h2>
           <div className="mt-8">
-            <ListingGrid listings={similar} />
+            <ListingGrid listings={similar} periods={periods} />
           </div>
         </section>
       )}

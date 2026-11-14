@@ -16,6 +16,11 @@ export type AgentPropertyRequest = {
   message: string;
   preferred_contact_method: ContactMethod;
   contact: { name: string; email: string; phone?: string | null };
+  /**
+   * The dates and guests of a request to stay; null for every other type.
+   * It is a request: the nights are not blocked until the lister marks them.
+   */
+  stay?: { check_in: string; check_out: string; nights: number; guests: number } | null;
   created_at: string;
 };
 

@@ -2,7 +2,7 @@
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRef } from "react";
-import { ListingCard } from "@/components/listings/listing-card";
+import { ListingCard, type PeriodLabels } from "@/components/listings/listing-card";
 import type { Listing } from "@/lib/api/types";
 
 type Props = {
@@ -11,6 +11,8 @@ type Props = {
   listings: Listing[];
   /** Ids to mark with a "New" badge. */
   newIds?: string[];
+  /** The labels of the API’s `price_periods` set, for the cards. */
+  periods?: PeriodLabels;
   className?: string;
 };
 
@@ -19,7 +21,7 @@ type Props = {
  * container with scroll snapping, so touch, trackpad and keyboard scrolling
  * work without JavaScript; the arrow buttons are a convenience on top.
  */
-export function ListingRail({ label, listings, newIds = [], className }: Props) {
+export function ListingRail({ label, listings, newIds = [], periods, className }: Props) {
   const track = useRef<HTMLUListElement>(null);
 
   function scroll(direction: 1 | -1) {
@@ -46,7 +48,7 @@ export function ListingRail({ label, listings, newIds = [], className }: Props) 
       >
         {listings.map((listing) => (
           <li key={listing.id} className="flex w-[17.5rem] shrink-0 snap-start [&>article]:w-full sm:w-[22rem]">
-            <ListingCard listing={listing} isNew={newIds.includes(listing.id)} />
+            <ListingCard listing={listing} isNew={newIds.includes(listing.id)} periods={periods} />
           </li>
         ))}
       </ul>

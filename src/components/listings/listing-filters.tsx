@@ -2,10 +2,11 @@ import { SlidersHorizontal } from "lucide-react";
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
+import { StayFields } from "@/components/listings/stay-fields";
 import { Field, fieldDescribedBy, Input } from "@/components/ui/field";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { selectGroups, selectOption, type SearchOptions } from "@/lib/search-options";
-import type { ListingFilters } from "@/lib/seo";
+import { isStaySearch, SHORT_STAY, type ListingFilters } from "@/lib/seo";
 
 type Props = {
   options: SearchOptions;
@@ -14,6 +15,8 @@ type Props = {
   open?: boolean;
   /** The API's message for a parameter it refused, by parameter name. */
   errors?: Record<string, string>;
+  /** The earliest night the stay dates accept (`YYYY-MM-DD`). */
+  today: string;
 };
 
 /** A named group of filters: a fieldset whose legend is the group's heading. */
@@ -63,17 +66,20 @@ function NumberField({ name, label, defaults, errors, hint, step = "any", max }:
 
 /**
  * The advanced search of the listing search, inside the SearchBar form, in
- * three groups: Property, Price and More. (Location sits above it, always
- * visible.) It is a native `<details>`, so it opens and closes without
+ * groups: Property, Short stays (when the category is short stays, or none
+ * is chosen), Price and More. (Location sits above it, always visible.) It is a native `<details>`, so it opens and closes without
  * JavaScript, and it starts open when one of its filters is in use, when the
  * API refused one of them, or when the address asks for it (`advanced=1`).
  *
  * Every list comes from the API. The number beside an option is how many
  * listings it has for the current search.
  */
-export function ListingFilterPanel({ options, defaults, open = false, errors = {} }: Props) {
+export function ListingFilterPanel({ options, defaults, open = false, errors = {}, today }: Props) {
   const keys: (keyof ListingFilters)[] = [
     "property_type",
+    "check_in",
+    "check_out",
+    "guests_min",
     "min_price",
     "max_price",
     "currency",
@@ -109,6 +115,12 @@ export function ListingFilterPanel({ options, defaults, open = false, errors = {
   // The price boxes stay when they hold a value, so a refused search can be put right in one go.
   const showPrices = !needsCurrency || defaults.min_price !== undefined || defaults.max_price !== undefined;
   const shared = { defaults, errors };
+  // Nights and guests belong to short stays: offered for that category, when
+  // no category is chosen (they then narrow the search to short stays), and
+  // whenever they are in use, so they can always be seen and changed.
+  const offerStay =
+    (defaults.category ?? SHORT_STAY) === SHORT_STAY || isStaySearch(defaults) || ["check_in", "check_out", "guests_min"].some((key) => errors[key]);
+  const stayCategoryError = isStaySearch(defaults) ? errors.category : undefined;
 
   return (
     <details
@@ -145,6 +157,26 @@ export function ListingFilterPanel({ options, defaults, open = false, errors = {
         <NumberField name="land_area_min" label="Land area, at least (m²)" {...shared} />
         <NumberField name="land_area_max" label="Land area, at most (m²)" {...shared} />
       </Group>
+
+      {offerStay && (
+        <Group legend="Short stays">
+          <StayFields
+            key={[defaults.check_in, defaults.check_out, defaults.guests_min].join("|")}
+            defaults={defaults}
+            errors={errors}
+            today={today}
+          />
+          <p className="text-sm leading-relaxed text-muted sm:col-span-2 lg:col-span-4">
+            {stayCategoryError ? (
+              <span className="text-danger">
+                Dates and guests can only be used with short stays. Choose the short stays category, or clear them.
+              </span>
+            ) : (
+              "Dates and guests find places let by the night that are free for every night of the stay. Availability is the host’s own calendar; a stay is agreed with the host, not booked here."
+            )}
+          </p>
+        </Group>
+      )}
 
       <Group legend="Price">
         {offerCurrency && (

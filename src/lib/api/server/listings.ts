@@ -4,8 +4,10 @@ import type {
   ListingPage,
   ListingQuery,
   ListingSuggestion,
+  PublicAvailability,
   SitemapEntries,
 } from "@/lib/api/types";
+import { addDays, todayIn } from "@/lib/nights";
 import { apiGet, queryString } from "./client";
 
 /**
@@ -78,4 +80,25 @@ export async function getSitemapEntries(): Promise<SitemapEntries> {
   cacheTag("listings", "directory");
   const { data } = await apiGet<SitemapEntries>("/v1/sitemap");
   return data;
+}
+
+/**
+ * The public calendar of a short stay for its whole booking window, or null
+ * for a listing that has none (not a short stay, gone, unknown). Cached with
+ * the listing; the API itself lets a change take up to 30 seconds to show.
+ */
+export async function getListingAvailability(slug: string): Promise<PublicAvailability | null> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("listings", `listing:${slug}`);
+  if (!SLUG.test(slug) || slug.length > 200) return null;
+  // From the listing's today (the API's default) to a year ahead. The span may
+  // be at most 366 nights and the listing's today can be a day either side of
+  // UTC's, so the end is a day short of a year from UTC's today.
+  const to = addDays(todayIn("UTC"), 364);
+  const { status, data } = await apiGet<PublicAvailability>(
+    `/v1/listings/${slug}/availability${queryString({ to })}`,
+    [400, 404, 409, 410],
+  );
+  return status === 200 ? data : null;
 }

@@ -19,6 +19,7 @@ const columns: { title: string; links: NavItem[] }[] = [
       { href: "/listings?deal=rent", label: "Property to rent" },
       { href: "/listings?category=commercial", label: "Commercial property" },
       { href: "/listings?category=land", label: "Land and stands" },
+      { href: "/listings?category=short-stay", label: "Short stays" },
       { href: "/listings", label: "All listings" },
     ],
   },

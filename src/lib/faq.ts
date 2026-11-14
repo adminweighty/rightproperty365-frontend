@@ -129,7 +129,13 @@ export const faqCategories: FaqCategory[] = [
           p(
             "Yes. Choose the ",
             link("Short stays", "/listings?category=short-stay"),
-            " category. Short stays are priced per night, and the listing shows the nights the Host has marked as available.",
+            " category. Short stays are priced per night, in the currency of the listing.",
+          ),
+          p(
+            "In “Advanced search” you can give the first night of your stay, the day you leave and the number of guests. The results are then the places that sleep that many and whose calendar is free for every night of the stay.",
+          ),
+          p(
+            "Each short-stay listing shows a calendar of the nights that are available, its shortest stay and how many people it sleeps. The calendar is kept by the Host, and the page says when it was last updated.",
           ),
         ],
       },
@@ -269,7 +275,13 @@ export const faqCategories: FaqCategory[] = [
             "No. A request to stay is a request to the Host. It becomes a booking only when you and the Host agree it between yourselves.",
           ),
           p(
-            "The availability on a listing is the Host’s own calendar. It is a guide to which nights are free, not a guarantee.",
+            "On a short-stay listing, choose your first night and the day you leave in the calendar, say how many guests, and send “Request to stay”. You get a reference straight away. The dates are not held for you, and nobody else is stopped from asking for them, until the Host confirms with you.",
+          ),
+          p(
+            "The form shows an estimate, the nightly price times the number of nights. It is only an estimate: the Host confirms the final price. No payment for a stay is taken through RightProperty365.",
+          ),
+          p(
+            "The availability on a listing is the Host’s own calendar. It is a guide to which nights are free, not a guarantee. If a night you asked for has been taken since the page was loaded, the form tells you which one.",
           ),
         ],
       },

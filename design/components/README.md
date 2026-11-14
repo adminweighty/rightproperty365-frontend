@@ -109,7 +109,8 @@ The unit of search results.
 
 - Photo-led: a 4:3 photo fills the top of the card and zooms slightly on hover.
 - Order under the photo: price, the facts line, title, location. Price comes first and is the most prominent text (24px, weight 700).
-- The facts line (`ListingFacts`) is bedrooms, bathrooms and area on one line: an indigo icon, the value in `ink` weight 600, the unit in `muted`. At most three items; missing values are left out rather than shown as a dash.
+- The facts line (`ListingFacts`) is bedrooms, bathrooms and area on one line: an indigo icon, the value in `ink` weight 600, the unit in `muted`. Missing values are left out rather than shown as a dash.
+- **A short stay** leads the facts line with how many it sleeps ("Sleeps 8") and ends it with its shortest stay ("2 nights minimum") in place of the area. Its price says "per night".
 - Tags on the photo, top left: the status tag (the deal type, "For sale" or "To rent") in `primary` with white text, then "New" on white, then "Featured" in `brand-accent` with `brand-deep` text. Tags are text on a solid fill, never text on the photo itself. Sponsored placements must be labelled.
 - The whole card is one link, made by stretching the title link. There are no nested interactive elements inside it. On hover and keyboard focus it gains the `frame-brand` outline and a deeper shadow.
 - `ListingPrice` always shows the listing's own ISO currency code ("GBP 185", "MUR 8,500"), because countries and currencies are mixed across the platform.
@@ -117,7 +118,8 @@ The unit of search results.
 - A listing without a photo shows a neutral frame that says "No photo yet", never a placeholder picture.
 - The place on a card is short: suburb and city ("Borrowdale, Harare"). The listing page adds the region, unless it has the city's name, and the country.
 - **A place line is built from what the listing names** (`lib/places.ts`). The suburb and the region can be missing, and a city can be free text typed by the lister (a country with no reference places): a card without a suburb shows city and country ("Grand Baie, Mauritius"), and a listing that names no place has no place line. Never print an empty part, "null" or a doubled comma. A free-text place is plain text: it has no code, so it is never a link or a filter.
-- Deal, suburb, city and price come from the API. The card has no text of its own apart from "Featured", "New" and "per month".
+- Deal, suburb, city and price come from the API. What a rental is charged per ("per month", "per night") is the label of the API's `price_periods` set, passed in as `periods`. The card has no text of its own apart from "Featured", "New", "Sleeps" and "nights minimum".
+- On results found with stay dates or guests, the link to a short stay carries them (`?check_in=…&check_out=…&guests=…`), so its request form starts from them. The listing's canonical address stays the plain one.
 
 ## ListingRail (`listings/listing-rail.tsx`)
 
@@ -154,7 +156,8 @@ The four location selects: Country, Region or province, City or town, Suburb. Ea
 The advanced search, inside the `SearchBar` form.
 
 - A native `<details id="advanced-search">` with the summary "Advanced search" / "Hide advanced search", so it opens with a click, Enter or Space and needs no JavaScript. The summary is 44px tall and shows how many of its filters are in use. It starts open when one is in use, when the API refused one, or when the address has `advanced=1` (the hero's "Advanced search" link).
-- Three groups, each a `fieldset` whose `legend` is the heading: **Property** (property type; bedrooms, bathrooms, floor area and land area, each "at least" and "at most"), **Price** (see below), **More** (listed in the last 24 hours, 7, 14, 30 or 90 days; advertised by a Real Estate Agency or a private owner; listing reference; sort order; "Only listings with photos"), then **Features** as checkboxes.
+- **Short stays** is a group of its own after Property: "First night" and "Day you leave" (native `type="date"` inputs named `check_in` and `check_out`) and "Guests" (`guests_min`). It is shown when the category is short stays, when no category is chosen (dates then narrow the search to short stays) and whenever one of the three is in use. The form submits them as it is without JavaScript. With it (`StayFields`), the first night cannot be before today, the day of leaving must be after it and at most 90 nights later, and each date is required once the other is set (both or neither). The API checks the same rules and its message appears under the control ("Day you leave is required with the first night."). A line under the group says that availability is the host's own calendar and that a stay is agreed with the host, not booked here.
+- The other groups, each a `fieldset` whose `legend` is the heading: **Property** (property type; bedrooms, bathrooms, floor area and land area, each "at least" and "at most"), **Price** (see below), **More** (listed in the last 24 hours, 7, 14, 30 or 90 days; advertised by a Real Estate Agency or a private owner; listing reference; sort order; "Only listings with photos"), then **Features** as checkboxes.
 - **Price is in one currency per search, and nothing is converted.** With a country chosen it is that country's currency, named in the labels ("Lowest price (GBP)") with the range of the result as a hint. With no country and results in several currencies, the group shows a "Currency" `SearchableSelect` (each code with its count) and the hint "Choose a currency or a country to filter by price."; the two price boxes are left out until one is chosen (they stay when they already hold a value, so a refused search can be corrected in one step). A price sent without a currency comes back from the API as a message under "Currency".
 - Every control has a visible label (`Field`). Property type, "Listed", "Advertised by" and "Sort by" are `SearchableSelect`s. Ranges are two number inputs, not a list of ranges. Areas are in square metres, said in the label.
 - Features are the twelve most common in the result, plus any that are ticked. Each label row is 44px tall and the whole row is the target.
@@ -167,8 +170,9 @@ The advanced search, inside the `SearchBar` form.
 
 The filters in use, above the results.
 
-- A `nav` named "Filters in use" holding one chip per filter, in the order of the form: a 44px pill with the filter in words ("Harare", "At least 3 bedrooms", "Up to USD 300,000", "Prices in GBP", "With photos") and a small cross.
+- A `nav` named "Filters in use" holding one chip per filter, in the order of the form: a 44px pill with the filter in words ("Harare", "At least 3 bedrooms", "Up to USD 300,000", "Prices in GBP", "17–20 Nov 2026 · 3 nights", "4 guests", "With photos") and a small cross.
 - **Each chip is a real link** to the same search without that filter, so removing a filter works without JavaScript and can be undone with Back. Its accessible name starts "Remove filter:" ("Remove filter: Harare"); the cross is decorative.
+- The two dates of a stay are one chip; removing it removes both.
 - Labels come from the API's reference data or from the value itself. Sort order is not a filter and has no chip; removing a chip keeps it.
 - "Clear all" at the end is a link to the search with no filters.
 - The row is absent when no filter is in use.
@@ -280,7 +284,30 @@ The only route by which a customer contacts an advertiser. It posts to the Right
 - Field errors returned by the API appear under the matching control.
 - A retry of unchanged content reuses the same idempotency key; any edit starts a new request.
 - Consent is an unticked checkbox that names who the details are shared with and links to the Privacy Policy (`LegalLink`).
+- **On a short stay** the form starts on "Request to stay" (the API's label) and adds "First night", "Day you leave" (native date inputs) and "Guests", filled from the calendar (`StayCalendar`) or from the search the visitor came from. Under them: the stay in words, the sum "3 × USD 320 = USD 960" and "Estimate. The host confirms the final price.", then one sentence that this is not a booking, the dates are not held and no payment is taken through RightProperty365. Problems are said under the control before anything is sent (shortest stay, a taken night, too many guests); the API has the last word. If a night was taken in the meantime (409 `DATES_UNAVAILABLE`) the form says which night and the calendar is read again. The receipt repeats the stay and says in bold that **the dates are not reserved** until the host confirms. Never write "booked", "reserved" or "confirmed" about a request, and never show a pay button. Other request types stay available there; "Request to stay" is not offered on any other listing.
 - The request types and contact methods are props from the API's reference data, in the API's order; the first of each is selected. Both are `SearchableSelect`s, as are the service and contact method of the business enquiry form. The business enquiry form on a directory profile (`directory/profile-enquiry-form.tsx`) takes its contact methods the same way.
+
+## NightCalendar (`availability/night-calendar.tsx`, `lib/nights.ts`)
+
+A month calendar of nights. One component for the visitor's availability calendar and for the lister's editor: it shows what each night is and reports which day was picked, and holds no rules of its own.
+
+- **A night is a date, not a time**: `YYYY-MM-DD` in the time zone of the listing's country, which the surrounding text names. A stay from the 17th to the 20th is the nights of the 17th, 18th and 19th; the day of leaving is not a night. All arithmetic is in `lib/nights.ts` (pure, tested by `npm test`), done on the date itself so it never depends on the zone of the server or the browser.
+- Two months side by side from `md`, one on phones. "Previous month" and "Next month" (44px, labelled) move one month and stop at the ends of the window the calendar covers. The months on show are announced politely.
+- Each month is a `table` with `role="grid"` named by its month heading: weekday column headers (two letters seen, the full name read), a row header per week for assistive technology, and one `gridcell` per day with `aria-selected` and `aria-disabled`. Weeks start on Monday.
+- **Keyboard**: one cell is in the tab order. Arrow keys move by a day or a week, Home and End to the ends of the week, Page Up and Page Down by a month (the page turns when the day is not on show), Enter or Space picks.
+- **State is never colour alone.** A night that is not available is struck through on a grey fill; the lister also sees "Booked" (tinted, the word in the cell) and "Blocked" (hatched, the word in the cell). Today is ringed and bold. The chosen span is indigo: its two ends solid, the nights between tinted. Every cell's accessible name says it all: "Tuesday 17 November 2026, available, first night". A key under the grid explains the fills.
+- Cells are 44px tall. At 320px they are about 37px wide: above the WCAG 2.2 minimum of 24px, below our 44px target, which seven columns cannot reach at that width. The form fields beside the calendar do the same job with full-size controls.
+- It renders on the server, so the first months are in the HTML and readable without JavaScript. Picking and the month buttons need JavaScript; every flow that uses the calendar also has date inputs that do not depend on it.
+- Props: `first`, `last`, `today`, `kindOf(night)`, `canPick(day)`, `selected`, `ends` (what the two ends are called), `onPick(day)`, `showKinds` (write "Booked" and "Blocked" in the cells) and `legend`.
+
+## StayCalendar (`availability/stay-calendar.tsx`)
+
+"Availability" on a short-stay listing, under the features.
+
+- Before the grid, in words: the shortest stay and how many it sleeps, the next available night, "Updated 14 November 2026." (or "The host has not updated the calendar yet."), and the time zone the dates are in ("Central Africa Time (Africa/Harare)"). Then: "This is the host's own calendar. … Choosing dates does not book or hold them."
+- The grid is a `NightCalendar` over the booking window (today and the next year) with two kinds of night: available and not available. Why a night is not available is never public.
+- Choosing a night sets the first night; choosing a later day sets the day of leaving, which may itself be taken (someone else arrives then) as long as every night before it is free. Anything else starts again. The choice fills in the request form (`StayProvider` shares it), a status line says it in words ("17–20 Nov 2026 · 3 nights chosen.") with a link to the form, and "Clear dates" undoes it.
+- The calendar is read with the page (cached with the listing, so a change by the host can take a minute to show) and again in the browser when the API refuses a request because a night was taken.
 
 ## SiteHeader (`layout/site-header.tsx`)
 
@@ -388,6 +415,7 @@ The list of customer requests routed to the signed-in person: an Estate Agent's 
 - Two sections, each with its own `h2`, count and states: "Property requests" (about listings) and "Business enquiries" (sent from a public profile). Landlords and Property Sellers (Vendors) see only the first, because business enquiries go to organisations.
 - A public profile never shows a phone number or email address. The enquiry form is the only way to reach a business, and the customer's details appear only in this inbox.
 - Each request is a card: type and status badges, received time in the viewer's time zone, customer name and listing, the message, then contact links and the reference. The listing's title comes with the request from the API; when it does not, the card says "about a listing". Request type and contact method labels come from the API's reference data.
+- A request to stay shows its stay above the message: "Asks to stay 8–11 Dec 2026 · 3 nights · 3 guests". It is a request: the nights are not blocked until the lister marks them in the availability calendar.
 - States: loading skeleton, error with "Try again", empty ("No requests yet"), and the list with a count.
 - Contact details appear only here, behind sign-in. They must never be put in a notification preview or a URL.
 
@@ -527,4 +555,4 @@ Wraps every public component that reads the API through `load()`.
 
 ## Not built yet
 
-Dialog, toast, tabs, data table, date and slot picker, file upload, map, YouTube embed. Specify each here before building it.
+Dialog, toast, tabs, data table, a time-slot picker (nights are chosen in `NightCalendar`), file upload, map, YouTube embed. Specify each here before building it.

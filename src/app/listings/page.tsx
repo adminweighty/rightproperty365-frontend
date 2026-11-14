@@ -12,7 +12,9 @@ import { searchListings, suggestListings } from "@/lib/api/server/listings";
 import { load } from "@/lib/api/server/load";
 import { getAllCountries, getCatalogue } from "@/lib/api/server/reference";
 import { X } from "lucide-react";
+import { toLabels } from "@/lib/api/types";
 import { activeFilterChips } from "@/lib/filter-chips";
+import { todayIn } from "@/lib/nights";
 import { buildSearchOptions } from "@/lib/search-options";
 import { listingsCollectionJsonLd, listingsPath, parseListingsSearch } from "@/lib/seo";
 import { ApiBoundary } from "@/components/api-boundary";
@@ -139,6 +141,8 @@ async function Results({ searchParams }: Pick<Props, "searchParams">) {
       <SearchBar
         options={options}
         defaults={search.filters}
+        // The earliest "today" anywhere, so the date boxes never refuse a night that some listing can still take.
+        today={todayIn("Etc/GMT+12")}
         advanced={search.advanced}
         errors={errors}
         className="mt-8"
@@ -174,7 +178,12 @@ async function Results({ searchParams }: Pick<Props, "searchParams">) {
       {page && page.items.length > 0 && (
         <>
           <div className="mt-8">
-            <ListingGrid listings={page.items} />
+            <ListingGrid
+              listings={page.items}
+              periods={toLabels(catalogue.sets.price_periods)}
+              // The stay of the search travels to each short stay, to start its request form.
+              stay={{ check_in: search.filters.check_in, check_out: search.filters.check_out, guests: search.filters.guests_min }}
+            />
           </div>
           <Pagination
             page={page.page}
@@ -230,7 +239,7 @@ async function Results({ searchParams }: Pick<Props, "searchParams">) {
           <h2 className="text-2xl">That search could not be run</h2>
           <p className="mx-auto mt-2 max-w-md text-muted">
             {Object.keys(errors).length > 0
-              ? "Some of the filters do not fit together. Each one is marked in the form above with what to change."
+              ? "Some of the filters need a change. Each one is marked in the form above with what to do."
               : "One of the filters is not available any more. Clear the filters and search again."}
           </p>
           <ButtonLink href="/listings" variant="secondary" className="mt-6">

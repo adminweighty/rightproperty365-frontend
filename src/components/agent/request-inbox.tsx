@@ -1,6 +1,6 @@
 "use client";
 
-import { Mail, Phone } from "lucide-react";
+import { CalendarDays, Mail, Phone } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { RequireAuth } from "@/components/auth/require-auth";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { listAgentPropertyRequests, listBusinessEnquiries } from "@/lib/api/agent";
 import { getInboxSummary } from "@/lib/api/appointments";
+import { formatStay, guestCount } from "@/lib/nights";
 import { canUseInbox, isProfessional } from "@/lib/api/auth";
 import type { ApiFailure, ApiResult } from "@/lib/api/http";
 
@@ -62,6 +63,8 @@ type InboxItem = {
   phone?: string | null;
   contactMethod: string;
   reference: string;
+  /** A request to stay: "17–20 Nov 2026 · 3 nights · 4 guests". */
+  stay?: string;
 };
 
 async function loadPropertyRequests(typeLabels: Labels): Promise<ApiResult<InboxItem[]>> {
@@ -77,6 +80,7 @@ async function loadPropertyRequests(typeLabels: Labels): Promise<ApiResult<Inbox
       customer: item.contact.name,
       // The API sends a listing summary with each request; older builds do not.
       subject: `about ${item.listing?.title ?? "a listing"}`,
+      stay: item.stay ? `${formatStay(item.stay.check_in, item.stay.check_out)} · ${guestCount(item.stay.guests)}` : undefined,
       message: item.message,
       email: item.contact.email,
       phone: item.contact.phone,
@@ -193,6 +197,13 @@ function InboxSection({ id, title, noun, emptyText, load, contactMethodLabels }:
                     {item.customer}
                     <span className="font-normal text-muted"> {item.subject}</span>
                   </h3>
+                  {item.stay && (
+                    <p className="mt-2 flex flex-wrap items-center gap-1.5 text-sm text-ink">
+                      <CalendarDays className="size-4 shrink-0 text-primary-ink" aria-hidden="true" />
+                      <span className="text-muted">Asks to stay</span>
+                      <span className="font-medium">{item.stay}</span>
+                    </p>
+                  )}
                   <p className="mt-2 max-w-prose whitespace-pre-line leading-relaxed text-ink">
                     {item.message}
                   </p>

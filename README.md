@@ -44,11 +44,13 @@ Everything the site lists comes from the Go API (`api/openapi.yaml` in the backe
 
 | On the site | API |
 | --- | --- |
-| Every drop-down, filter option and label: deal types, property categories and types, regions, cities, suburbs, listing features, request types, contact methods, sign-up roles with their groups and descriptions, organisation kinds, directories, service trades | `GET /v1/reference` |
+| Every drop-down, filter option and label: deal types, property categories and types, regions, cities, suburbs, listing features, request types, contact methods, what a price is charged per ("per month", "per night"), sign-up roles with their groups and descriptions, organisation kinds, directories, service trades | `GET /v1/reference` |
 | The countries that have listings: search filters, the hero's location list, the landing page's country row, the footer, the curated pages | `GET /v1/markets?has_listings=true` (the same data as `/v1/countries`) |
 | Every country (249), for naming the country of a search and for the country field of onboarding | `GET /v1/countries` |
 | Listing search by country, region, city, suburb and the advanced filters, its facet counts and pages; the landing page rows, city and suburb tiles and counts | `GET /v1/listings` |
 | Listing detail; "no longer available" for a 410 | `GET /v1/listings/{slug}` |
+| The availability calendar of a short stay: with the page, and again in the browser after a refused request | `GET /v1/listings/{slug}/availability` |
+| A request to stay (dates and guests; not a booking), with every other customer request | `POST /v1/property-requests` |
 | Suggestions when a keyword search finds nothing | `GET /v1/listings/suggest` |
 | Directories with counts (Real Estate Agencies, Estate Agents, Solicitors and the rest), directory lists, profiles, the footer's directory links | `GET /v1/directory`, `/v1/directory/{kind}`, `/v1/directory/{kind}/{slug}` |
 | Sitemap; which listings and profiles are prerendered | `GET /v1/sitemap` |
@@ -119,7 +121,7 @@ At run time, a page that cannot reach the API shows an error state with a "Try a
 | `npm run build` | Production build (standalone output in `.next/standalone`) |
 | `npm run start` | Serve the production build |
 | `npm run lint` | ESLint |
-| `npm test` | Checks the pure logic in `scripts/*.test.mjs`: the searchable select and the location lines (Node's test runner; needs Node 22.18 or later) |
+| `npm test` | Checks the pure logic in `scripts/*.test.mjs`: the searchable select, the location lines and the nights of a short stay (Node's test runner; needs Node 22.18 or later) |
 | `npm run typecheck` | Generate route types and run `tsc` |
 | `npm run tokens` | Regenerate `design/tokens/tokens.css` and check colour contrast |
 
@@ -150,7 +152,8 @@ src/components/
   layout/               Header, menu for small screens, footer, logo
   landing/              Landing-page section heading, photo tiles and role groups
   api-boundary.tsx      Wrapper for public components that read the API
-  listings/             Listing card, media, search bar, location selects, advanced search panel, hero search
+  listings/             Listing card, media, search bar, location selects, stay dates, advanced search panel, hero search
+  availability/         NightCalendar (the month grid) and the availability calendar of a short-stay listing
   directory/            Profile card, enquiry form
   requests/             Property request form
   auth/                 Auth provider, forms, account menu, RequireAuth
@@ -164,6 +167,8 @@ src/lib/
   seo.ts                Search parameters, indexing rules, structured data (docs/seo.md)
   countries.ts          Which country names take "the" in a sentence
   places.ts             A location line from whatever a listing or profile names
+  nights.ts             Nights of a short stay: dates, ranges, "today" in a time zone, the rules of a stay
+  stay-calendar.ts      The public calendar as the listing page hands it to the browser
   legal.ts              Every business fact the legal pages state (docs/legal.md)
   faq.ts                The frequently asked questions, as data
   app-links.ts          App Store and Google Play addresses (placeholders until the apps are published)
@@ -182,6 +187,7 @@ src/lib/
 - **All business writes go to the Go API.** Customer enquiries are sent only to `POST /v1/property-requests`. Never post customer details to an agent or a third party from the browser.
 - **The session is an HttpOnly cookie set by the API.** The web app never stores a token. `AuthProvider` loads the user from `GET /v1/me`; roles in the browser decide what to show, and the API authorises every request.
 - **Money is a decimal string plus an ISO 4217 code**, formatted for display only.
+- **A short stay is asked for, never booked.** Dates are nights (`YYYY-MM-DD`) in the listing's time zone, which is named wherever they are shown. The calendar is the host's own, a request to stay reserves nothing, an estimate is labelled as one, and no payment is taken. The only category the code knows by name is `short-stay` (`SHORT_STAY` in `src/lib/seo.ts`), because the dates, the calendar and the request to stay exist only there.
 - **Public content is HTML first.** A public component that reads the API sits inside `ApiBoundary`, never a plain `<Suspense>`, and a public page that reads `params` or `searchParams` exports `instant = false` (see "Builds and the API"). Signed-in screens keep request-time data behind `<Suspense>`.
 - **No lists in code.** A drop-down, filter or label for a value the API returns comes from the API's reference data. Add a row in the database, not an array in the app.
 - **Every drop-down is a `SearchableSelect`** (`src/components/ui/searchable-select.tsx`): a native select in the HTML, searchable by typing once the page is interactive. Do not render a bare `<select>`.
@@ -229,6 +235,6 @@ The build reads the API if it can reach it (`--build-arg API_URL=...`, else `NEX
 
 ## Current state
 
-Built: design system, UI primitives, home page, listing search by country, region, city and suburb with advanced filters, facet counts and pages, listing detail, the directories and profiles (including Solicitors), the property request and business enquiry forms, sitemap and structured data, and authentication: register, email confirmation, sign in and out, password reset, an account page showing roles, the request inbox, appointments (view, confirm, propose a new time, accept, cancel, complete), onboarding for professional, business and owner roles with document uploads, and the administrator review queue. All of it reads the Go API; the listings and profiles it shows are the backend's seed data.
+Built: design system, UI primitives, home page, listing search by country, region, city and suburb with advanced filters, facet counts and pages, listing detail, the directories and profiles (including Solicitors), short stays (search by dates and guests, the availability calendar, the request to stay), the property request and business enquiry forms, sitemap and structured data, and authentication: register, email confirmation, sign in and out, password reset, an account page showing roles, the request inbox, appointments (view, confirm, propose a new time, accept, cancel, complete), onboarding for professional, business and owner roles with document uploads, and the administrator review queue. All of it reads the Go API; the listings and profiles it shows are the backend's seed data.
 
 Not built yet: multi-factor authentication, organisation invitations and agent onboarding, account deletion, creating and editing listings, assigning an appointment to a colleague, the rest of the agent and admin portals (listing moderation, markets, invoices, users, audit), maps, media uploads and object storage (photos are bundled files), YouTube embeds, analytics events, and automatic cache revalidation when the API changes (`POST /api/revalidate` exists; the API does not call it yet).

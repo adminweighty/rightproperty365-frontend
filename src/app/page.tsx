@@ -1,6 +1,7 @@
 import {
   ArrowRight,
   BadgeCheck,
+  BedDouble,
   Building2,
   House,
   LandPlot,
@@ -29,8 +30,8 @@ import { getDirectoryKinds, getDirectoryList } from "@/lib/api/server/directory"
 import { listListings } from "@/lib/api/server/listings";
 import { load } from "@/lib/api/server/load";
 import { getCatalogue } from "@/lib/api/server/reference";
-import type { FacetCount, Listing } from "@/lib/api/types";
-import { formatMoney } from "@/lib/format";
+import { toLabels, type FacetCount, type Listing } from "@/lib/api/types";
+import { formatMoney, pricePeriodLabel } from "@/lib/format";
 import { cityArtwork, coverPhoto } from "@/lib/photos";
 import { shortPlace } from "@/lib/places";
 import { groupRoles } from "@/lib/roles";
@@ -59,6 +60,7 @@ const categoryIcons: Record<string, LucideIcon> = {
   residential: House,
   commercial: Building2,
   land: LandPlot,
+  "short-stay": BedDouble,
 };
 
 const steps = [
@@ -247,6 +249,7 @@ async function HomeContent() {
   // The countries that have listings, in the API's order (most listings first).
   const countries = catalogue.countries.filter((country) => (country.listing_count ?? 0) > 0);
   const roleGroups = groupRoles(sets.account_roles);
+  const periods = toLabels(sets.price_periods);
   const cities = byCount(facets.city);
   const suburbs = byCount(facets.suburb);
   // A featured listing lends the hero its photograph; without one, the newest does.
@@ -288,7 +291,9 @@ async function HomeContent() {
             >
               <span className="block font-semibold text-ink">
                 {formatMoney(heroListing.price)}
-                {heroListing.price_period === "month" && <span className="font-normal text-muted"> per month</span>}
+                {heroListing.price_period && (
+                  <span className="font-normal text-muted"> {pricePeriodLabel(heroListing.price_period, periods)}</span>
+                )}
               </span>
               <span className="block truncate text-muted">
                 {[heroListing.title, shortPlace(heroListing)].filter(Boolean).join(", ")}
@@ -322,7 +327,7 @@ async function HomeContent() {
             href="/listings"
             linkLabel="View all"
           />
-          <ListingRail label="New listings" listings={newest.items.slice(0, 8)} newIds={newIds} className="mt-8" />
+          <ListingRail label="New listings" listings={newest.items.slice(0, 8)} newIds={newIds} periods={periods} className="mt-8" />
         </Container>
       ) : (
         <Container className="pt-14 md:pt-20">
@@ -340,7 +345,7 @@ async function HomeContent() {
               note="Properties our agencies have chosen to put forward this week."
             />
             <div className="mt-8">
-              <ListingGrid listings={featured.slice(0, 6)} />
+              <ListingGrid listings={featured.slice(0, 6)} periods={periods} />
             </div>
           </Container>
         </section>
@@ -414,7 +419,7 @@ async function HomeContent() {
           row.listings.length > 0 && (
             <Container key={row.href} className="pt-14 md:pt-20">
               <SectionHeading title={row.title} href={row.href} linkLabel="View all" />
-              <ListingRail label={row.title} listings={row.listings} newIds={newIds} className="mt-8" />
+              <ListingRail label={row.title} listings={row.listings} newIds={newIds} periods={periods} className="mt-8" />
             </Container>
           ),
       )}
@@ -422,14 +427,14 @@ async function HomeContent() {
       {otherRow.listings.length > 0 && (
         <Container className="pt-14 md:pt-20">
           <SectionHeading title={otherRow.title} />
-          <ListingRail label={otherRow.title} listings={otherRow.listings} newIds={newIds} className="mt-8" />
+          <ListingRail label={otherRow.title} listings={otherRow.listings} newIds={newIds} periods={periods} className="mt-8" />
         </Container>
       )}
 
       <section className="mt-14 border-y border-line bg-soft md:mt-20">
         <Container className="py-14 md:py-20">
           <SectionHeading title="Browse by category" />
-          <ul className="mt-8 grid gap-4 md:grid-cols-3">
+          <ul className="mt-8 grid gap-4 md:grid-cols-2">
             {sets.property_categories.map((category) => {
               const Icon = categoryIcons[category.code] ?? Tag;
               // What the category covers: its property types, from the API.

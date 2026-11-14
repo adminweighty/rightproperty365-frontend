@@ -12,7 +12,8 @@ import type {
   ReferenceSets,
 } from "@/lib/api/types";
 import { env } from "@/lib/env";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, pricePeriodLabel } from "@/lib/format";
+import { isNight } from "@/lib/nights";
 import { coverPhoto } from "@/lib/photos";
 import { joinPlaces, shortPlace } from "@/lib/places";
 
@@ -50,11 +51,23 @@ export const listedWithinChoices = [1, 7, 14, 30, 90];
 export const locationKinds = ["country", "region", "city", "suburb"] as const;
 export type LocationKind = (typeof locationKinds)[number];
 
+/**
+ * The category of places let by the night. The one category the app knows by
+ * code, because behaviour hangs on it: stay dates, guests, the availability
+ * calendar and the request to stay exist only there.
+ */
+export const SHORT_STAY = "short-stay";
+
 /** The filters a visitor can set, in the order they appear in a URL. */
 export type ListingFilters = {
   deal?: string;
   category?: string;
   property_type?: string;
+  /** Short stays: the first night and the day of leaving (`YYYY-MM-DD`). Both or neither. */
+  check_in?: string;
+  check_out?: string;
+  /** Short stays that sleep at least this many. */
+  guests_min?: number;
   /** An ISO 3166-1 alpha-2 country code. */
   country?: string;
   region?: string;
@@ -85,6 +98,9 @@ export const filterParams = [
   "deal",
   "category",
   "property_type",
+  "check_in",
+  "check_out",
+  "guests_min",
   "country",
   "region",
   "city",
@@ -154,12 +170,21 @@ const ADJECTIVE_CATEGORIES = new Set(["residential", "commercial", "industrial",
  * and city, else region, else country), followed by the country when that
  * was chosen as well.
  */
+/** True when the search asks for nights or guests, which only short stays have. */
+export const isStaySearch = (filters: Pick<ListingFilters, "check_in" | "check_out" | "guests_min">) =>
+  filters.check_in !== undefined || filters.check_out !== undefined || filters.guests_min !== undefined;
+
 export function listingsHeading(
-  filters: Pick<ListingFilters, "deal" | "category" | "property_type" | "country" | "region" | "city" | "suburb">,
+  filters: Pick<
+    ListingFilters,
+    "deal" | "category" | "property_type" | "country" | "region" | "city" | "suburb" | "check_in" | "check_out" | "guests_min"
+  >,
   { sets, countries = [] }: SearchContext,
 ): string {
   const type = labelOf(sets.property_types, filters.property_type);
-  const category = labelOf(sets.property_categories, filters.category);
+  // Stay dates and a number of guests are a search of short stays, whether or not the category was chosen.
+  const categoryCode = filters.category ?? (isStaySearch(filters) ? SHORT_STAY : undefined);
+  const category = labelOf(sets.property_categories, categoryCode);
   const deal = labelOf(sets.deal_types, filters.deal);
   const suburb = sets.suburbs.find((item) => item.code === filters.suburb);
   const city = labelOf(sets.cities, filters.city) ?? labelOf(sets.cities, suburb?.parent_code ?? undefined);
@@ -169,7 +194,7 @@ export function listingsHeading(
   const noun =
     type ??
     (category
-      ? ADJECTIVE_CATEGORIES.has(filters.category ?? "")
+      ? ADJECTIVE_CATEGORIES.has(categoryCode ?? "")
         ? `${category} property`
         : category
       : "Property");
@@ -253,6 +278,13 @@ export function parseListingsSearch(params: RawParams, context: SearchContext): 
     return undefined;
   };
 
+  const night = (key: string) => {
+    const value = text(key);
+    if (value === undefined) return undefined;
+    if (isNight(value)) return value;
+    invalid = true;
+    return undefined;
+  };
   const countryCode = (key: string) => {
     const value = text(key)?.toUpperCase();
     if (value === undefined) return undefined;
@@ -273,6 +305,10 @@ export function parseListingsSearch(params: RawParams, context: SearchContext): 
     deal: code("deal", sets.deal_types),
     category: code("category", sets.property_categories),
     property_type: code("property_type", sets.property_types),
+    // Whether the two dates make a stay the listings can take is for the API to say.
+    check_in: night("check_in"),
+    check_out: night("check_out"),
+    guests_min: count("guests_min", 1, 100),
     // Country codes are upper case in the API; an address may carry either.
     country: countryCode("country"),
     region: code("region", sets.regions),
@@ -394,10 +430,12 @@ export function listingSeoTitle(listing: Listing): string {
 const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? "" : "s"}`;
 
 export function listingSeoDescription(listing: Listing): string {
-  const price = `${formatMoney(listing.price)}${listing.price_period === "month" ? " per month" : ""}`;
+  const price = `${formatMoney(listing.price)}${listing.price_period ? ` ${pricePeriodLabel(listing.price_period)}` : ""}`;
   const facts = [
+    listing.max_guests != null && `Sleeps ${listing.max_guests}`,
     listing.bedrooms !== null && plural(listing.bedrooms, "bedroom"),
     listing.bathrooms !== null && plural(listing.bathrooms, "bathroom"),
+    listing.min_nights != null && listing.min_nights > 1 && `Minimum stay ${plural(listing.min_nights, "night")}`,
   ]
     .filter(Boolean)
     .join(", ");
@@ -513,8 +551,9 @@ function propertyJsonLd(listing: Listing): JsonLd {
 
 function offerJsonLd(listing: Listing): JsonLd {
   const price = Number(listing.price.amount);
-  // A price per month is a lease; anything else is a sale.
-  const isRental = listing.price_period === "month";
+  // A price per month or per night is a lease; a price with no period is a sale.
+  const isRental = listing.price_period !== null;
+  const perNight = listing.price_period === "night";
   const agency = listing.advertiser.agency;
   return {
     "@type": "Offer",
@@ -528,8 +567,9 @@ function offerJsonLd(listing: Listing): JsonLd {
             "@type": "UnitPriceSpecification",
             price,
             priceCurrency: listing.price.currency,
-            unitCode: "MON",
-            unitText: "month",
+            // UN/CEFACT common codes: MON is a month, DAY a day.
+            unitCode: perNight ? "DAY" : "MON",
+            unitText: perNight ? "night" : "month",
           },
         }
       : { price, priceCurrency: listing.price.currency }),

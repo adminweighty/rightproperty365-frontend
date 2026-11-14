@@ -27,3 +27,11 @@ export function formatMoney({ amount, currency }: Money, locale = "en-GB"): stri
 export function formatArea(squareMetres: number, locale = "en-GB"): string {
   return `${new Intl.NumberFormat(locale).format(squareMetres)} m²`;
 }
+
+/**
+ * "per month", "per night": the label of a `price_periods` code. Pass the
+ * reference labels where the page has them; a code without one reads "per <code>".
+ */
+export function pricePeriodLabel(period: string, labels: Record<string, string> = {}): string {
+  return labels[period] ?? `per ${period}`;
+}

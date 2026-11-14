@@ -57,6 +57,10 @@ export type Listing = {
   bathrooms: number | null;
   floor_area: number | null;
   land_area: number | null;
+  /** Short stays only: how many people it sleeps. Optional: API builds before 0.16 send neither. */
+  max_guests?: number | null;
+  /** Short stays only: the shortest stay, in nights. */
+  min_nights?: number | null;
   summary: string;
   description: string;
   features: Coded[];
@@ -68,6 +72,32 @@ export type Listing = {
   /** End of the current 90-day publication cycle. */
   expires_at: string;
   updated_at: string;
+  /** Short stays only: what the listing says about its calendar. Null for everything else. */
+  availability?: ListingAvailability | null;
+};
+
+export type ListingAvailability = {
+  /** When the lister last changed the calendar. Null when they never have. */
+  updated_at: string | null;
+  /** The first available night from today on (`YYYY-MM-DD`, the listing's time zone). Null when none is free. */
+  next_available: string | null;
+};
+
+/**
+ * The calendar of a short stay as everyone sees it
+ * (`GET /v1/listings/{slug}/availability`): available or not, per night, and
+ * nothing about why.
+ */
+export type PublicAvailability = {
+  listing: { slug: string };
+  /** IANA zone of the listing's country: the zone the dates are in. */
+  timezone: string;
+  min_nights: number;
+  max_guests: number | null;
+  from: string;
+  to: string;
+  days: { date: string; available: boolean }[];
+  availability_updated_at: string | null;
 };
 
 /** What a rental price is charged per: a code of the `price_periods` reference set. */
@@ -116,6 +146,11 @@ export type ListingQuery = {
   deal?: string;
   category?: string;
   property_type?: string;
+  /** Short stays free for every night of `check_in` .. `check_out - 1`. Both or neither. */
+  check_in?: string;
+  check_out?: string;
+  /** Short stays that sleep at least this many. */
+  guests_min?: number;
   /** An ISO 3166-1 alpha-2 country code. */
   country?: string;
   region?: string;
