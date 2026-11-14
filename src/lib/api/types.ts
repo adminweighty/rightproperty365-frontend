@@ -7,6 +7,16 @@
 /** A reference-data code with its current label. */
 export type Coded = { code: string; label: string };
 
+/**
+ * A place on a listing or a profile. `code` is null when the lister typed the
+ * place as free text (a country with no reference places): it can be shown but
+ * not linked to or filtered by.
+ */
+export type Place = { code: string | null; label: string };
+
+/** A country as named on a listing or a profile. */
+export type CountryRef = { code: string; name: string };
+
 /** An exact amount. `amount` is a decimal string; never do float arithmetic on it. */
 export type Money = { amount: string; currency: string };
 
@@ -33,13 +43,15 @@ export type Listing = {
   category: Coded;
   property_type: Coded;
   price: Money;
-  price_period: "month" | null;
-  suburb: Coded;
-  city: Coded;
-  /** The province or region of the city. Null where the market has none. */
-  region?: Coded | null;
-  /** The market the listing is in, as a country. */
-  country?: { code: string; name: string };
+  /** A `price_periods` code. Null for a sale price. */
+  price_period: PricePeriod | null;
+  /** Null where the listing names no suburb. */
+  suburb: Place | null;
+  city: Place;
+  /** The province or region. Null where the listing names none. */
+  region?: Place | null;
+  /** Optional: API builds before 0.13 do not send it. */
+  country?: CountryRef;
   market_code: string;
   bedrooms: number | null;
   bathrooms: number | null;
@@ -58,6 +70,9 @@ export type Listing = {
   updated_at: string;
 };
 
+/** What a rental price is charged per: a code of the `price_periods` reference set. */
+export type PricePeriod = "month" | "night";
+
 export type FacetCount = { code: string; label: string; count: number; /** Suburb facets: the code of the suburb's city. */ city?: string };
 
 export type ListingFacets = {
@@ -71,7 +86,14 @@ export type ListingFacets = {
   suburb: FacetCount[];
   bedrooms: FacetCount[];
   features: FacetCount[];
-  price: { currency: string; min: string | null; max: string | null };
+  /**
+   * The price range of the result in its one currency. Null when the results
+   * are priced in several currencies and neither a currency nor a country was
+   * chosen: `currencies` then lists them.
+   */
+  price: { currency: string; min: string | null; max: string | null } | null;
+  /** The currencies the results are priced in. Optional: API builds before 0.15 do not send it. */
+  currencies?: { code: string; count: number }[];
 };
 
 export type ListingPage = {
@@ -94,14 +116,18 @@ export type ListingQuery = {
   deal?: string;
   category?: string;
   property_type?: string;
-  /** A market code. */
+  /** An ISO 3166-1 alpha-2 country code. */
   country?: string;
   region?: string;
   city?: string;
   suburb?: string;
   min_price?: string;
   max_price?: string;
-  /** ISO 4217 code for the price filters. The API defaults to USD. */
+  /**
+   * ISO 4217 code for the price filters and the price facet. Without it the
+   * API uses the currency of `country`, else the only currency of the results;
+   * a price filter with neither is refused (400 on `currency`).
+   */
   currency?: string;
   bedrooms_min?: number;
   bedrooms_max?: number;
@@ -147,7 +173,7 @@ export type DirectoryProfile = {
   role: string;
   tagline: string;
   description: string;
-  city: Coded;
+  city: Place;
   areas: string[];
   services: string[];
   offerings: { name: string; description: string }[];
@@ -160,8 +186,8 @@ export type DirectoryProfile = {
   sponsored: boolean;
   since: number | null;
   logo: Photo | null;
-  region?: Coded | null;
-  country?: { code: string; name: string };
+  region?: Place | null;
+  country?: CountryRef;
   /** Agent profiles only: the agency they work for. */
   agency: ProfileRef | null;
   listing_count: number;
@@ -209,17 +235,23 @@ export type ReferenceSetCode =
   | "regions"
   | "cities"
   | "suburbs"
-  | "listing_features";
+  | "listing_features"
+  | "price_periods";
 
 export type ReferenceSets = Record<ReferenceSetCode, ReferenceItem[]>;
 
-export type Market = {
-  id: string;
+/** A country from `GET /v1/countries`. Every country is listed; few have listings. */
+export type Country = {
+  /** ISO 3166-1 alpha-2. */
   code: string;
   name: string;
+  /** The currency its listings are priced in (ISO 4217). */
   currency_code: string;
+  /** IANA time zone. */
   timezone: string;
-  status: "ACTIVE" | "PLANNED" | "SUSPENDED";
+  /** Published listings. Optional: API builds before 0.15 do not send the two counts. */
+  listing_count?: number;
+  has_listings?: boolean;
 };
 
 export type SitemapEntries = {

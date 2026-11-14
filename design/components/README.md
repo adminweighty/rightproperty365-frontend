@@ -112,10 +112,11 @@ The unit of search results.
 - The facts line (`ListingFacts`) is bedrooms, bathrooms and area on one line: an indigo icon, the value in `ink` weight 600, the unit in `muted`. At most three items; missing values are left out rather than shown as a dash.
 - Tags on the photo, top left: the status tag (the deal type, "For sale" or "To rent") in `primary` with white text, then "New" on white, then "Featured" in `brand-accent` with `brand-deep` text. Tags are text on a solid fill, never text on the photo itself. Sponsored placements must be labelled.
 - The whole card is one link, made by stretching the title link. There are no nested interactive elements inside it. On hover and keyboard focus it gains the `frame-brand` outline and a deeper shadow.
-- `ListingPrice` always shows the ISO currency code, because markets and currencies are mixed across the platform.
+- `ListingPrice` always shows the listing's own ISO currency code ("GBP 185", "MUR 8,500"), because countries and currencies are mixed across the platform.
 
 - A listing without a photo shows a neutral frame that says "No photo yet", never a placeholder picture.
 - The place on a card is short: suburb and city ("Borrowdale, Harare"). The listing page adds the region, unless it has the city's name, and the country.
+- **A place line is built from what the listing names** (`lib/places.ts`). The suburb and the region can be missing, and a city can be free text typed by the lister (a country with no reference places): a card without a suburb shows city and country ("Grand Baie, Mauritius"), and a listing that names no place has no place line. Never print an empty part, "null" or a doubled comma. A free-text place is plain text: it has no code, so it is never a link or a filter.
 - Deal, suburb, city and price come from the API. The card has no text of its own apart from "Featured", "New" and "per month".
 
 ## ListingRail (`listings/listing-rail.tsx`)
@@ -133,7 +134,7 @@ The listing search on results pages: a white card with a `line` border. A GET fo
 
 - First row: buy or rent, category, keyword and the "Search" button. Each control has a screen-reader label. Every drop-down in the form is a `SearchableSelect`. On phones it stacks to one column; from `lg` it is a single row.
 - Then a `fieldset` with the legend "Location" (`LocationFields`), always visible, and under it the advanced search panel (`ListingFilterPanel`).
-- **Every option list is a prop** (`options`, built on the server by `buildSearchOptions` from the API's reference data, markets and search facets). The component contains no list of its own.
+- **Every option list is a prop** (`options`, built on the server by `buildSearchOptions` from the API's reference data, the countries that have listings and the search facets). The component contains no list of its own.
 - An option shows how many listings it has for the current search: "Harare (12)". The count is in the option text, so it is read out with the option. A value with no listings shows "(0)" and stays selectable. Regions show a count only once a country is chosen, because the API counts regions within a country.
 - Submitting returns to page 1 of the new result. With JavaScript, empty fields are left out of the address (`/listings?deal=rent&region=harare`); without it they are submitted empty and ignored.
 - **A search the API refuses is not a broken page.** The form is shown again with the API's message under each control it refused ("City or town is not a city of that region.", `aria-invalid`, linked with `aria-describedby`), the panel opens if the control is inside it, and a "That search could not be run" state takes the place of the results.
@@ -142,7 +143,8 @@ The listing search on results pages: a white card with a `line` border. A GET fo
 
 The four location selects: Country, Region or province, City or town, Suburb. Each is a `SearchableSelect` named for the API's parameter, with a visible label.
 
-- Countries are the API's markets; regions, cities and suburbs are reference sets in which each item names the place it is in.
+- Countries are the ones that have listings (`GET /v1/markets?has_listings=true`, most listings first), plus the chosen one. Regions, cities and suburbs are reference sets in which each item names its country and the place it is in; they are offered for those countries only.
+- **A kind of place the chosen country has no list for is not asked for.** Most countries have no reference places yet: their listings name the city as free text, which cannot be filtered by code. Choosing such a country removes the three selects and shows one line: "We have no list of regions, cities or suburbs for Mauritius yet. To narrow the search to a town or an area, type its name in the keyword box."
 - **Without JavaScript** each is a native `<select>` and every option is present, grouped with `<optgroup>` under its parent (regions under their country, cities under their region, suburbs under their city). Any combination can be submitted; one that does not fit comes back with the API's message beside the control.
 - **With JavaScript** the selects depend on each other: a country narrows the regions, a region narrows the cities, a city narrows the suburbs, and a choice that no longer fits is cleared. Each list can be searched by typing. The narrowing starts after the page has loaded, so the HTML always holds the full lists.
 - Nothing is fetched in the browser.
@@ -152,7 +154,8 @@ The four location selects: Country, Region or province, City or town, Suburb. Ea
 The advanced search, inside the `SearchBar` form.
 
 - A native `<details id="advanced-search">` with the summary "Advanced search" / "Hide advanced search", so it opens with a click, Enter or Space and needs no JavaScript. The summary is 44px tall and shows how many of its filters are in use. It starts open when one is in use, when the API refused one, or when the address has `advanced=1` (the hero's "Advanced search" link).
-- Three groups, each a `fieldset` whose `legend` is the heading: **Property** (property type; bedrooms, bathrooms, floor area and land area, each "at least" and "at most"), **Price** (lowest and highest, in the chosen country's currency, named in the label), **More** (listed in the last 24 hours, 7, 14, 30 or 90 days; advertised by a Real Estate Agency or a private owner; listing reference; sort order; "Only listings with photos"), then **Features** as checkboxes.
+- Three groups, each a `fieldset` whose `legend` is the heading: **Property** (property type; bedrooms, bathrooms, floor area and land area, each "at least" and "at most"), **Price** (see below), **More** (listed in the last 24 hours, 7, 14, 30 or 90 days; advertised by a Real Estate Agency or a private owner; listing reference; sort order; "Only listings with photos"), then **Features** as checkboxes.
+- **Price is in one currency per search, and nothing is converted.** With a country chosen it is that country's currency, named in the labels ("Lowest price (GBP)") with the range of the result as a hint. With no country and results in several currencies, the group shows a "Currency" `SearchableSelect` (each code with its count) and the hint "Choose a currency or a country to filter by price."; the two price boxes are left out until one is chosen (they stay when they already hold a value, so a refused search can be corrected in one step). A price sent without a currency comes back from the API as a message under "Currency".
 - Every control has a visible label (`Field`). Property type, "Listed", "Advertised by" and "Sort by" are `SearchableSelect`s. Ranges are two number inputs, not a list of ranges. Areas are in square metres, said in the label.
 - Features are the twelve most common in the result, plus any that are ticked. Each label row is 44px tall and the whole row is the target.
 - Sort order starts on the API's default (newest first, or best match when there is a keyword), which adds nothing to the address. The others are oldest first, price lowest or highest first, and largest first.
@@ -164,7 +167,7 @@ The advanced search, inside the `SearchBar` form.
 
 The filters in use, above the results.
 
-- A `nav` named "Filters in use" holding one chip per filter, in the order of the form: a 44px pill with the filter in words ("Harare", "At least 3 bedrooms", "Up to USD 300,000", "With photos") and a small cross.
+- A `nav` named "Filters in use" holding one chip per filter, in the order of the form: a 44px pill with the filter in words ("Harare", "At least 3 bedrooms", "Up to USD 300,000", "Prices in GBP", "With photos") and a small cross.
 - **Each chip is a real link** to the same search without that filter, so removing a filter works without JavaScript and can be undone with Back. Its accessible name starts "Remove filter:" ("Remove filter: Harare"); the cross is decorative.
 - Labels come from the API's reference data or from the value itself. Sort order is not a filter and has no chip; removing a chip keeps it.
 - "Clear all" at the end is a link to the search with no filters.
@@ -219,8 +222,8 @@ The top of the landing page: a wide property photograph with a white panel centr
 
 The landing-page search, inside the hero's white panel.
 
-- One tab per deal type (the API's labels, "For sale" and "To rent" today), centred, sits above Location, property type, highest price, bedrooms and the primary "Search" button.
-- **Location is one `SearchableSelect`** covering every kind of place: countries, then regions or provinces, then cities and towns, then suburbs under their city, each under a group heading (an `<optgroup>` without JavaScript). Typing "borrow" finds Borrowdale; typing "suburbs of harare" lists them. It is sent as `location=region:harare`, which the results page reads as that filter; the address people share from the results is the plain one (`?region=harare`).
+- One tab per deal type (the API's labels, "For sale" and "To rent" today), centred, sits above Location, property type, highest price, bedrooms and the primary "Search" button. Highest price is there only when every listing is priced in one currency (it is named in the placeholder); with several, price is filtered in the advanced search, where a currency is chosen.
+- **Location is one `SearchableSelect`** covering every kind of place, for the countries that have listings: countries, then regions or provinces and cities and towns under their country, then suburbs under their city, each under a group heading (an `<optgroup>` without JavaScript). Typing "borrow" finds Borrowdale; typing "suburbs of harare" lists them. It is sent as `location=region:harare`, which the results page reads as that filter; the address people share from the results is the plain one (`?region=harare`).
 - Under the form, an "Advanced search" link goes to `/listings?advanced=1#advanced-search`, the results page with the advanced search open. The tabs are native radio buttons in a `fieldset`, so arrow keys switch between them and the choice is sent as the `deal` parameter.
 - Like `SearchBar`, it is a GET form to `/listings` whose option lists are a prop built from the API: it works without JavaScript and produces a shareable URL.
 - The selected tab is shown by text colour and a 3px indigo underline, not colour alone. Tabs are 48px tall. The focus outline is drawn on the tab label.
@@ -301,9 +304,9 @@ The navigation below `lg`: a 44px menu button at the right of the header that op
 ## SiteFooter (`layout/site-footer.tsx`)
 
 - Light: a `soft` background with a hairline and the 3px logo-colour band along its top. No dark or indigo footer.
-- Five columns from `lg`: the logo with one sentence, then "Property", "Professionals" and "Account" link columns and "Markets". Two columns from `sm`, one on phones. Each link column is a `nav` named by its heading; links are 44px tall on phones.
+- Five columns from `lg`: the logo with one sentence, then "Property", "Professionals" and "Account" link columns and "Countries with listings". Two columns from `sm`, one on phones. Each link column is a `nav` named by its heading; links are 44px tall on phones.
 - "Professionals" lists every kind the API returns, by its label (Real Estate Agencies, Estate Agents, Solicitors and so on), then "Find a professional". If they cannot be loaded it shows that one link.
-- "Markets" lists every market with its status, which keeps the multi-country roadmap honest. It comes from the API (`layout/market-info.tsx`); if it cannot be loaded the footer says so.
+- "Countries with listings" links the six countries with the most listings to their result pages (`/listings?country=GB`), then "All countries". The API knows every country (249); the footer names only those with something to show. If they cannot be loaded it shows that one link.
 - Under the logo's sentence, "Get the app": the two app-store links (`AppLinks`).
 - Under the columns, a row of links in a `nav` named "Help and legal": Frequently asked questions, then Privacy Policy, Terms and Conditions, Refund Policy, End User Licence Agreement, from `src/lib/legal.ts`. One per line and 44px tall on phones; one wrapping row from `sm`.
 - A last row holds the copyright line.
@@ -420,7 +423,8 @@ Viewings and consultations. The mobile app is the main place for them; the web p
 `/onboarding/<role>`: one application. Which details and documents it has, and which are required, come from `GET /v1/onboarding/requirements`; cities, trades and agencies come from reference data. The component holds only how each detail is labelled (`onboarding/fields.ts`); a detail it does not know falls back to a text field.
 
 - Order: a link back to the hub, the role as `h1` with the status badge, one sentence on what an approval leads to, any notice (see below), then two cards, "Details" and "Documents", then the actions.
-- Details use `Field`. Optional ones are marked "(optional)"; required ones carry `aria-required`. Lists (areas, services) are one text field with "Separate with commas". City, trade and agency are `SearchableSelect`s that start on "Choose…".
+- Details use `Field`. Optional ones are marked "(optional)"; required ones carry `aria-required`. Lists (areas, services) are one text field with "Separate with commas". Country, city, trade and agency are `SearchableSelect`s that start on "Choose…".
+- **Country first, then the city.** "Country" lists every country by name and is found by name or by code ("GB"). Once one is chosen, "City or town" is a `SearchableSelect` of that country's cities where the reference data has them, and a text box where it has none (its hint says why). The API needs exactly one of the two (`city` or `city_name`), so the one shown is required. Changing the country starts the city again. Read-only views show one "City or town" line.
 - **Private details say so.** The phone number's hint says it is used only by the verification team and is never shown publicly; the registration number likewise. In read-only views they carry a "Private" badge.
 - Actions: "Save draft" (secondary; saves the details and says "Draft saved. Nothing has been sent for review yet.") and "Submit for review" (primary; saves, then submits).
 - When submitting fails, every missing detail gets its message under its control and every missing document under its row, one summary `Alert` appears above the buttons, and focus moves to the first problem. The API's "is required" is rewritten to say what to do ("Enter business name before you submit.").

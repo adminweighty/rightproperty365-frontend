@@ -16,6 +16,7 @@ import { load, readAtBuild } from "@/lib/api/server/load";
 import { getCatalogue } from "@/lib/api/server/reference";
 import { toOptions, type Listing } from "@/lib/api/types";
 import { coverPhoto } from "@/lib/photos";
+import { fullPlace, narrowestPlace } from "@/lib/places";
 import {
   listingJsonLd,
   listingPath,
@@ -135,8 +136,10 @@ function ListingGone() {
  * these are how crawlers and people move between listings.
  */
 async function similarListings(listing: Listing): Promise<Listing[]> {
+  // A city written as free text has no code to search by: its country stands in.
+  const nearby = listing.city?.code ? { city: listing.city.code } : { country: listing.country?.code };
   const [sameCity, sameCategory] = await Promise.all([
-    listListings({ city: listing.city.code, page_size: 4 }),
+    listListings({ ...nearby, page_size: 4 }),
     listListings({ category: listing.category.code, page_size: 4 }),
   ]);
   const seen = new Set([listing.id]);
@@ -166,6 +169,7 @@ async function ListingContent({ params }: Pick<Props, "params">) {
   const [cover, ...morePhotos] = listing.photos;
   // The agent for an agency listing; the seller's own name for a private sale.
   const contact = advertiser.agent ?? advertiser.agency;
+  const place = fullPlace(listing);
 
   return (
     <>
@@ -194,7 +198,7 @@ async function ListingContent({ params }: Pick<Props, "params">) {
           </li>
           <ChevronRight className="size-4" aria-hidden="true" />
           <li aria-current="page" className="text-ink">
-            {listing.suburb.label}
+            {narrowestPlace(listing) || listing.title}
           </li>
         </ol>
       </nav>
@@ -227,18 +231,13 @@ async function ListingContent({ params }: Pick<Props, "params">) {
             <Badge>{listing.property_type.label}</Badge>
           </div>
           <h1 className="mt-4 text-3xl md:text-4xl">{listing.title}</h1>
-          <p className="mt-3 flex items-center gap-1.5 text-muted">
-            <MapPin className="size-4 shrink-0" aria-hidden="true" />
-            {/* Suburb, city, then the region (unless it has the city's name) and the country. */}
-            {[
-              listing.suburb.label,
-              listing.city.label,
-              listing.region && listing.region.label !== listing.city.label ? listing.region.label : null,
-              listing.country?.name,
-            ]
-              .filter(Boolean)
-              .join(", ")}
-          </p>
+          {/* Suburb, city, region (unless it has the city's name) and country: whichever the listing names. */}
+          {place && (
+            <p className="mt-3 flex items-center gap-1.5 text-muted">
+              <MapPin className="size-4 shrink-0" aria-hidden="true" />
+              {place}
+            </p>
+          )}
           <ListingPrice listing={listing} className="mt-6 text-4xl" />
           <div className="mt-6 border-y border-line py-4">
             <ListingFacts listing={listing} />

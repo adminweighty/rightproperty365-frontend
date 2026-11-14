@@ -4,7 +4,7 @@ import { BadgeCheck, Check, ChevronLeft, FileText, Minus } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { AdminGate } from "@/components/admin/admin-gate";
-import { fieldDisplay, fieldSpec, type FieldLists } from "@/components/onboarding/fields";
+import { fieldDisplay, fieldSpec, shownDetailNames, type FieldLists } from "@/components/onboarding/fields";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink, buttonClasses } from "@/components/ui/button";
@@ -296,8 +296,13 @@ function Review({ id, requirements, lists, directoryLabels, organisationKindLabe
                 <dd className="text-ink">{formatWhen(application.applicant.created_at)}</dd>
               </div>
               <div>
-                <dt className="text-sm text-muted">Market</dt>
-                <dd className="text-ink">{application.market_code ?? "None yet"}</dd>
+                <dt className="text-sm text-muted">Country</dt>
+                <dd className="text-ink">
+                  {application.market_code
+                    ? (lists.countries.find((country) => country.value === application.market_code)?.label ??
+                      application.market_code)
+                    : "None yet"}
+                </dd>
               </div>
             </dl>
             <p className="mt-5 rounded-md bg-sunken p-3 text-sm leading-relaxed text-ink">
@@ -308,7 +313,11 @@ function Review({ id, requirements, lists, directoryLabels, organisationKindLabe
           <Card>
             <h2 className="text-2xl">Details</h2>
             <dl className="mt-4 grid gap-4 sm:grid-cols-2">
-              {application.requirements.fields.map(({ name, required }) => {
+              {shownDetailNames(
+                application.requirements.fields.map(({ name }) => name),
+                application.details,
+              ).map((name) => {
+                const required = application.requirements.fields.find((field) => field.name === name)?.required;
                 const spec = fieldSpec(name);
                 const value =
                   name === "agency_slug" && application.agency

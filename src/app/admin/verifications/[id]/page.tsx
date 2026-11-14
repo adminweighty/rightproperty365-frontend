@@ -25,7 +25,7 @@ async function Detail({ params }: Pick<Props, "params">) {
   });
   const { requirements = [], ...lists } = loaded.ok
     ? loaded.data.lists
-    : { requirements: [], cities: [], trades: [], agencies: [] };
+    : { requirements: [], countries: [], cities: [], trades: [], agencies: [] };
   const directoryLabels = loaded.ok
     ? Object.fromEntries(loaded.data.kinds.map(({ code, label }) => [code, label]))
     : {};

@@ -7,7 +7,7 @@ import type { Option } from "@/lib/api/types";
  * this only says what a detail is called on screen and which control it uses.
  * A detail the app does not know yet falls back to a plain text field.
  */
-export type FieldKind = "text" | "textarea" | "phone" | "list" | "city" | "trade" | "agency";
+export type FieldKind = "text" | "textarea" | "phone" | "list" | "country" | "city" | "trade" | "agency";
 
 export type FieldSpec = {
   label: string;
@@ -37,7 +37,16 @@ const specs: Record<string, FieldSpec> = {
     maxLength: 2000,
     hint: "Shown on your public profile. Plain text.",
   },
+  country: { label: "Country", kind: "country", hint: "Where the business is based. Type a name or a country code." },
+  // One of the two is asked for, depending on the country: a list where we have one, a text box where we do not.
   city: { label: "City or town", kind: "city", hint: "Where the business is based." },
+  city_name: {
+    label: "City or town",
+    kind: "text",
+    maxLength: 80,
+    hint: "Where the business is based. We have no list of cities for this country yet, so type the name.",
+    autoComplete: "address-level2",
+  },
   areas: { label: "Areas covered", kind: "list", hint: "Separate areas with commas. Up to 12." },
   services: { label: "Services", kind: "list", hint: "Separate services with commas. Up to 12." },
   trade: { label: "Trade", kind: "trade", hint: "The trade your profile is listed under." },
@@ -65,14 +74,49 @@ const humanise = (name: string) => {
 
 export const fieldSpec = (name: string): FieldSpec => specs[name] ?? { label: humanise(name), kind: "text" };
 
-/** The lists the choice fields pick from, loaded from the API by the page. */
-export type FieldLists = { cities: Option[]; trades: Option[]; agencies: Option[] };
+/** A choice with, for a country, its code as a search word and, for a city, the code of its country. */
+export type ChoiceOption = Option & { keywords?: string[]; country?: string };
 
-export function fieldOptions(kind: FieldKind, lists: FieldLists): Option[] {
+/** The lists the choice fields pick from, loaded from the API by the page. */
+export type FieldLists = {
+  /** Every country, by name. */
+  countries: ChoiceOption[];
+  /** The cities of every country that has reference cities, each with its country. */
+  cities: ChoiceOption[];
+  trades: Option[];
+  agencies: Option[];
+};
+
+export function fieldOptions(kind: FieldKind, lists: FieldLists): ChoiceOption[] {
+  if (kind === "country") return lists.countries;
   if (kind === "city") return lists.cities;
   if (kind === "trade") return lists.trades;
   if (kind === "agency") return lists.agencies;
   return [];
+}
+
+/**
+ * Which of `city` (a choice) and `city_name` (free text) a form asks for.
+ * The API needs exactly one: the choice where the chosen country has cities
+ * in the reference data, the text where it has none. Neither is asked for
+ * until a country is chosen. A role without a `country` field (an older API)
+ * keeps its plain city choice.
+ */
+export function cityFieldFor(fieldNames: string[], country: string, lists: FieldLists): "city" | "city_name" | null {
+  if (!fieldNames.includes("country")) return fieldNames.includes("city") ? "city" : null;
+  if (!country) return null;
+  const hasCities = lists.cities.some((city) => city.country === country);
+  if (hasCities) return fieldNames.includes("city") ? "city" : null;
+  return fieldNames.includes("city_name") ? "city_name" : null;
+}
+
+/**
+ * The details to show read-only: of `city` and `city_name` only the one that
+ * was given (or `city` when neither was), so the place is one line.
+ */
+export function shownDetailNames(fieldNames: string[], details: OnboardingDetails): string[] {
+  const typed = Boolean(fieldText(details, "city_name"));
+  return fieldNames.filter((name) => (name === "city_name" ? typed : name === "city" ? !typed : true));
 }
 
 /** A stored value as text for a form control. */

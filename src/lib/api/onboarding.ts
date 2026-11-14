@@ -34,7 +34,12 @@ export type OnboardingDetails = {
   business_name: string | null;
   tagline: string | null;
   description: string | null;
+  /** ISO 3166-1 alpha-2. Optional: API builds before 0.15 do not send it or `city_name`. */
+  country?: string | null;
+  /** A `cities` code, where the country has reference cities. */
   city: string | null;
+  /** The city as free text, where the country has none. */
+  city_name?: string | null;
   areas: string[];
   services: string[];
   trade: string | null;

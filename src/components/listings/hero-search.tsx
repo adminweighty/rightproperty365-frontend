@@ -17,7 +17,8 @@ type Props = {
  * The landing-page search, inside the hero's white panel: one tab per deal
  * type over one Location select (countries, regions, cities and suburbs in
  * one list, sent as `location=region:harare`), property type, highest price
- * and bedrooms, with a link to the advanced search. The tabs
+ * (only when every listing is priced in one currency) and bedrooms, with a
+ * link to the advanced search. The tabs
  * are native radio buttons and the whole thing is a GET form, so it works
  * without JavaScript and with a keyboard (arrow keys switch tabs). All lists
  * come from the API.
@@ -26,11 +27,16 @@ export function HeroSearch({ options, className }: Props) {
   // One list of every kind of place. The value says which kind: "region:harare".
   const places = (label: string, kind: string, items: SearchOptions["countries"]): SelectItem[] =>
     items.length > 0 ? [{ label, options: items.map((option) => selectOption(option, `${kind}:`)) }] : [];
+  // Regions and cities under their country, for the countries that have listings.
+  const perCountry = (label: string, kind: string, items: SearchOptions["regions"]): SelectItem[] =>
+    options.countries.flatMap((country) =>
+      places(`${label} of ${country.label}`, kind, items.filter((item) => item.country === country.value)),
+    );
   const locations: SelectItem[] = [
     { value: "", label: "Any location" },
     ...places("Country", "country", options.countries),
-    ...places("Region or province", "region", options.regions),
-    ...places("City or town", "city", options.cities),
+    ...perCountry("Regions and provinces", "region", options.regions),
+    ...perCountry("Cities and towns", "city", options.cities),
     ...selectGroups(options.suburbs, "suburb:").map((group) => ({ ...group, label: `Suburbs of ${group.label}` })),
   ];
 
@@ -80,20 +86,23 @@ export function HeroSearch({ options, className }: Props) {
             options={[{ value: "", label: "Any property type" }, ...selectGroups(options.propertyTypes)]}
           />
         </div>
-        <div>
-          <label htmlFor="hero-max-price" className="sr-only">
-            Highest price{options.currency ? ` in ${options.currency}` : ""}
-          </label>
-          <Input
-            id="hero-max-price"
-            name="max_price"
-            type="number"
-            inputMode="numeric"
-            min={0}
-            step="any"
-            placeholder={`Highest price${options.currency ? ` (${options.currency})` : ""}`}
-          />
-        </div>
+        {/* A price needs one currency. Listings in several are filtered by price in the advanced search. */}
+        {options.currency && (
+          <div>
+            <label htmlFor="hero-max-price" className="sr-only">
+              Highest price in {options.currency}
+            </label>
+            <Input
+              id="hero-max-price"
+              name="max_price"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              step="any"
+              placeholder={`Highest price (${options.currency})`}
+            />
+          </div>
+        )}
         <div>
           <label htmlFor="hero-bedrooms" className="sr-only">
             Bedrooms

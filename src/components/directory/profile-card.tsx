@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import type { DirectoryProfile, ProfileRef } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
+import { profilePlace } from "@/lib/places";
 import { profilePath } from "@/lib/seo";
 
 export const initials = (name: string) =>
@@ -69,10 +70,12 @@ export function ProfileCard({ profile }: { profile: DirectoryProfile }) {
       <p className="mt-4 text-sm leading-relaxed text-muted">{profile.tagline}</p>
 
       <div className="mt-auto flex flex-wrap items-center gap-2 pt-4">
-        <span className="flex items-center gap-1 text-sm text-muted">
-          <MapPin className="size-4" aria-hidden="true" />
-          {profile.city.label}
-        </span>
+        {profilePlace(profile) && (
+          <span className="flex items-center gap-1 text-sm text-muted">
+            <MapPin className="size-4" aria-hidden="true" />
+            {profilePlace(profile)}
+          </span>
+        )}
         {profile.listing_count > 0 && (
           <Badge tone="primary">
             {profile.listing_count === 1 ? "1 listing" : `${profile.listing_count} listings`}

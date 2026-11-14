@@ -2,11 +2,12 @@ import Link from "next/link";
 import { Fragment } from "react";
 import { AppLinks } from "@/components/layout/app-links";
 import { Logo } from "@/components/layout/logo";
-import { MarketList } from "@/components/layout/market-info";
 import { professionalsLink, type NavItem } from "@/components/layout/nav-items";
 import { Container } from "@/components/ui/container";
 import { getDirectoryKinds } from "@/lib/api/server/directory";
 import { load } from "@/lib/api/server/load";
+import { getListingCountries } from "@/lib/api/server/reference";
+import { listingsPath } from "@/lib/seo";
 import { legalDocuments } from "@/lib/legal";
 import { ApiBoundary } from "@/components/api-boundary";
 
@@ -32,6 +33,10 @@ const columns: { title: string; links: NavItem[] }[] = [
 ];
 
 const directoryHome: NavItem = { href: "/directory", label: "Find a professional" };
+const allListings: NavItem = { href: "/listings", label: "All countries" };
+
+/** The footer names the countries with the most listings; the search offers them all. */
+const COUNTRY_LIMIT = 6;
 
 const headingClass = "font-sans text-sm font-semibold tracking-normal text-ink";
 const linkClass = "flex min-h-11 items-center text-sm text-muted hover:text-primary-ink hover:underline md:min-h-9";
@@ -51,6 +56,22 @@ function LinkList({ links }: { links: NavItem[] }) {
 }
 
 /**
+ * The countries that have listings, most listings first, each linked to its
+ * result page (docs/seo.md: a country page is indexable). The API knows every
+ * country; only these few have anything to show. If they cannot be loaded,
+ * the link to every listing is enough.
+ */
+async function CountryLinks() {
+  const loaded = await load(getListingCountries);
+  const countries = loaded.ok ? loaded.data.slice(0, COUNTRY_LIMIT) : [];
+  return (
+    <LinkList
+      links={[...countries.map(({ code, name }) => ({ href: listingsPath({ country: code }), label: name })), allListings]}
+    />
+  );
+}
+
+/**
  * Every directory the API lists (Real Estate Agencies, Estate Agents,
  * Solicitors, ...), so a new directory appears here without a change to the
  * app. If they cannot be loaded, the link to the directory hub is enough.
@@ -65,7 +86,7 @@ async function DirectoryLinks() {
   );
 }
 
-/** Light, multi-column footer: brand line, three link columns (the directories from the API), the markets, the app-store links, and a row with the FAQ and the legal links. */
+/** Light, multi-column footer: brand line, three link columns (the directories from the API), the countries that have listings, the app-store links, and a row with the FAQ and the legal links. */
 export function SiteFooter() {
   return (
     <footer data-site-footer className="mt-20 border-t border-line bg-soft md:mt-24">
@@ -98,12 +119,12 @@ export function SiteFooter() {
           </Fragment>
         ))}
 
-        <div>
-          <h2 className={headingClass}>Markets</h2>
-          <ApiBoundary fallback={<div aria-busy="true" className="mt-3 h-24 rounded-md bg-sunken" />}>
-            <MarketList />
+        <nav aria-label="Countries with listings">
+          <h2 className={headingClass}>Countries with listings</h2>
+          <ApiBoundary fallback={<LinkList links={[allListings]} />}>
+            <CountryLinks />
           </ApiBoundary>
-        </div>
+        </nav>
       </Container>
       <div className="border-t border-line">
         <Container className="py-3">

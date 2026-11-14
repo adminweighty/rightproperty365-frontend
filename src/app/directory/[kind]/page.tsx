@@ -13,7 +13,8 @@ import { Container } from "@/components/ui/container";
 import { ErrorState } from "@/components/ui/error-state";
 import { getDirectoryKinds, getDirectoryList } from "@/lib/api/server/directory";
 import { load, readAtBuild } from "@/lib/api/server/load";
-import { getCatalogue } from "@/lib/api/server/reference";
+import { getAllCountries, getCatalogue, placesIn } from "@/lib/api/server/reference";
+import { joinPlaces } from "@/lib/places";
 import type { DirectoryProfile, ReferenceItem } from "@/lib/api/types";
 import { directoryJsonLd } from "@/lib/seo";
 import { ApiBoundary } from "@/components/api-boundary";
@@ -43,17 +44,31 @@ const first = (value: string | string[] | undefined) => (Array.isArray(value) ? 
  * (`?region=harare`). A code that is not in the reference data is ignored.
  */
 async function readDirectory(kind: string, params: RawParams = {}) {
-  const [kinds, catalogue] = await Promise.all([getDirectoryKinds(), getCatalogue()]);
-  const country = catalogue.markets.find(({ code }) => code === first(params.country))?.code;
-  const region = (catalogue.sets.regions ?? []).find(({ code }) => code === first(params.region))?.code;
-  const filters = { country, region };
+  const [kinds, catalogue, everyCountry] = await Promise.all([getDirectoryKinds(), getCatalogue(), getAllCountries()]);
+  const wanted = first(params.country)?.toUpperCase();
+  const chosen = everyCountry.find(({ code }) => code === wanted);
+  const region = catalogue.sets.regions.find(({ code }) => code === first(params.region))?.code;
+  const filters = { country: chosen?.code, region };
+  const filtered = Boolean(chosen || region);
   // The place is named in the heading only when the visitor chose one: the region, else the country.
-  const market = catalogue.markets.find(({ code }) => code === country);
-  const regionLabel = (catalogue.sets.regions ?? []).find(({ code }) => code === region)?.label;
+  const regionLabel = catalogue.sets.regions.find(({ code }) => code === region)?.label;
   const place = regionLabel
-    ? [regionLabel, market?.name].filter(Boolean).join(", ")
-    : market && countryInSentence(market.code, market.name);
-  return { list: await getDirectoryList(kind, filters), kinds, catalogue, filters, filtered: Boolean(country || region), place };
+    ? joinPlaces([regionLabel, chosen?.name])
+    : chosen && countryInSentence(chosen.code, chosen.name);
+
+  const [list, everyone] = await Promise.all([
+    getDirectoryList(kind, filters),
+    filtered ? getDirectoryList(kind) : null,
+  ]);
+  // The filter offers the countries these profiles are in (and the chosen one), by name.
+  const offered = new Map<string, string>();
+  for (const profile of (everyone ?? list)?.profiles ?? []) {
+    if (profile.country) offered.set(profile.country.code, profile.country.name);
+  }
+  if (chosen) offered.set(chosen.code, chosen.name);
+  const countries = [...offered].map(([code, name]) => ({ code, name })).sort((a, b) => a.name.localeCompare(b.name));
+  const { regions } = placesIn(catalogue.sets, countries.map(({ code }) => code));
+  return { list, kinds, catalogue, filters, filtered, place, countries, regions };
 }
 
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
@@ -156,9 +171,8 @@ async function DirectoryList({ params, searchParams }: Pick<Props, "params" | "s
   if (!loaded.ok) {
     return <ErrorState title="We could not load these profiles." retryHref={`/directory/${kindCode}`} />;
   }
-  const { list, kinds, catalogue, filters, filtered, place } = loaded.data;
+  const { list, kinds, catalogue, filters, filtered, place, countries, regions } = loaded.data;
   if (!list) notFound();
-  const regions = catalogue.sets.regions ?? [];
 
   const { kind, profiles } = list;
   const hasSponsored = profiles.some((profile) => profile.sponsored);
@@ -212,7 +226,7 @@ async function DirectoryList({ params, searchParams }: Pick<Props, "params" | "s
             defaultValue={filters.country ?? ""}
             options={[
               { value: "", label: "Any country" },
-              ...catalogue.markets.map((market) => ({ value: market.code, label: market.name })),
+              ...countries.map((country) => ({ value: country.code, label: country.name })),
             ]}
           />
         </Field>
@@ -223,7 +237,15 @@ async function DirectoryList({ params, searchParams }: Pick<Props, "params" | "s
             defaultValue={filters.region ?? ""}
             options={[
               { value: "", label: "Any region" },
-              ...regions.map((region) => ({ value: region.code, label: region.label })),
+              // Under their country, so "Harare" and "England" are not one flat list.
+              ...countries
+                .map((country) => ({
+                  label: country.name,
+                  options: regions
+                    .filter((region) => region.market_code === country.code)
+                    .map((region) => ({ value: region.code, label: region.label })),
+                }))
+                .filter((group) => group.options.length > 0),
             ]}
           />
         </Field>

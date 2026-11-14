@@ -15,7 +15,7 @@ const rooms = (count: number, noun: string) => `${count} ${noun}${count === 1 ? 
  */
 export function activeFilterChips(
   filters: ListingFilters,
-  { sets, markets = [] }: SearchContext,
+  { sets, countries = [] }: SearchContext,
   currency: string | undefined,
 ): FilterChip[] {
   const label = (items: ReferenceItem[], code: string) => items.find((item) => item.code === code)?.label ?? code;
@@ -32,12 +32,13 @@ export function activeFilterChips(
     deal: (value) => label(sets.deal_types, value),
     category: (value) => label(sets.property_categories, value),
     property_type: (value) => label(sets.property_types, value),
-    country: (value) => markets.find((market) => market.code === value)?.name ?? value,
-    region: (value) => label(sets.regions ?? [], value),
+    country: (value) => countries.find((country) => country.code === value)?.name ?? value,
+    region: (value) => label(sets.regions, value),
     city: (value) => label(sets.cities, value),
     suburb: (value) => label(sets.suburbs, value),
     min_price: (value) => `From ${money(value)}`,
     max_price: (value) => `Up to ${money(value)}`,
+    currency: (value) => `Prices in ${value}`,
     bedrooms_min: (value) => `At least ${rooms(value, "bedroom")}`,
     bedrooms_max: (value) => `At most ${rooms(value, "bedroom")}`,
     bathrooms_min: (value) => `At least ${rooms(value, "bathroom")}`,

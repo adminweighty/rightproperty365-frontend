@@ -7,11 +7,13 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { RequireAuth } from "@/components/auth/require-auth";
 import { DocumentUploader } from "@/components/onboarding/document-uploader";
 import {
+  cityFieldFor,
   fieldDisplay,
   fieldOptions,
   fieldSpec,
   fieldText,
   fieldValue,
+  shownDetailNames,
   type FieldLists,
 } from "@/components/onboarding/fields";
 import { Alert } from "@/components/ui/alert";
@@ -73,6 +75,8 @@ function Details({ requirement, lists }: Props) {
   const [failure, setFailure] = useState<ApiFailure | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState<string | null>(null);
+  // The country picked in the form; null until it is changed, when the stored one applies.
+  const [pickedCountry, setPickedCountry] = useState<string | null>(null);
   const form = useRef<HTMLFormElement>(null);
   const { role } = requirement;
 
@@ -133,6 +137,11 @@ function Details({ requirement, lists }: Props) {
 
   const { application } = state;
   const editable = application.can_edit;
+  const fieldNames = requirement.fields.map(({ name }) => name);
+  const asksCountry = fieldNames.includes("country");
+  const country = pickedCountry ?? application.details.country ?? "";
+  // The city is a choice or a text box, depending on the country (see `cityFieldFor`).
+  const cityField = cityFieldFor(fieldNames, country, lists);
   const documentFor = (code: string) => application.documents.find((item) => item.type.code === code);
   // Files of a type the role no longer asks for are still listed, so they can be removed.
   const otherDocuments = application.documents.filter(
@@ -316,16 +325,30 @@ function Details({ requirement, lists }: Props) {
           <Card>
             <h2 className="text-2xl">Details</h2>
             <div className="mt-5 grid gap-5 sm:grid-cols-2">
-              {requirement.fields.map(({ name, required }) => {
+              {requirement.fields.map(({ name, required: flagged }) => {
+                const isCity = name === "city" || name === "city_name";
+                if (isCity && name !== cityField) return null;
                 const spec = fieldSpec(name);
                 const id = `ob-${name}`;
-                const error = errors[`details.${name}`];
-                const options = fieldOptions(spec.kind, lists);
-                const described = fieldDescribedBy(id, { hint: spec.hint, error });
+                // The API reports a missing city under whichever of the two names it expected.
+                const error =
+                  errors[`details.${name}`] ?? (isCity ? (errors["details.city"] ?? errors["details.city_name"]) : undefined);
+                // Exactly one of the two city fields is needed, which the API cannot flag on either.
+                const required = flagged || (isCity && asksCountry);
+                const hint =
+                  name === "country" && !country && cityField === null
+                    ? `${spec.hint} Choose the country first, then the city or town.`
+                    : spec.hint;
+                const stored = fieldText(application.details, name);
+                const options = fieldOptions(spec.kind, lists).filter(
+                  (option) => name !== "city" || !asksCountry || option.country === country,
+                );
+                const described = fieldDescribedBy(id, { hint, error });
                 const common = {
                   id,
                   name,
-                  defaultValue: fieldText(application.details, name),
+                  // A stored city of another country is not offered again.
+                  defaultValue: name === "city" && !options.some((option) => option.value === stored) ? "" : stored,
                   "aria-invalid": Boolean(error),
                   "aria-describedby": described,
                   "aria-required": required,
@@ -333,16 +356,25 @@ function Details({ requirement, lists }: Props) {
                 const wide = spec.kind === "textarea" || spec.kind === "list" || spec.kind === "phone";
                 return (
                   <Field
-                    key={name}
+                    // A new country is a new list of cities: start the choice again.
+                    key={isCity ? `${name}-${country}` : name}
                     id={id}
                     label={spec.label}
-                    hint={spec.hint}
+                    hint={hint}
                     error={error}
                     optional={!required}
                     className={wide ? "sm:col-span-2" : undefined}
                   >
                     {spec.kind === "textarea" ? (
                       <Textarea {...common} maxLength={spec.maxLength} rows={5} />
+                    ) : spec.kind === "country" ? (
+                      <SearchableSelect
+                        {...common}
+                        defaultValue={undefined}
+                        value={country}
+                        onValueChange={setPickedCountry}
+                        options={[{ value: "", label: "Choose a country…" }, ...options.map(({ value, label, keywords }) => ({ value, label, keywords }))]}
+                      />
                     ) : spec.kind === "city" || spec.kind === "trade" || spec.kind === "agency" ? (
                       <SearchableSelect
                         {...common}
@@ -419,7 +451,7 @@ function Details({ requirement, lists }: Props) {
           <Card>
             <h2 className="text-2xl">Details</h2>
             <dl className="mt-5 grid gap-5 sm:grid-cols-2">
-              {requirement.fields.map(({ name }) => {
+              {shownDetailNames(fieldNames, application.details).map((name) => {
                 const spec = fieldSpec(name);
                 const value = fieldDisplay(application.details, name, lists);
                 return (

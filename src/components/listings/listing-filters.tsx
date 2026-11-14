@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Field, fieldDescribedBy, Input } from "@/components/ui/field";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { selectGroups, type SearchOptions } from "@/lib/search-options";
+import { selectGroups, selectOption, type SearchOptions } from "@/lib/search-options";
 import type { ListingFilters } from "@/lib/seo";
 
 type Props = {
@@ -76,6 +76,7 @@ export function ListingFilterPanel({ options, defaults, open = false, errors = {
     "property_type",
     "min_price",
     "max_price",
+    "currency",
     "bedrooms_min",
     "bedrooms_max",
     "bathrooms_min",
@@ -98,6 +99,15 @@ export function ListingFilterPanel({ options, defaults, open = false, errors = {
   const defaultSort = defaults.q ? "relevance" : "newest";
   const currency = options.currency ? ` (${options.currency})` : "";
   const priceHint = options.priceRange ? `This search has prices from ${options.priceRange}.` : undefined;
+  // One currency per search. Results in several, with neither a currency nor a
+  // country chosen, cannot be filtered by price until one is.
+  const needsCurrency = !options.currency && options.currencies.length > 1;
+  const offerCurrency = options.currencies.length > 1 || defaults.currency !== undefined || errors.currency !== undefined;
+  const currencyHint = needsCurrency
+    ? "Choose a currency or a country to filter by price."
+    : "Prices are compared in this currency. Nothing is converted.";
+  // The price boxes stay when they hold a value, so a refused search can be put right in one go.
+  const showPrices = !needsCurrency || defaults.min_price !== undefined || defaults.max_price !== undefined;
   const shared = { defaults, errors };
 
   return (
@@ -137,8 +147,27 @@ export function ListingFilterPanel({ options, defaults, open = false, errors = {
       </Group>
 
       <Group legend="Price">
-        <NumberField name="min_price" label={`Lowest price${currency}`} hint={priceHint} {...shared} />
-        <NumberField name="max_price" label={`Highest price${currency}`} {...shared} />
+        {offerCurrency && (
+          <Field id="search-currency" label="Currency" hint={currencyHint} error={errors.currency}>
+            <SearchableSelect
+              id="search-currency"
+              name="currency"
+              defaultValue={defaults.currency ?? ""}
+              aria-invalid={Boolean(errors.currency)}
+              aria-describedby={fieldDescribedBy("search-currency", { hint: currencyHint, error: errors.currency })}
+              options={[
+                { value: "", label: needsCurrency ? "Choose a currency" : "No currency chosen" },
+                ...options.currencies.map((option) => selectOption(option)),
+              ]}
+            />
+          </Field>
+        )}
+        {showPrices && (
+          <>
+            <NumberField name="min_price" label={`Lowest price${currency}`} hint={priceHint} {...shared} />
+            <NumberField name="max_price" label={`Highest price${currency}`} {...shared} />
+          </>
+        )}
       </Group>
 
       <Group legend="More">

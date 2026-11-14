@@ -45,7 +45,8 @@ Everything the site lists comes from the Go API (`api/openapi.yaml` in the backe
 | On the site | API |
 | --- | --- |
 | Every drop-down, filter option and label: deal types, property categories and types, regions, cities, suburbs, listing features, request types, contact methods, sign-up roles with their groups and descriptions, organisation kinds, directories, service trades | `GET /v1/reference` |
-| Markets in the footer; the countries of the search | `GET /v1/markets` |
+| The countries that have listings: search filters, the hero's location list, the landing page's country row, the footer, the curated pages | `GET /v1/markets?has_listings=true` (the same data as `/v1/countries`) |
+| Every country (249), for naming the country of a search and for the country field of onboarding | `GET /v1/countries` |
 | Listing search by country, region, city, suburb and the advanced filters, its facet counts and pages; the landing page rows, city and suburb tiles and counts | `GET /v1/listings` |
 | Listing detail; "no longer available" for a 410 | `GET /v1/listings/{slug}` |
 | Suggestions when a keyword search finds nothing | `GET /v1/listings/suggest` |
@@ -55,9 +56,11 @@ Everything the site lists comes from the Go API (`api/openapi.yaml` in the backe
 
 How it is wired:
 
-- **`src/lib/api/server/`** holds the server-side readers. Each is a `'use cache'` function with a lifetime and a tag: reference data and markets for an hour (`reference`, `markets`), listings and the directory for a minute (`listings`, `listing:<slug>`, `directory`, `profile:<kind>:<slug>`). A reader throws when the API fails, so a failure is never cached. Pages call them through `load()`, which turns a failure into an error state.
+- **`src/lib/api/server/`** holds the server-side readers. Each is a `'use cache'` function with a lifetime and a tag: reference data and the list of every country for an hour (`reference`, `markets`), the countries that have listings, listings and the directory for a minute (`listings`, `listing:<slug>`, `directory`, `profile:<kind>:<slug>`). A reader throws when the API fails, so a failure is never cached. Pages call them through `load()`, which turns a failure into an error state.
 - **Server Components fetch; Client Components receive props.** Forms such as the search bars, the sign-up role picker, the property request form and the request inbox get their option lists and labels from the page that renders them. Nothing fetches reference data in the browser.
 - **Results that depend on `searchParams`** (the listing search) are read with the parsed filters passed as arguments, so each search is its own cache entry. The page is rendered by the server for each request (see "Builds and the API").
+- **There is no default country or currency.** `getCatalogue()` returns the reference sets and the countries that have listings, nothing else. Regions, cities and suburbs come in one read for every country that has them, each row with its `market_code`; the forms offer the places of the countries that have listings (and of the chosen one), and `placesIn()` gives one country's. Most countries have no reference places: their listings and profiles name the city as free text (`code: null`), which is shown but never linked or filtered.
+- **One currency per search.** The price filters and the price range are in the chosen `currency`, else the chosen country's, else the only currency of the results. With several and nothing chosen the API sends no price range and lists the currencies; the form then asks for one (`design/components/README.md`, "ListingFilterPanel").
 - **Codes are checked against the reference data** before they are sent to the API, which answers 400 for a code it does not know. Whether places fit together (a suburb in its city, a city in its region) and whether a maximum is above its minimum is left to the API: its 400 names the parameter, and the search form shows that message beside the control.
 - **Photos.** The API returns a photo as `/assets/images/<file>.jpg` with alt text and size. Object storage and uploads are not built, so those files are the ones bundled from `src/assets/images`. `src/lib/photos.ts` maps the file name to the bundled import, which keeps hashed URLs, responsive sizes and blur placeholders. A photo that is not bundled is loaded from the URL the API gave, unoptimised, at the API's width and height.
 - **Role names come from the API.** Account roles with their groups and descriptions (`account_roles`), organisation kinds (`organisation_kinds`), the title of a membership (`role_label` in `GET /v1/me`), an agent's specialism and the wording of an application's status (`status_label`) are shown as sent. They are titles: see `design/guidelines/content-voice.md`, "Role names".
@@ -116,7 +119,7 @@ At run time, a page that cannot reach the API shows an error state with a "Try a
 | `npm run build` | Production build (standalone output in `.next/standalone`) |
 | `npm run start` | Serve the production build |
 | `npm run lint` | ESLint |
-| `npm test` | Checks the logic of the searchable select (Node's test runner; needs Node 22.18 or later) |
+| `npm test` | Checks the pure logic in `scripts/*.test.mjs`: the searchable select and the location lines (Node's test runner; needs Node 22.18 or later) |
 | `npm run typecheck` | Generate route types and run `tsc` |
 | `npm run tokens` | Regenerate `design/tokens/tokens.css` and check colour contrast |
 
@@ -144,7 +147,7 @@ src/app/                Routes (App Router)
 src/components/
   ui/                   Primitives: Button, Field, Input, SearchableSelect, Badge, Card, Container,
                         Alert, ErrorState, Pagination
-  layout/               Header, menu for small screens, footer, logo, market list
+  layout/               Header, menu for small screens, footer, logo
   landing/              Landing-page section heading, photo tiles and role groups
   api-boundary.tsx      Wrapper for public components that read the API
   listings/             Listing card, media, search bar, location selects, advanced search panel, hero search
@@ -160,6 +163,7 @@ src/lib/
   api/server/           Server-side cached readers for listings, directory, reference data
   seo.ts                Search parameters, indexing rules, structured data (docs/seo.md)
   countries.ts          Which country names take "the" in a sentence
+  places.ts             A location line from whatever a listing or profile names
   legal.ts              Every business fact the legal pages state (docs/legal.md)
   faq.ts                The frequently asked questions, as data
   app-links.ts          App Store and Google Play addresses (placeholders until the apps are published)
@@ -182,7 +186,7 @@ src/lib/
 - **No lists in code.** A drop-down, filter or label for a value the API returns comes from the API's reference data. Add a row in the database, not an array in the app.
 - **Every drop-down is a `SearchableSelect`** (`src/components/ui/searchable-select.tsx`): a native select in the HTML, searchable by typing once the page is interactive. Do not render a bare `<select>`.
 - **"Professionals" is the user-facing name for the directory.** Visitors read "Professionals", "Find a property professional" and "your public profile"; the word "directory" is not shown to them. The code, the addresses (`/directory/<kind>/<slug>`), the cache tag and the API (`/v1/directory`, `directory_kinds`) keep the name, so links in emails, the mobile app and search engines keep working.
-- **No default country in the wording.** The site lists property from any country. A heading, title or description names a country only when the visitor chose one (`?country=GB` gives "Property for sale in the United Kingdom"), or a region, city or suburb, which is then named. Country names come from the API; `src/lib/countries.ts` only knows which few take "the".
+- **No default country in the wording.** The site lists property from any country. A heading, title or description names a country only when the visitor chose one (`?country=GB` gives "Property for sale in the United Kingdom"), or a region, city or suburb, which is then named. Country names come from the API; `src/lib/countries.ts` only knows which few take "the". There is no default currency either: every price shows its own currency code.
 - **WCAG 2.2 AA** is required. See `design/guidelines/accessibility.md`.
 
 ## Legal pages

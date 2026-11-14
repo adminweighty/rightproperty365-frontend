@@ -32,6 +32,7 @@ import { getCatalogue } from "@/lib/api/server/reference";
 import type { FacetCount, Listing } from "@/lib/api/types";
 import { formatMoney } from "@/lib/format";
 import { cityArtwork, coverPhoto } from "@/lib/photos";
+import { shortPlace } from "@/lib/places";
 import { groupRoles } from "@/lib/roles";
 import { buildSearchOptions } from "@/lib/search-options";
 import { listingsHeading, listingsPath, organizationJsonLd, websiteJsonLd } from "@/lib/seo";
@@ -84,6 +85,9 @@ const promises = [
   },
 ];
 
+const chipClass =
+  "flex min-h-11 items-center gap-2 rounded-full border border-line-strong bg-surface px-4 text-sm font-medium text-ink transition-colors hover:border-primary hover:bg-primary-soft hover:text-primary-ink";
+
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
 /** Most listings first, then by name. The API returns facets by name. */
@@ -119,7 +123,7 @@ async function readHome() {
       sets.deal_types.map(async (deal) => {
         const filters = { deal: deal.code, category: mainCategory?.code };
         return {
-          title: listingsHeading(filters, { sets, market: null }),
+          title: listingsHeading(filters, { sets }),
           href: listingsPath(filters),
           page: await listListings({ ...filters, page_size: RAIL_SIZE }),
         };
@@ -239,7 +243,9 @@ async function HomeContent() {
   const { sets } = catalogue;
   const { facets } = newest;
   const newIds = newest.items.slice(0, 6).map((listing) => listing.id);
-  const searchOptions = buildSearchOptions(sets, facets, {}, catalogue.markets);
+  const searchOptions = buildSearchOptions(sets, facets, {}, catalogue.countries);
+  // The countries that have listings, in the API's order (most listings first).
+  const countries = catalogue.countries.filter((country) => (country.listing_count ?? 0) > 0);
   const roleGroups = groupRoles(sets.account_roles);
   const cities = byCount(facets.city);
   const suburbs = byCount(facets.suburb);
@@ -285,7 +291,7 @@ async function HomeContent() {
                 {heroListing.price_period === "month" && <span className="font-normal text-muted"> per month</span>}
               </span>
               <span className="block truncate text-muted">
-                {heroListing.title}, {heroListing.suburb.label}
+                {[heroListing.title, shortPlace(heroListing)].filter(Boolean).join(", ")}
               </span>
             </Link>
           )
@@ -340,14 +346,35 @@ async function HomeContent() {
         </section>
       )}
 
-      {cities.length > 0 && (
+      {(cities.length > 0 || countries.length > 1) && (
         <Container className="pt-14 md:pt-20">
-          <SectionHeading title="Explore by city" note="See what is on the market where you want to live or work." />
+          <SectionHeading
+            title={cities.length > 0 ? "Explore by city" : "Explore by country"}
+            note="See what is on the market where you want to live or work."
+          />
+          {countries.length > 1 && (
+            <nav aria-label="Countries with listings" className="mt-6">
+              <ul className="flex flex-wrap gap-2">
+                {countries.map((country) => (
+                  <li key={country.code}>
+                    <Link href={listingsPath({ country: country.code })} className={chipClass}>
+                      {country.name}
+                      <span className="tabular-nums text-muted">
+                        {country.listing_count}
+                        <span className="sr-only"> {country.listing_count === 1 ? "property" : "properties"}</span>
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          )}
+          {cities.length > 0 && (
           <PhotoTileRow className="mt-8">
             {cities.map((city) => {
               // Cities without their own artwork borrow a photo from a listing there.
               const artwork = cityArtwork(city.code);
-              const borrowed = coverPhoto(pool.find((listing) => listing.city.code === city.code)?.photos ?? []);
+              const borrowed = coverPhoto(pool.find((listing) => listing.city?.code === city.code)?.photos ?? []);
               return (
                 <PhotoTile
                   key={city.code}
@@ -359,6 +386,7 @@ async function HomeContent() {
               );
             })}
           </PhotoTileRow>
+          )}
 
           {suburbs.length > 0 && (
             <>
@@ -366,10 +394,7 @@ async function HomeContent() {
               <ul className="mt-4 flex flex-wrap gap-2">
                 {suburbs.map((suburb) => (
                   <li key={suburb.code}>
-                    <Link
-                      href={listingsPath({ suburb: suburb.code })}
-                      className="flex min-h-11 items-center gap-2 rounded-full border border-line-strong bg-surface px-4 text-sm font-medium text-ink transition-colors hover:border-primary hover:bg-primary-soft hover:text-primary-ink"
-                    >
+                    <Link href={listingsPath({ suburb: suburb.code })} className={chipClass}>
                       {suburb.label}
                       <span className="tabular-nums text-muted">
                         {suburb.count}

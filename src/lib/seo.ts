@@ -6,14 +6,15 @@ import type {
   DirectoryProfile,
   Listing,
   ListingQuery,
+  Country,
   ListingSort,
-  Market,
   ReferenceItem,
   ReferenceSets,
 } from "@/lib/api/types";
 import { env } from "@/lib/env";
 import { formatMoney } from "@/lib/format";
 import { coverPhoto } from "@/lib/photos";
+import { joinPlaces, shortPlace } from "@/lib/places";
 
 /**
  * SEO helpers for the public pages. The indexing policy they implement is
@@ -32,8 +33,11 @@ export function absoluteUrl(path: string): string {
 
 // ---- Listing search (/listings) -------------------------------------------
 
-/** What the reference data and the active market contribute to search pages. */
-export type SearchContext = { sets: ReferenceSets; market: Market | null; markets?: Market[] };
+/**
+ * What the API contributes to search pages: the reference data, and the
+ * countries a search may name (code and name). There is no default country.
+ */
+export type SearchContext = { sets: ReferenceSets; countries?: Pick<Country, "code" | "name">[] };
 
 /** Listings per result page. */
 export const LISTINGS_PAGE_SIZE = 12;
@@ -51,13 +55,15 @@ export type ListingFilters = {
   deal?: string;
   category?: string;
   property_type?: string;
-  /** A market code. */
+  /** An ISO 3166-1 alpha-2 country code. */
   country?: string;
   region?: string;
   city?: string;
   suburb?: string;
   min_price?: string;
   max_price?: string;
+  /** ISO 4217 code the price filters are in. Needed only when no country is chosen. */
+  currency?: string;
   bedrooms_min?: number;
   bedrooms_max?: number;
   bathrooms_min?: number;
@@ -85,6 +91,7 @@ export const filterParams = [
   "suburb",
   "min_price",
   "max_price",
+  "currency",
   "bedrooms_min",
   "bedrooms_max",
   "bathrooms_min",
@@ -149,7 +156,7 @@ const ADJECTIVE_CATEGORIES = new Set(["residential", "commercial", "industrial",
  */
 export function listingsHeading(
   filters: Pick<ListingFilters, "deal" | "category" | "property_type" | "country" | "region" | "city" | "suburb">,
-  { sets, markets = [] }: SearchContext,
+  { sets, countries = [] }: SearchContext,
 ): string {
   const type = labelOf(sets.property_types, filters.property_type);
   const category = labelOf(sets.property_categories, filters.category);
@@ -167,12 +174,12 @@ export function listingsHeading(
         : category
       : "Property");
   // The narrowest place chosen: suburb and city, else the region, else the country.
-  const region = labelOf(sets.regions ?? [], filters.region);
-  const market = markets.find((item) => item.code === filters.country);
-  const narrower = [suburb?.label, city].filter(Boolean).join(", ") || region;
+  const region = labelOf(sets.regions, filters.region);
+  const country = countries.find((item) => item.code === filters.country);
+  const narrower = joinPlaces([suburb?.label, city]) || region;
   const place = narrower
-    ? [narrower, market?.name].filter(Boolean).join(", ")
-    : market && countryInSentence(market.code, market.name);
+    ? joinPlaces([narrower, country?.name])
+    : country && countryInSentence(country.code, country.name);
   const where = place ? ` in ${place}` : "";
 
   if (deal) return `${noun} ${deal.toLowerCase()}${where}`;
@@ -237,8 +244,7 @@ export function parseListingsSearch(params: RawParams, context: SearchContext): 
     return undefined;
   };
 
-  const markets = context.markets ?? [];
-  const countries = markets.map((market) => ({ code: market.code }) as ReferenceItem);
+  const countries = (context.countries ?? []).map(({ code }) => ({ code }) as ReferenceItem);
   const oneOf = <T extends string>(key: string, values: readonly T[]) => {
     const value = text(key);
     if (value === undefined) return undefined;
@@ -247,16 +253,34 @@ export function parseListingsSearch(params: RawParams, context: SearchContext): 
     return undefined;
   };
 
+  const countryCode = (key: string) => {
+    const value = text(key)?.toUpperCase();
+    if (value === undefined) return undefined;
+    if (countries.some((item) => item.code === value)) return value;
+    invalid = true;
+    return undefined;
+  };
+  // Any ISO 4217 code: which currencies have listings is for the API to say.
+  const currencyCode = () => {
+    const value = text("currency")?.toUpperCase();
+    if (value === undefined) return undefined;
+    if (/^[A-Z]{3}$/.test(value)) return value;
+    invalid = true;
+    return undefined;
+  };
+
   const filters: ListingFilters = {
     deal: code("deal", sets.deal_types),
     category: code("category", sets.property_categories),
     property_type: code("property_type", sets.property_types),
-    country: code("country", countries),
-    region: code("region", sets.regions ?? []),
+    // Country codes are upper case in the API; an address may carry either.
+    country: countryCode("country"),
+    region: code("region", sets.regions),
     city: code("city", sets.cities),
     suburb: code("suburb", sets.suburbs),
     min_price: amount("min_price"),
     max_price: amount("max_price"),
+    currency: currencyCode(),
     bedrooms_min: count("bedrooms_min", 0, 50),
     bedrooms_max: count("bedrooms_max", 0, 50),
     bathrooms_min: count("bathrooms_min", 0, 50),
@@ -279,12 +303,13 @@ export function parseListingsSearch(params: RawParams, context: SearchContext): 
     const [kind, value] = location.split(":");
     const known: Record<LocationKind, ReferenceItem[]> = {
       country: countries,
-      region: sets.regions ?? [],
+      region: sets.regions,
       city: sets.cities,
       suburb: sets.suburbs,
     };
     const items = known[kind as LocationKind];
-    if (items?.some((item) => item.code === value)) filters[kind as LocationKind] ??= value;
+    const wanted = kind === "country" ? value?.toUpperCase() : value;
+    if (wanted && items?.some((item) => item.code === wanted)) filters[kind as LocationKind] ??= wanted;
     else invalid = true;
   }
 
@@ -321,10 +346,10 @@ export function parseListingsSearch(params: RawParams, context: SearchContext): 
     filters,
     page,
     query: {
+      // Price filters apply in `currency`, else in the currency of the chosen
+      // country (the API works that out); nothing is converted and nothing is
+      // assumed. With neither, the API refuses a price filter.
       ...filters,
-      // Price filters apply in the currency of the chosen country, else of the
-      // active market; nothing is converted.
-      currency: (markets.find((market) => market.code === filters.country) ?? context.market)?.currency_code,
       page,
       page_size: LISTINGS_PAGE_SIZE,
     },
@@ -356,8 +381,14 @@ export function profilePath(profile: { kind: string; slug: string }): string {
   return `/directory/${profile.kind}/${profile.slug}`;
 }
 
+/** " in Avondale, Harare", or nothing for a listing that names no place. */
+const inPlace = (listing: Listing) => {
+  const place = shortPlace(listing);
+  return place ? ` in ${place}` : "";
+};
+
 export function listingSeoTitle(listing: Listing): string {
-  return `${listing.title} ${listing.deal.label.toLowerCase()} in ${listing.suburb.label}, ${listing.city.label}`;
+  return `${listing.title} ${listing.deal.label.toLowerCase()}${inPlace(listing)}`;
 }
 
 const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? "" : "s"}`;
@@ -370,7 +401,7 @@ export function listingSeoDescription(listing: Listing): string {
   ]
     .filter(Boolean)
     .join(", ");
-  return `${listing.property_type.label} ${listing.deal.label.toLowerCase()} in ${listing.suburb.label}, ${listing.city.label} for ${price}${facts ? `. ${facts}` : ""}. ${listing.summary}`;
+  return `${listing.property_type.label} ${listing.deal.label.toLowerCase()}${inPlace(listing)} for ${price}${facts ? `. ${facts}` : ""}. ${listing.summary}`;
 }
 
 // ---- JSON-LD ---------------------------------------------------------------
@@ -443,10 +474,11 @@ const squareMetres = (value: number) => ({ "@type": "QuantitativeValue", value, 
  * `floorSize` and room counts are not valid on other types.
  */
 function propertyJsonLd(listing: Listing): JsonLd {
+  const locality = joinPlaces([listing.suburb?.label, listing.city?.label]);
   const address = {
     "@type": "PostalAddress",
-    addressLocality: `${listing.suburb.label}, ${listing.city.label}`,
-    ...(listing.region && { addressRegion: listing.region.label }),
+    ...(locality && { addressLocality: locality }),
+    ...(listing.region?.label && { addressRegion: listing.region.label }),
     addressCountry: listing.country?.code ?? listing.market_code,
   };
   const base = { name: listing.title, description: listing.description, address };
@@ -539,7 +571,7 @@ export function listingsCollectionJsonLd(
   search: ListingsSearch,
   results: Listing[],
   total: number,
-  { sets, markets = [] }: SearchContext,
+  { sets, countries = [] }: SearchContext,
 ): JsonLd {
   const { deal, category, country, region, city } = search.filters;
   const crumbs: Crumb[] = [
@@ -548,8 +580,8 @@ export function listingsCollectionJsonLd(
   ];
   const dealLabel = labelOf(sets.deal_types, deal);
   const categoryLabel = labelOf(sets.property_categories, category);
-  const countryName = markets.find((item) => item.code === country)?.name;
-  const regionLabel = labelOf(sets.regions ?? [], region);
+  const countryName = countries.find((item) => item.code === country)?.name;
+  const regionLabel = labelOf(sets.regions, region);
   const cityLabel = labelOf(sets.cities, city);
   if (dealLabel) crumbs.push({ name: dealLabel, path: listingsPath({ deal }) });
   if (categoryLabel) crumbs.push({ name: categoryLabel, path: listingsPath({ deal, category }) });
@@ -636,7 +668,8 @@ export function profileJsonLd(profile: DirectoryProfile, kind: DirectoryKindInfo
         ...common,
         address: {
           "@type": "PostalAddress",
-          addressLocality: profile.city.label,
+          ...(profile.city?.label && { addressLocality: profile.city.label }),
+          ...(profile.region?.label && { addressRegion: profile.region.label }),
           // The profile's own country, when the API gives one. None is assumed.
           ...(profile.country && { addressCountry: profile.country.code }),
         },

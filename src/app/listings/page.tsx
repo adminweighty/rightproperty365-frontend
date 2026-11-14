@@ -10,7 +10,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { getCuratedListingPages } from "@/lib/api/server/curated";
 import { searchListings, suggestListings } from "@/lib/api/server/listings";
 import { load } from "@/lib/api/server/load";
-import { getCatalogue } from "@/lib/api/server/reference";
+import { getAllCountries, getCatalogue } from "@/lib/api/server/reference";
 import { X } from "lucide-react";
 import { activeFilterChips } from "@/lib/filter-chips";
 import { buildSearchOptions } from "@/lib/search-options";
@@ -28,9 +28,13 @@ type RawParams = Awaited<Props["searchParams"]>;
 
 /** Reference data, the parsed search and its results. Every read is cached. */
 async function readResults(params: RawParams) {
-  const catalogue = await getCatalogue();
-  const search = parseListingsSearch(params, catalogue);
-  return { catalogue, search, result: await searchListings(search.query) };
+  const [catalogue, everyCountry] = await Promise.all([getCatalogue(), getAllCountries()]);
+  // A search may name any country, so the address is read against all of
+  // them; the form offers the ones that have listings.
+  const context = { sets: catalogue.sets, countries: everyCountry };
+  const search = parseListingsSearch(params, context);
+  const country = everyCountry.find(({ code }) => code === search.filters.country);
+  return { catalogue, context, search, country, result: await searchListings(search.query) };
 }
 
 /** The address the visitor asked for, to offer again when loading fails. */
@@ -45,7 +49,7 @@ function requestedPath(params: RawParams): string {
 
 /**
  * Indexing policy (docs/seo.md): the curated result pages (deal, category,
- * deal + category, city, deal + city) are indexed with a canonical in fixed
+ * deal + category, and a country, region or city alone or with a deal) are indexed with a canonical in fixed
  * parameter order, and each of their pages is its own canonical. Free-text
  * searches, every other filter, unknown parameters, empty results and
  * failures are noindex,follow with no canonical.
@@ -93,22 +97,27 @@ async function Results({ searchParams }: Pick<Props, "searchParams">) {
     );
   }
 
-  const { catalogue, search, result } = loaded.data;
+  const { catalogue, context, search, country, result } = loaded.data;
   const page = result.status === "ok" ? result.page : undefined;
-  const options = buildSearchOptions(catalogue.sets, page?.facets, search.filters, catalogue.markets);
-  const currency = page?.facets.price?.currency ?? search.query.currency;
+  const options = buildSearchOptions(catalogue.sets, page?.facets, search.filters, catalogue.countries, country);
   // The line under the heading names a currency only when every result is in
-  // it. An API that reports several currencies gets "each listing's currency".
-  const currencies = (page?.facets as { currencies?: unknown } | undefined)?.currencies;
+  // it. Results in several currencies get "each listing's currency", also when
+  // a currency was chosen for the price filter (that does not narrow the results).
+  // An API build that does not list the currencies has one: that of its price facet.
+  // A price filter leaves only listings priced in its currency.
+  const priced = search.filters.min_price !== undefined || search.filters.max_price !== undefined;
+  const inCurrencies =
+    priced && options.currency
+      ? [options.currency]
+      : (page?.facets.currencies?.map(({ code }) => code) ??
+        [page?.facets.price?.currency].filter((code) => code !== undefined));
   const priceNote =
-    Array.isArray(currencies) && currencies.length > 1
-      ? "prices shown in each listing’s currency"
-      : page?.facets.price?.currency
-        ? `prices shown in ${page.facets.price.currency}`
-        : undefined;
-  // Without facets (the API refused the search) the price labels still name the currency.
-  options.currency ??= currency;
-  const chips = activeFilterChips(search.filters, catalogue, currency);
+    !page || page.total === 0 || inCurrencies.length === 0
+      ? undefined
+      : inCurrencies.length === 1
+        ? `prices shown in ${inCurrencies[0]}`
+        : "prices shown in each listing’s currency";
+  const chips = activeFilterChips(search.filters, context, options.currency);
   const errors = result.status === "invalid" ? result.fields : {};
   const pastTheEnd = page !== undefined && page.items.length === 0 && page.total > 0;
 
@@ -231,7 +240,7 @@ async function Results({ searchParams }: Pick<Props, "searchParams">) {
       )}
 
       {search.curated && page && page.items.length > 0 && (
-        <JsonLd data={listingsCollectionJsonLd(search, page.items, page.total, catalogue)} />
+        <JsonLd data={listingsCollectionJsonLd(search, page.items, page.total, context)} />
       )}
     </>
   );

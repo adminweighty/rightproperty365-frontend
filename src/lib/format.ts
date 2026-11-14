@@ -6,15 +6,22 @@ import type { Money } from "@/lib/api/types";
  *
  * The locale decides only the grouping of digits ("USD 385,000"). It is
  * British English, the language of the site, not the locale of any one
- * market: the currency is always shown by its code.
+ * country: the currency is always shown by its code ("GBP 185", "MUR 8,500"),
+ * whatever the currency, because a listing can be priced in any of them.
  */
 export function formatMoney({ amount, currency }: Money, locale = "en-GB"): string {
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency,
-    currencyDisplay: "code",
-    maximumFractionDigits: 0,
-  }).format(Number(amount));
+  const value = Number(amount);
+  try {
+    return new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency,
+      currencyDisplay: "code",
+      maximumFractionDigits: 0,
+    }).format(value);
+  } catch {
+    // Not a well-formed ISO 4217 code: Intl refuses it. Show what the API sent.
+    return `${currency} ${new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(value)}`.trim();
+  }
 }
 
 export function formatArea(squareMetres: number, locale = "en-GB"): string {

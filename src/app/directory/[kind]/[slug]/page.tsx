@@ -16,6 +16,7 @@ import { getSitemapEntries } from "@/lib/api/server/listings";
 import { load, readAtBuild } from "@/lib/api/server/load";
 import { getCatalogue } from "@/lib/api/server/reference";
 import { toOptions } from "@/lib/api/types";
+import { profilePlace } from "@/lib/places";
 import { profileJsonLd, profilePath } from "@/lib/seo";
 import { ApiBoundary } from "@/components/api-boundary";
 
@@ -66,7 +67,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { profile, kind: directory } = loaded.data;
   // A profile created by an approval may have no role line yet: fall back to its trade or directory.
   const what = profile.role || profile.specialism?.label || profile.trade?.label || directory.singular_label;
-  const title = `${profile.name}: ${what.toLowerCase()} in ${profile.city.label}`;
+  const where = profilePlace(profile);
+  const title = `${profile.name}: ${what.toLowerCase()}${where ? ` in ${where}` : ""}`;
   const description = `${profile.tagline} ${profile.description}`.slice(0, 300);
   const path = profilePath(profile);
   return {
@@ -156,10 +158,12 @@ async function ProfileContent({ params }: Pick<Props, "params">) {
               )}
             </p>
             <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
-              <span className="flex items-center gap-1.5">
-                <MapPin className="size-4" aria-hidden="true" />
-                {profile.city.label}
-              </span>
+              {profilePlace(profile) && (
+                <span className="flex items-center gap-1.5">
+                  <MapPin className="size-4" aria-hidden="true" />
+                  {profilePlace(profile)}
+                </span>
+              )}
               {profile.since && <span>Established {profile.since}</span>}
             </p>
           </div>

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ListingMedia } from "@/components/listings/listing-media";
 import type { Listing } from "@/lib/api/types";
 import { formatArea, formatMoney } from "@/lib/format";
+import { shortPlace } from "@/lib/places";
 
 export function ListingPrice({ listing, className }: { listing: Listing; className?: string }) {
   return (
@@ -55,9 +56,12 @@ const tag = "rounded-sm px-2 py-1 text-xs font-semibold shadow-xs";
 
 /**
  * A listing in a grid or a row: a large photo with the status tag on it, then
- * price, the facts line, title and place.
+ * price, the facts line, title and place. The place is whatever the listing
+ * names (suburb and city, or city and country); a listing that names none has
+ * no place line.
  */
 export function ListingCard({ listing, isNew }: { listing: Listing; isNew?: boolean }) {
+  const place = shortPlace(listing);
   return (
     <article className="group frame-brand flex flex-col overflow-hidden rounded-lg border border-line bg-surface shadow-xs transition-shadow duration-200 hover:shadow-md focus-within:shadow-md">
       <div className="relative">
@@ -86,10 +90,12 @@ export function ListingCard({ listing, isNew }: { listing: Listing; isNew?: bool
             {listing.title}
           </Link>
         </h3>
-        <p className="flex items-center gap-1.5 text-sm text-muted">
-          <MapPin className="size-4 shrink-0" aria-hidden="true" />
-          {listing.suburb.label}, {listing.city.label}
-        </p>
+        {place && (
+          <p className="flex items-center gap-1.5 text-sm text-muted">
+            <MapPin className="size-4 shrink-0" aria-hidden="true" />
+            {place}
+          </p>
+        )}
       </div>
     </article>
   );

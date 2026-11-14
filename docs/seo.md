@@ -14,7 +14,7 @@ Sources: Google Search Central, schema.org and the Next.js 16 documentation bund
 | Page 2 and later of `/listings` or a curated result page (`…&page=2`), with results | index | itself, with `page` last. Never page 1 | no |
 | A curated page with no results, or a page number past the last page | noindex, follow | none | no |
 | `/listings?q=…` (free-text search) | noindex, follow | none | no |
-| Any other filter, alone or combined: `property_type`, `suburb`, `min_price`, `max_price`, `bedrooms_min`, `bedrooms_max`, `bathrooms_min`, `bathrooms_max`, `floor_area_min`, `floor_area_max`, `land_area_min`, `land_area_max`, `features`, `listed_within_days`, `advertiser_type`, `has_photos`, `reference`, `sort`; two places together (`country` with `region`, `region` with `city`); and a place together with `category` | noindex, follow | none | no |
+| Any other filter, alone or combined: `property_type`, `suburb`, `min_price`, `max_price`, `currency`, `bedrooms_min`, `bedrooms_max`, `bathrooms_min`, `bathrooms_max`, `floor_area_min`, `floor_area_max`, `land_area_min`, `land_area_max`, `features`, `listed_within_days`, `advertiser_type`, `has_photos`, `reference`, `sort`; two places together (`country` with `region`, `region` with `city`); and a place together with `category` | noindex, follow | none | no |
 | `/listings?location=<kind>:<code>` (the hero's Location select) and `advanced=1` | as the search they stand for | the plain address, without `location` or `advanced` | no |
 | A search the API refuses (a city outside the chosen region, a maximum below its minimum) | noindex, follow | none | no |
 | `/listings` with unknown parameters or invalid values | noindex, follow | none | no |
@@ -31,7 +31,7 @@ Sources: Google Search Central, schema.org and the Next.js 16 documentation bund
 
 Rules behind the table:
 
-- **Only curated result pages are indexed.** They are a small set that people search for by name: each deal, each category, deal with category, and each country, region and city alone or with a deal ("Property for sale in Matabeleland North"). A place page names one place: a region with a city, or a country with a region, says no more than the narrower one alone, so it is not indexed. The deals, categories, countries (markets), regions and cities come from the API's reference data, so the set grows only when a market administrator adds one. Free-text search can produce unlimited near-duplicate URLs, so it is never indexed.
+- **Only curated result pages are indexed.** They are a small set that people search for by name: each deal, each category, deal with category, and each country, region and city alone or with a deal ("Property for sale in Matabeleland North"). A place page names one place: a region with a city, or a country with a region, says no more than the narrower one alone, so it is not indexed. The deals, categories, regions and cities come from the API's reference data, so the set grows only when an administrator adds one. The countries are the ones that have listings (`GET /v1/markets?has_listings=true`), and the regions are theirs: a country page exists while the country has a published listing. A search may name any country (`?country=FR`); without listings it is an empty result, which is never indexed. Free-text search can produce unlimited near-duplicate URLs, so it is never indexed.
 - **Every other filter is `noindex, follow`.** Property type, suburb, price, bedroom and bathroom ranges, floor and land area, features, how recently a listing was published, who advertises it, whether it has photos, its reference, and sort order multiply into thousands of thin or duplicate pages (a different sort order is the same content). They stay crawlable so the listings on them are found, but they carry no canonical and are not in the sitemap. This is deliberately conservative: with one or two listings per suburb today, suburb and property-type pages would be thin. Promote a filter to the curated set only when its pages have enough listings to stand on their own, and change `parseListingsSearch` and `getCuratedListingPages` together.
 - **A code that is not in the reference data is an invalid value.** The page is `noindex`, the filter is ignored, and the API is never sent a code it would refuse.
 - **Paginated pages are self-canonical.** `/listings?deal=rent&page=2` is its own canonical; it is never pointed at page 1, because it lists different properties. `page=1` is the same page as no `page`, so the canonical drops it. Pages 2 and later are indexable when their base page is, but stay out of the sitemap. Submitting the search form always starts again at page 1.
@@ -64,9 +64,10 @@ The site lists property from any country, so nothing assumes one. `listingsHeadi
 
 - **No place chosen, no place named.** There is no default country. The root title is "RightProperty365 | Property for sale and to rent".
 - **With a place, name the narrowest one chosen**: suburb and city, else region, else country. The country follows it when the visitor chose the country as well ("Harare, Zimbabwe").
-- **Country names come from the API** (`GET /v1/markets`). `src/lib/countries.ts` holds only which names take "the" ("in the United Kingdom"), by ISO code.
+- **Country names come from the API** (`GET /v1/countries`). `src/lib/countries.ts` holds only which names take "the" ("in the United Kingdom"), by ISO code.
 - **A category label that is an adjective gets "property" after it** ("Residential property", "Commercial property"); one that is already a noun phrase stands alone ("Land", "Short stays"). The adjectives are the one list, by category code, in `listingsHeading`.
-- The line under the results heading says "prices shown in USD" only when every result is in that currency, and "prices shown in each listing's currency" when the API reports several.
+- The line under the results heading says "prices shown in USD" only when every result is in that currency, and "prices shown in each listing's currency" when the API reports several. A listing's own page and card always show its own currency code.
+- A listing's title and description name the place it gives: suburb and city, or city and country where it has no suburb ("… to rent in Grand Baie, Mauritius"). A place typed by the lister is text only.
 
 ## Where the data comes from
 
@@ -92,7 +93,7 @@ Titles, headings, canonicals and structured data are built from what the API ret
 | FAQ (`/faq`) | `FAQPage` with one `Question` per entry and its `acceptedAnswer` as plain text, from the same data as the page (`src/lib/faq.ts`) |
 | Profile (`/directory/[kind]/[slug]`) | `ProfilePage` whose `mainEntity` is a `RealEstateAgent` (agency), `Person` (agent, with `worksFor`), `LegalService` (solicitor) or `Organization` (everyone else) |
 
-- The property's `PostalAddress` has the suburb and city as `addressLocality`, the region or province as `addressRegion` and the country code as `addressCountry`.
+- The property's `PostalAddress` has the suburb and city as `addressLocality` (whichever the listing names), the region or province as `addressRegion` when there is one, and the country code as `addressCountry`.
 - The property is `House` or `Apartment` when the listing has a bedroom count (a home) and `Place` otherwise (commercial property and land), because `floorSize` and bedroom counts are only valid on accommodation types.
 - The `Offer` sits on the listing, not the property. Rentals use a `UnitPriceSpecification` per month.
 - Google has **no rich result for real-estate listings**. This markup helps machines understand the page; it will not add stars or prices to results. `BreadcrumbList` and `Organization` are supported Google features.
@@ -115,7 +116,7 @@ Titles, headings, canonicals and structured data are built from what the API ret
 - **A listing that is no longer available also returns HTTP 200 with `noindex`,** for the same reason. A 410 needs the same proxy check.
 - **No image sitemap.** `GET /v1/sitemap` returns each listing's slug and `updated_at` but not its photo, so the sitemap no longer names a photo per listing. Google still finds the photos on the pages.
 - **The sitemap is one file.** It holds every public listing and profile. Split it with `generateSitemaps` before it nears 50,000 URLs.
-- **Suburb and property-type pages are not indexed** (see the rules above), and there is no `hreflang` for other markets.
+- **Suburb and property-type pages are not indexed** (see the rules above), and there is no `hreflang` for other countries.
 - **Lists of professionals are not paginated.** A list page shows every profile (the API is read 48 at a time, up to 480). Add `Pagination` before a list grows past that.
 - **Profiles** have no logos, photos, reviews or street addresses yet, so they cannot qualify for Google's local business features.
 - **Not measured:** Core Web Vitals on a deployed site (targets: LCP 2.5s, INP 200ms, CLS 0.1), and validation in Google's Rich Results Test or Search Console.
