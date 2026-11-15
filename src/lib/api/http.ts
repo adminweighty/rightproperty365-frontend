@@ -13,6 +13,8 @@ export type ApiFailure = {
   status: number;
   fields?: Record<string, string>;
   traceId?: string;
+  /** Seconds to wait before trying again, from a 429 answer's Retry-After header. */
+  retryAfter?: number;
 };
 
 export type ApiResult<T> = { ok: true; data: T; status: number } | { ok: false; failure: ApiFailure };
@@ -34,6 +36,15 @@ const fallbackMessages: Record<number, string> = {
   415: "That file type is not accepted.",
   429: "Too many attempts. Please wait a minute and try again.",
 };
+
+/** Retry-After as whole seconds (it may also be an HTTP date). Undefined when absent or unreadable. */
+function retryAfterSeconds(value: string | null): number | undefined {
+  if (!value) return undefined;
+  const seconds = Number(value);
+  if (Number.isFinite(seconds)) return Math.max(0, Math.ceil(seconds));
+  const at = Date.parse(value);
+  return Number.isNaN(at) ? undefined : Math.max(0, Math.ceil((at - Date.now()) / 1000));
+}
 
 export async function apiFetch<T>(path: string, options: Options = {}): Promise<ApiResult<T>> {
   const { method = "GET", body, headers = {}, cache } = options;
@@ -84,6 +95,7 @@ export async function apiFetch<T>(path: string, options: Options = {}): Promise<
         "Something went wrong on our side. Please try again.",
       fields: envelope?.error?.fields,
       traceId: envelope?.trace_id,
+      retryAfter: retryAfterSeconds(response.headers.get("Retry-After")),
     },
   };
 }

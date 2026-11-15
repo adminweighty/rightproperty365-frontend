@@ -1,89 +1,305 @@
 "use client";
 
+import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { useAuth } from "@/components/auth/auth-provider";
+import { Stagger } from "@/components/motion/stagger";
+import { formatWhen, LoadError, LoadingBlock, StatTile } from "@/components/portal/portal-ui";
+import { useApi } from "@/components/portal/use-api";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { platformRoleLabels, type User } from "@/lib/api/auth";
-import { listApplications } from "@/lib/api/onboarding";
+import { getAdminOverview, type AdminOverview } from "@/lib/api/admin";
+import { platformRoleLabels, titleFromCode, type PlatformRole, type User } from "@/lib/api/auth";
 
-/** How many applications are waiting for a decision. Null while loading or if it cannot be read. */
-function useSubmittedCount(): number | null {
-  const [count, setCount] = useState<number | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    listApplications({ status: "SUBMITTED", page_size: 1 }).then((result) => {
-      if (!cancelled && result.ok) setCount(result.data.counts.SUBMITTED);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-  return count;
+const VERIFICATION_STATUSES = new Set(["SUBMITTED", "CHANGES_REQUESTED", "APPROVED", "REJECTED", "DRAFT"]);
+
+const marketsText = (codes: string[] | null) => (codes ? `Counted for ${codes.join(", ")}.` : "Counted for every country.");
+
+function TileGrid({ children }: { children: ReactNode }) {
+  return <Stagger as="ul" className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">{children}</Stagger>;
+}
+
+function SectionCard({ id, title, intro, children }: { id: string; title: string; intro?: string; children: ReactNode }) {
+  return (
+    <section aria-labelledby={id}>
+      <Card>
+        <h2 id={id} className="text-2xl">
+          {title}
+        </h2>
+        {intro && <p className="mt-1 text-sm text-muted">{intro}</p>}
+        {children}
+      </Card>
+    </section>
+  );
+}
+
+function Attention({ data }: { data: AdminOverview }) {
+  const items = [
+    data.verifications && data.verifications.waiting > 0
+      ? {
+          key: "verifications",
+          count: data.verifications.waiting,
+          text: data.verifications.waiting === 1 ? "application is waiting for review" : "applications are waiting for review",
+          href: "/admin/verifications",
+        }
+      : null,
+    data.requests && data.requests.routing_exceptions.open > 0
+      ? {
+          key: "exceptions",
+          count: data.requests.routing_exceptions.open,
+          text:
+            data.requests.routing_exceptions.open === 1
+              ? "request could not be sent to anyone"
+              : "requests could not be sent to anyone",
+          href: "/admin/routing-exceptions",
+        }
+      : null,
+  ].filter((item) => item !== null);
+
+  return (
+    <section aria-labelledby="admin-attention">
+      <h2 id="admin-attention" className="text-2xl">
+        What needs your attention
+      </h2>
+      {items.length === 0 ? (
+        <p className="mt-3 text-muted">Nothing is waiting for you right now.</p>
+      ) : (
+        <ul className="mt-4 grid gap-4 sm:grid-cols-2">
+          {items.map((item) => (
+            <li key={item.key}>
+              <Link
+                href={item.href}
+                className="flex h-full flex-col gap-2 rounded-lg border-2 border-primary bg-tint p-5 transition-colors hover:bg-primary-soft"
+              >
+                <span className="text-4xl font-bold tabular-nums text-primary-ink">{item.count}</span>
+                <span className="font-medium text-ink">{item.text}</span>
+                <span className="mt-auto flex items-center gap-1 text-sm font-semibold text-primary-ink" aria-hidden="true">
+                  Open <ArrowRight className="size-4" />
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function Sections({ data }: { data: AdminOverview }) {
+  return (
+    <div className="space-y-8">
+      {data.sections.map((section) => {
+        if (section === "verifications" && data.verifications) {
+          return (
+            <SectionCard
+              key={section}
+              id="admin-verifications"
+              title="Verifications"
+              intro="Applications from people who want to list or manage property, or work at an agency."
+            >
+              <TileGrid>
+                {data.verifications.by_status.map((item) => (
+                  <li key={item.status}>
+                    <StatTile
+                      label={item.label}
+                      value={item.count}
+                      emphasis={item.status === "SUBMITTED"}
+                      href={VERIFICATION_STATUSES.has(item.status) ? `/admin/verifications?status=${item.status}` : null}
+                    />
+                  </li>
+                ))}
+              </TileGrid>
+              <ButtonLink href="/admin/verifications" className="mt-5">
+                Open the review queue
+              </ButtonLink>
+            </SectionCard>
+          );
+        }
+        if (section === "accounts" && data.accounts) {
+          const accounts = data.accounts;
+          return (
+            <SectionCard key={section} id="admin-accounts" title="Accounts" intro="People who use the site. Administrators are counted on their own.">
+              <TileGrid>
+                <li><StatTile label="Accounts" value={accounts.total} /></li>
+                <li><StatTile label="New in the last 7 days" value={accounts.last_7_days} /></li>
+                <li><StatTile label="New in the last 30 days" value={accounts.last_30_days} /></li>
+                <li><StatTile label="Email not confirmed yet" value={accounts.unverified} /></li>
+                <li><StatTile label="Administrators" value={accounts.administrators} /></li>
+                {accounts.by_status.map((item) => (
+                  <li key={item.status}>
+                    <StatTile label={item.label} value={item.count} />
+                  </li>
+                ))}
+              </TileGrid>
+              {accounts.by_role.length > 0 && (
+                <div className="mt-6 overflow-x-auto">
+                  <table className="w-full min-w-96 text-left text-sm">
+                    <caption className="mb-2 text-left font-medium text-ink">Roles people chose</caption>
+                    <thead className="border-b border-line text-muted">
+                      <tr>
+                        <th scope="col" className="py-2 pr-4 font-medium">Role</th>
+                        <th scope="col" className="py-2 pr-4 font-medium">Status</th>
+                        <th scope="col" className="py-2 text-right font-medium">Accounts</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-line">
+                      {accounts.by_role.map((row) => (
+                        <tr key={`${row.role}-${row.status}`}>
+                          <td className="py-2 pr-4 text-ink">{row.label}</td>
+                          <td className="py-2 pr-4 text-muted">{titleFromCode(row.status)}</td>
+                          <td className="py-2 text-right tabular-nums text-ink">{row.count}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              {accounts.recent.length > 0 && (
+                <>
+                  <h3 className="mt-6 font-sans text-base font-semibold tracking-normal">Newest sign-ups</h3>
+                  <ul className="mt-2 divide-y divide-line">
+                    {accounts.recent.map((account) => (
+                      <li key={account.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-2 text-sm">
+                        <span className="font-medium text-ink">{account.name}</span>
+                        <span className="break-all text-muted">{account.email}</span>
+                        {!account.email_verified && <Badge tone="warning">Email not confirmed</Badge>}
+                        <span className="text-subtle sm:ml-auto">{formatWhen(account.created_at)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </SectionCard>
+          );
+        }
+        if (section === "listings" && data.listings) {
+          return (
+            <SectionCard key={section} id="admin-listings" title="Listings" intro={marketsText(data.listings.market_codes)}>
+              <TileGrid>
+                <li><StatTile label="All listings" value={data.listings.total} /></li>
+                {data.listings.by_status.map((item) => (
+                  <li key={item.status}>
+                    <StatTile label={item.label} value={item.count} emphasis={item.status === "PENDING_REVIEW"} />
+                  </li>
+                ))}
+              </TileGrid>
+              <p className="mt-4 text-sm text-muted">Listing moderation is not in the admin console yet.</p>
+            </SectionCard>
+          );
+        }
+        if (section === "requests" && data.requests) {
+          const requests = data.requests;
+          return (
+            <SectionCard key={section} id="admin-requests" title="Property requests" intro={marketsText(requests.market_codes)}>
+              <TileGrid>
+                <li><StatTile label="All requests" value={requests.total} /></li>
+                <li><StatTile label="In the last 7 days" value={requests.last_7_days} /></li>
+                <li><StatTile label="In the last 30 days" value={requests.last_30_days} /></li>
+                <li>
+                  <StatTile
+                    label="Could not be sent, still open"
+                    value={requests.routing_exceptions.open}
+                    emphasis
+                    href="/admin/routing-exceptions"
+                  />
+                </li>
+                <li>
+                  <StatTile
+                    label="Could not be sent, dealt with"
+                    value={requests.routing_exceptions.resolved}
+                    href="/admin/routing-exceptions?state=RESOLVED"
+                  />
+                </li>
+              </TileGrid>
+              <h3 className="mt-6 font-sans text-base font-semibold tracking-normal">By stage</h3>
+              <ol className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-8">
+                {requests.by_stage.map((item) => (
+                  <li key={item.stage} className="rounded-md border border-line p-3">
+                    <span className="block text-sm text-ink">{item.label}</span>
+                    <span className="text-2xl font-bold tabular-nums">{item.count}</span>
+                  </li>
+                ))}
+              </ol>
+              <ButtonLink href="/admin/routing-exceptions" variant="secondary" className="mt-5">
+                Requests nobody could receive
+              </ButtonLink>
+            </SectionCard>
+          );
+        }
+        return null;
+      })}
+    </div>
+  );
 }
 
 function Home({ user }: { user: User }) {
   const { signOut } = useAuth();
   const router = useRouter();
-  const waiting = useSubmittedCount();
+  const { state, reload } = useApi(getAdminOverview);
 
   return (
     <>
       <p className="text-sm font-medium text-primary-ink">Administration</p>
-      <h1 className="mt-2 text-4xl">Welcome, {user.name}</h1>
+      <h1 className="enter-rise mt-1 text-4xl">Welcome, {user.name}</h1>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-2">
-        <Card>
-          <h2 className="text-2xl">Verifications</h2>
-          <p className="mt-2 leading-relaxed text-muted">
-            Applications from people who signed up to list or manage property, or to work at an
-            agency. Approving one confirms the role and, where the role has one, publishes a
-            verified public profile under Professionals.
-          </p>
-          <p className="mt-4 text-ink" role="status">
-            {waiting === null ? (
-              <span className="text-muted">Checking for applications…</span>
+      <p role="status" className="sr-only">
+        {state.status === "ready" ? "The overview has loaded." : ""}
+      </p>
+
+      <div className="mt-8 space-y-12">
+        {state.status === "loading" && <LoadingBlock label="Loading the overview" rows={3} />}
+        {state.status === "error" && <LoadError failure={state.failure} onRetry={reload} />}
+        {state.status === "ready" && (
+          <>
+            <Attention data={state.data} />
+            {state.data.sections.length === 0 ? (
+              <Card>
+                <h2 className="text-2xl">Nothing to show for your role yet</h2>
+                <p className="mt-2 text-muted">
+                  The parts of the console your role works on are not built yet. They will appear here as each one is
+                  released.
+                </p>
+              </Card>
             ) : (
-              <>
-                <span className="text-3xl font-bold tabular-nums">{waiting}</span>{" "}
-                {waiting === 1 ? "application is" : "applications are"} waiting for review
-              </>
+              <Sections data={state.data} />
             )}
-          </p>
-          <ButtonLink href="/admin/verifications" className="mt-5">
-            Open the review queue
-          </ButtonLink>
-        </Card>
+          </>
+        )}
 
-        <Card>
-          <h2 className="text-2xl">Your administrator roles</h2>
-          <ul className="mt-4 space-y-3">
-            {user.platform_roles.map((assignment) => (
-              <li
-                key={`${assignment.role}-${assignment.market_code ?? "all"}`}
-                className="flex items-center justify-between gap-3"
-              >
-                <span className="text-ink">{platformRoleLabels[assignment.role]}</span>
-                <Badge tone="accent">{assignment.market_code ?? "All markets"}</Badge>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-4 break-all text-sm text-muted">{user.email}</p>
-        </Card>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card>
+            <h2 className="text-2xl">Your administrator roles</h2>
+            <ul className="mt-4 space-y-3">
+              {user.platform_roles.map((assignment) => (
+                <li
+                  key={`${assignment.role}-${assignment.market_code ?? "all"}`}
+                  className="flex items-center justify-between gap-3"
+                >
+                  <span className="text-ink">
+                    {platformRoleLabels[assignment.role as PlatformRole] ?? titleFromCode(assignment.role)}
+                  </span>
+                  <Badge tone="accent">{assignment.market_code ?? "All markets"}</Badge>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-4 break-all text-sm text-muted">{user.email}</p>
+          </Card>
 
-        <Card className="lg:col-span-2">
-          <h2 className="text-2xl">Not built yet</h2>
-          <p className="mt-2 leading-relaxed text-muted">
-            Listing moderation, markets and reference data, invoices, user management and the audit
-            log are not in the admin console yet. They will appear here as each one is released.
-          </p>
-          <p className="mt-4 text-sm leading-relaxed text-muted">
-            Administrator sessions end after 30 minutes without activity.
-          </p>
-        </Card>
+          <Card>
+            <h2 className="text-2xl">Not built yet</h2>
+            <p className="mt-2 leading-relaxed text-muted">
+              Listing moderation, markets and reference data, invoices, user management and the audit log are not in
+              the admin console yet. They will appear here as each one is released.
+            </p>
+            <p className="mt-4 text-sm leading-relaxed text-muted">
+              Administrator sessions end after 30 minutes without activity.
+            </p>
+          </Card>
+        </div>
       </div>
 
       <Button
@@ -100,7 +316,7 @@ function Home({ user }: { user: User }) {
   );
 }
 
-/** Landing page for platform administrators. */
+/** `/admin`: the overview every administrator starts from, with the sections their role covers. */
 export function AdminHome() {
   return <AdminGate>{(user) => <Home user={user} />}</AdminGate>;
 }

@@ -88,16 +88,23 @@ export function AccountMenu({ professionals }: { professionals?: NavItem }) {
           <p className="truncate px-3 py-2 text-xs text-muted">{user.email}</p>
           <ul>
             <li>
-              {isAdmin ? (
-                <Link href="/admin" className={itemClass} onClick={() => setOpen(false)}>
-                  Administration
+              <Link href={isAdmin ? "/admin" : "/dashboard"} className={itemClass} onClick={() => setOpen(false)}>
+                Dashboard
+              </Link>
+            </li>
+            {isAdmin ? (
+              <li>
+                <Link href="/admin/verifications" className={itemClass} onClick={() => setOpen(false)}>
+                  Verifications
                 </Link>
-              ) : (
+              </li>
+            ) : (
+              <li>
                 <Link href="/account" className={itemClass} onClick={() => setOpen(false)}>
                   Your account
                 </Link>
-              )}
-            </li>
+              </li>
+            )}
             {!isAdmin && hasOnboardingToDo(user) && (
               <li>
                 <Link href="/onboarding" className={itemClass} onClick={() => setOpen(false)}>
@@ -106,11 +113,18 @@ export function AccountMenu({ professionals }: { professionals?: NavItem }) {
               </li>
             )}
             {!isAdmin && (
-              <li>
-                <Link href="/account/appointments" className={itemClass} onClick={() => setOpen(false)}>
-                  Your appointments
-                </Link>
-              </li>
+              <>
+                <li>
+                  <Link href="/account/requests" className={itemClass} onClick={() => setOpen(false)}>
+                    Your requests
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/account/appointments" className={itemClass} onClick={() => setOpen(false)}>
+                    Your appointments
+                  </Link>
+                </li>
+              </>
             )}
             {!isAdmin && canUseInbox(user) && (
               <>

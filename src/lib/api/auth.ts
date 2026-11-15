@@ -1,5 +1,6 @@
 import { apiFetch } from "@/lib/api/http";
 import { PRIVACY_NOTICE_VERSION } from "@/lib/env";
+import type { SignInChallenge } from "@/lib/sign-in-code";
 
 /**
  * Client for the identity endpoints of the Go API.
@@ -158,9 +159,36 @@ export const canUseInbox = (user: User | null) =>
 
 export const getMe = () => apiFetch<SessionResponse>("/v1/me");
 
+/**
+ * What a correct email and password answer: a code challenge (the code is
+ * emailed and no session exists yet), or, from an API without the code step,
+ * the session itself. Tell them apart with `isSignInChallenge`.
+ */
+export type SignInAnswer = SessionResponse | SignInChallenge;
+
+/** The customer sign-in and the administrator sign-in have the same three steps. */
+export type SignInScope = "customer" | "admin";
+
+const signInBase: Record<SignInScope, string> = { customer: "/v1/auth/login", admin: "/v1/admin/auth/login" };
+
 /** Administrator sign-in. Customer accounts get the same generic 401 as a wrong password. */
 export const adminLogin = (email: string, password: string) =>
-  apiFetch<SessionResponse>("/v1/admin/auth/login", { method: "POST", body: { email, password } });
+  apiFetch<SignInAnswer>(signInBase.admin, { method: "POST", body: { email, password } });
+
+/**
+ * The code from the email. Success starts the session and answers as sign-in
+ * did before the code step. A wrong code is 400 with `fields.code`; an expired
+ * one is 400 `CODE_EXPIRED` and sign-in starts again.
+ */
+export const verifySignInCode = (scope: SignInScope, challengeId: string, code: string) =>
+  apiFetch<SessionResponse>(`${signInBase[scope]}/verify`, {
+    method: "POST",
+    body: { challenge_id: challengeId, code },
+  });
+
+/** Emails a new code for the same challenge. 429 (with Retry-After) when asked again too soon. */
+export const resendSignInCode = (scope: SignInScope, challengeId: string) =>
+  apiFetch<SignInChallenge>(`${signInBase[scope]}/resend`, { method: "POST", body: { challenge_id: challengeId } });
 
 /**
  * One question of the site's own sign-up captcha ("What is 7 + 5?"). It can
@@ -204,7 +232,7 @@ export const resendVerification = (email: string) =>
   apiFetch<{ status: string }>("/v1/auth/resend-verification", { method: "POST", body: { email } });
 
 export const login = (email: string, password: string) =>
-  apiFetch<SessionResponse>("/v1/auth/login", { method: "POST", body: { email, password } });
+  apiFetch<SignInAnswer>(signInBase.customer, { method: "POST", body: { email, password } });
 
 export const logout = () => apiFetch<null>("/v1/auth/logout", { method: "POST" });
 

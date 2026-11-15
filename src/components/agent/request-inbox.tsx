@@ -2,20 +2,34 @@
 
 import { CalendarDays, Mail, Phone } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { RequireAuth } from "@/components/auth/require-auth";
-import { Alert } from "@/components/ui/alert";
+import { ChipNav, EmptyState, formatWhen, LoadError, LoadingBlock } from "@/components/portal/portal-ui";
+import { useApi } from "@/components/portal/use-api";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { listAgentPropertyRequests, listBusinessEnquiries } from "@/lib/api/agent";
+import { Field, Input } from "@/components/ui/field";
+import { Pagination } from "@/components/ui/pagination";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { listAgentPropertyRequests, listBusinessEnquiries, type AgentPropertyRequest } from "@/lib/api/agent";
 import { getInboxSummary } from "@/lib/api/appointments";
-import { formatStay, guestCount } from "@/lib/nights";
 import { canUseInbox, isProfessional } from "@/lib/api/auth";
-import type { ApiFailure, ApiResult } from "@/lib/api/http";
+import { formatStay, guestCount } from "@/lib/nights";
+import {
+  hasNarrowingFilters,
+  parseRequestFilters,
+  QUERY_MAX,
+  requestFiltersApiQuery,
+  requestFiltersSearch,
+  type RequestFilters,
+} from "@/lib/request-filters";
 
 /** code -> label maps of the API's reference sets, loaded by the page. */
 type Labels = Record<string, string>;
+
+const PATH = "/agent/requests";
 
 /** How many appointments wait for an answer, from GET /v1/inbox/summary. Nothing when there are none. */
 function AppointmentsWaiting() {
@@ -39,202 +53,268 @@ function AppointmentsWaiting() {
   );
 }
 
-const statusLabels: Record<string, string> = {
-  RECEIVED: "New",
-  ROUTED: "New",
-  IN_PROGRESS: "In progress",
-  RESPONDED: "Responded",
-  CLOSED: "Closed",
+/** Stage badge tones: the new ones stand out, the finished ones are quiet. The word is always shown. */
+export const stageTones: Record<string, "primary" | "info" | "warning" | "success" | "neutral" | "accent"> = {
+  NEW_ENQUIRY: "primary",
+  ASSIGNED: "info",
+  CONTACTED: "info",
+  VIEWING_REQUESTED: "accent",
+  VIEWING_SCHEDULED: "accent",
+  FOLLOW_UP_REQUIRED: "warning",
+  CONVERTED: "success",
+  CLOSED: "neutral",
 };
 
-const formatWhen = (iso: string) =>
-  new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso));
-
-/** One row of either inbox, reduced to what the card shows. */
-type InboxItem = {
-  id: string;
-  label: string;
-  status: string;
-  createdAt: string;
-  customer: string;
-  subject: string;
-  message: string;
-  email: string;
-  phone?: string | null;
-  contactMethod: string;
-  reference: string;
-  /** A request to stay: "17–20 Nov 2026 · 3 nights · 4 guests". */
-  stay?: string;
-};
-
-async function loadPropertyRequests(typeLabels: Labels): Promise<ApiResult<InboxItem[]>> {
-  const result = await listAgentPropertyRequests();
-  if (!result.ok) return result;
-  return {
-    ...result,
-    data: result.data.items.map((item) => ({
-      id: item.request_id,
-      label: typeLabels[item.request_type] ?? item.request_type,
-      status: item.status,
-      createdAt: item.created_at,
-      customer: item.contact.name,
-      // The API sends a listing summary with each request; older builds do not.
-      subject: `about ${item.listing?.title ?? "a listing"}`,
-      stay: item.stay ? `${formatStay(item.stay.check_in, item.stay.check_out)} · ${guestCount(item.stay.guests)}` : undefined,
-      message: item.message,
-      email: item.contact.email,
-      phone: item.contact.phone,
-      contactMethod: item.preferred_contact_method,
-      reference: item.reference,
-    })),
-  };
-}
-
-async function loadBusinessEnquiries(): Promise<ApiResult<InboxItem[]>> {
-  const result = await listBusinessEnquiries();
-  if (!result.ok) return result;
-  return {
-    ...result,
-    data: result.data.items.map((item) => ({
-      id: item.enquiry_id,
-      label: item.service ?? "Business enquiry",
-      status: item.status,
-      createdAt: item.created_at,
-      customer: item.contact.name,
-      subject: `to ${item.recipient.name}`,
-      message: item.message,
-      email: item.contact.email,
-      phone: item.contact.phone,
-      contactMethod: item.preferred_contact_method,
-      reference: item.reference,
-    })),
-  };
-}
-
-type State =
-  | { status: "loading" }
-  | { status: "ready"; items: InboxItem[] }
-  | { status: "error"; failure: ApiFailure };
-
-type SectionProps = {
-  id: string;
-  title: string;
-  /** Singular and plural nouns for the count line. */
-  noun: [string, string];
-  emptyText: string;
-  load: () => Promise<ApiResult<InboxItem[]>>;
-  contactMethodLabels: Labels;
-};
-
-function InboxSection({ id, title, noun, emptyText, load, contactMethodLabels }: SectionProps) {
-  const [state, setState] = useState<State>({ status: "loading" });
-  const [attempt, setAttempt] = useState(0);
-
-  useEffect(() => {
-    let cancelled = false;
-    load().then((result) => {
-      if (cancelled) return;
-      setState(
-        result.ok ? { status: "ready", items: result.data } : { status: "error", failure: result.failure },
-      );
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [attempt, load]);
-
+function RequestCard({ item, typeLabels }: { item: AgentPropertyRequest; typeLabels: Labels }) {
   return (
-    <section aria-labelledby={id}>
-      <h2 id={id} className="text-2xl">
-        {title}
-      </h2>
-
-      {state.status === "loading" && (
-        <div aria-busy="true" aria-label={`Loading ${noun[1]}`} className="mt-4 space-y-4">
-          {[0, 1].map((i) => (
-            <div key={i} className="h-36 rounded-lg bg-sunken" />
-          ))}
-        </div>
-      )}
-
-      {state.status === "error" && (
-        <div className="mt-4">
-          <Alert title={state.failure.message} traceId={state.failure.traceId} />
-          <Button
-            variant="secondary"
-            className="mt-4"
-            onClick={() => {
-              setState({ status: "loading" });
-              setAttempt((value) => value + 1);
-            }}
-          >
-            Try again
-          </Button>
-        </div>
-      )}
-
-      {state.status === "ready" && state.items.length === 0 && (
-        <p className="mt-4 rounded-lg border border-dashed border-line-strong p-8 text-center text-muted">
-          {emptyText}
+    <Card>
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge tone="primary">{typeLabels[item.request_type] ?? item.request_type}</Badge>
+        {item.stage_label && <Badge tone={stageTones[item.stage ?? ""] ?? "neutral"}>{item.stage_label}</Badge>}
+        <span className="ml-auto text-sm text-muted">{formatWhen(item.created_at)}</span>
+      </div>
+      <h3 className="mt-3 font-sans text-lg font-medium tracking-normal">
+        <Link href={`${PATH}/${item.request_id}`} className="text-primary-ink hover:underline">
+          {item.contact.name}
+        </Link>
+        <span className="font-normal text-muted"> about {item.listing?.title ?? "a listing"}</span>
+      </h3>
+      {item.stay && (
+        <p className="mt-2 flex flex-wrap items-center gap-1.5 text-sm text-ink">
+          <CalendarDays className="size-4 shrink-0 text-primary-ink" aria-hidden="true" />
+          <span className="text-muted">Asks to stay</span>
+          <span className="font-medium">
+            {formatStay(item.stay.check_in, item.stay.check_out)} · {guestCount(item.stay.guests)}
+          </span>
         </p>
       )}
+      <p className="mt-2 line-clamp-3 max-w-prose whitespace-pre-line leading-relaxed text-ink">{item.message}</p>
+      <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-line pt-4 text-sm">
+        <Link href={`${PATH}/${item.request_id}`} className="font-semibold text-primary-ink hover:underline">
+          Open the request<span className="sr-only"> from {item.contact.name}</span>
+        </Link>
+        <span className="font-mono text-xs text-subtle sm:ml-auto">{item.reference}</span>
+      </div>
+    </Card>
+  );
+}
 
-      {state.status === "ready" && state.items.length > 0 && (
-        <>
-          <p className="mt-2 text-sm text-muted" role="status">
-            {state.items.length === 1 ? `1 ${noun[0]}` : `${state.items.length} ${noun[1]}`}, newest first
-          </p>
-          <ul className="mt-4 space-y-4">
-            {state.items.map((item) => (
-              <li key={item.id}>
-                <Card>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge tone="primary">{item.label}</Badge>
-                    <Badge>{statusLabels[item.status] ?? item.status}</Badge>
-                    <span className="ml-auto text-sm text-muted">{formatWhen(item.createdAt)}</span>
-                  </div>
-                  <h3 className="mt-3 font-sans text-lg font-medium tracking-normal">
-                    {item.customer}
-                    <span className="font-normal text-muted"> {item.subject}</span>
-                  </h3>
-                  {item.stay && (
-                    <p className="mt-2 flex flex-wrap items-center gap-1.5 text-sm text-ink">
-                      <CalendarDays className="size-4 shrink-0 text-primary-ink" aria-hidden="true" />
-                      <span className="text-muted">Asks to stay</span>
-                      <span className="font-medium">{item.stay}</span>
-                    </p>
-                  )}
-                  <p className="mt-2 max-w-prose whitespace-pre-line leading-relaxed text-ink">
-                    {item.message}
-                  </p>
-                  <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-line pt-4 text-sm">
-                    <a
-                      href={`mailto:${item.email}`}
-                      className="flex items-center gap-1.5 text-primary-ink hover:underline"
-                    >
-                      <Mail className="size-4" aria-hidden="true" />
-                      <span className="break-all">{item.email}</span>
-                    </a>
-                    {item.phone && (
-                      <a
-                        href={`tel:${item.phone}`}
-                        className="flex items-center gap-1.5 text-primary-ink hover:underline"
-                      >
-                        <Phone className="size-4" aria-hidden="true" />
-                        {item.phone}
+function Filters({ filters, typeLabels }: { filters: RequestFilters; typeLabels: Labels }) {
+  const router = useRouter();
+  const typeOptions = [
+    { value: "", label: "Any type" },
+    ...Object.entries(typeLabels).map(([value, label]) => ({ value, label })),
+  ];
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    const next = parseRequestFilters({
+      get: (name) => (name === "stage" ? (filters.stage ?? null) : name === "page" ? null : String(data.get(name) ?? "")),
+    });
+    router.push(`${PATH}${requestFiltersSearch(next)}`, { scroll: false });
+  }
+
+  return (
+    <form method="get" action={PATH} onSubmit={handleSubmit} role="search" aria-label="Filter requests" className="rounded-lg border border-line bg-surface p-4">
+      {filters.stage && <input type="hidden" name="stage" value={filters.stage} />}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Field id="requests-q" label="Search">
+          <Input
+            id="requests-q"
+            name="q"
+            type="search"
+            maxLength={QUERY_MAX}
+            defaultValue={filters.q ?? ""}
+            placeholder="Name, email, reference or words"
+          />
+        </Field>
+        <Field id="requests-type" label="Type of request">
+          <SearchableSelect id="requests-type" name="type" options={typeOptions} defaultValue={filters.type ?? ""} />
+        </Field>
+        <Field id="requests-from" label="Received from">
+          <Input id="requests-from" name="from" type="date" defaultValue={filters.from ?? ""} />
+        </Field>
+        <Field id="requests-to" label="Received until">
+          <Input id="requests-to" name="to" type="date" defaultValue={filters.to ?? ""} />
+        </Field>
+      </div>
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <Button type="submit">Apply filters</Button>
+        {hasNarrowingFilters(filters) && (
+          <ButtonLink href={`${PATH}${requestFiltersSearch({ stage: filters.stage, page: 1 })}`} variant="ghost" scroll={false}>
+            Clear filters
+          </ButtonLink>
+        )}
+      </div>
+    </form>
+  );
+}
+
+function PropertyRequests({ typeLabels }: { typeLabels: Labels }) {
+  const params = useSearchParams();
+  const search = params.toString();
+  const filters = useMemo(() => parseRequestFilters(new URLSearchParams(search)), [search]);
+  const apiQuery = requestFiltersApiQuery(filters);
+  const load = useCallback(() => listAgentPropertyRequests(apiQuery), [apiQuery]);
+  const { state, reload } = useApi(load);
+
+  const page = state.status === "ready" ? state.data : state.status === "loading" ? state.previous : undefined;
+  const counts = page?.stage_counts ?? [];
+  const all = counts.reduce((sum, item) => sum + item.count, 0);
+  const narrowed = hasNarrowingFilters(filters) || Boolean(filters.stage);
+
+  return (
+    <section aria-labelledby="inbox-property">
+      <h2 id="inbox-property" className="text-2xl">
+        Property requests
+      </h2>
+
+      <div className="mt-4 space-y-4">
+        {counts.length > 0 && (
+          <ChipNav
+            label="Requests by stage"
+            items={[
+              {
+                key: "all",
+                href: `${PATH}${requestFiltersSearch({ ...filters, stage: undefined, page: 1 })}`,
+                label: "All",
+                count: all,
+                current: !filters.stage,
+              },
+              ...counts.map((item) => ({
+                key: item.stage,
+                href: `${PATH}${requestFiltersSearch({ ...filters, stage: item.stage, page: 1 })}`,
+                label: item.label,
+                count: item.count,
+                current: filters.stage === item.stage,
+              })),
+            ]}
+          />
+        )}
+        <Filters key={search} filters={filters} typeLabels={typeLabels} />
+      </div>
+
+      <p role="status" className="mt-4 text-sm text-muted">
+        {state.status === "ready" &&
+          (state.data.total === 1 ? "1 request" : `${state.data.total} requests`) +
+            (narrowed ? " match" : "") +
+            (state.data.total_pages > 1 ? `, page ${state.data.page} of ${state.data.total_pages}` : "") +
+            ", newest first"}
+        {state.status === "loading" && "Loading requests…"}
+      </p>
+
+      <div className="mt-4">
+        {state.status === "loading" && <LoadingBlock label="Loading requests" />}
+        {state.status === "error" && <LoadError failure={state.failure} onRetry={reload} />}
+        {state.status === "ready" && state.data.items.length === 0 && (
+          state.data.total > 0 ? (
+            <EmptyState
+              title={`There is no page ${filters.page} of these requests`}
+              action={
+                <ButtonLink href={`${PATH}${requestFiltersSearch({ ...filters, page: 1 })}`} variant="secondary">
+                  Go to page 1
+                </ButtonLink>
+              }
+            />
+          ) : narrowed ? (
+            <EmptyState
+              title="No requests match these filters"
+              action={
+                <ButtonLink href={PATH} variant="secondary">
+                  Show every request
+                </ButtonLink>
+              }
+            />
+          ) : (
+            <EmptyState title="No requests yet">
+              When a customer enquires about one of your listings, the request appears here.
+            </EmptyState>
+          )
+        )}
+        {state.status === "ready" && state.data.items.length > 0 && (
+          <>
+            <ul className="space-y-4">
+              {state.data.items.map((item) => (
+                <li key={item.request_id}>
+                  <RequestCard item={item} typeLabels={typeLabels} />
+                </li>
+              ))}
+            </ul>
+            <Pagination
+              className="mt-8"
+              page={state.data.page}
+              totalPages={state.data.total_pages}
+              hrefFor={(value) => `${PATH}${requestFiltersSearch({ ...filters, page: value })}`}
+              label="Property requests"
+            />
+          </>
+        )}
+      </div>
+    </section>
+  );
+}
+
+/** Enquiries sent from a public profile. Not paged by the API. */
+function BusinessEnquiries({ contactMethodLabels }: { contactMethodLabels: Labels }) {
+  const { state: loaded, reload } = useApi(listBusinessEnquiries);
+  const state =
+    loaded.status === "ready" ? { status: "ready" as const, items: loaded.data.items } : loaded;
+
+  return (
+    <section aria-labelledby="business-enquiries-heading" id="business-enquiries" className="scroll-mt-24">
+      <h2 id="business-enquiries-heading" className="text-2xl">
+        Business enquiries
+      </h2>
+      <div className="mt-4">
+        {state.status === "loading" && <LoadingBlock label="Loading enquiries" />}
+        {state.status === "error" && <LoadError failure={state.failure} onRetry={reload} />}
+        {state.status === "ready" && state.items.length === 0 && (
+          <EmptyState title="No enquiries yet">
+            When a customer contacts you from your public profile, the enquiry appears here.
+          </EmptyState>
+        )}
+        {state.status === "ready" && state.items.length > 0 && (
+          <>
+            <p className="text-sm text-muted" role="status">
+              {state.items.length === 1 ? "1 enquiry" : `${state.items.length} enquiries`}, newest first
+            </p>
+            <ul className="mt-4 space-y-4">
+              {state.items.map((item) => (
+                <li key={item.enquiry_id}>
+                  <Card>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge tone="primary">{item.service ?? "Business enquiry"}</Badge>
+                      <span className="ml-auto text-sm text-muted">{formatWhen(item.created_at)}</span>
+                    </div>
+                    <h3 className="mt-3 font-sans text-lg font-medium tracking-normal">
+                      {item.contact.name}
+                      <span className="font-normal text-muted"> to {item.recipient.name}</span>
+                    </h3>
+                    <p className="mt-2 max-w-prose whitespace-pre-line leading-relaxed text-ink">{item.message}</p>
+                    <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-line pt-4 text-sm">
+                      <a href={`mailto:${item.contact.email}`} className="flex min-h-11 items-center gap-1.5 text-primary-ink hover:underline">
+                        <Mail className="size-4" aria-hidden="true" />
+                        <span className="break-all">{item.contact.email}</span>
                       </a>
-                    )}
-                    <span className="text-muted">
-                      Prefers {(contactMethodLabels[item.contactMethod] ?? item.contactMethod).toLowerCase()}
-                    </span>
-                    <span className="font-mono text-xs text-subtle sm:ml-auto">{item.reference}</span>
-                  </div>
-                </Card>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
+                      {item.contact.phone && (
+                        <a href={`tel:${item.contact.phone}`} className="flex min-h-11 items-center gap-1.5 text-primary-ink hover:underline">
+                          <Phone className="size-4" aria-hidden="true" />
+                          {item.contact.phone}
+                        </a>
+                      )}
+                      <span className="text-muted">
+                        Prefers {(contactMethodLabels[item.preferred_contact_method] ?? item.preferred_contact_method).toLowerCase()}
+                      </span>
+                      <span className="font-mono text-xs text-subtle sm:ml-auto">{item.reference}</span>
+                    </div>
+                  </Card>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
     </section>
   );
 }
@@ -247,16 +327,19 @@ type Props = {
 };
 
 export function RequestInbox({ requestTypeLabels, contactMethodLabels }: Props) {
-  // A stable function, so the section does not reload on every render.
-  const loadRequests = useCallback(() => loadPropertyRequests(requestTypeLabels), [requestTypeLabels]);
-
   return (
     <RequireAuth allow={canUseInbox}>
       {(user) => (
         <>
-          <h1 className="text-4xl">Request inbox</h1>
+          <p className="text-sm">
+            <Link href="/dashboard" className="font-medium text-primary-ink hover:underline">
+              Dashboard
+            </Link>
+          </p>
+          <h1 className="mt-1 text-4xl">Request inbox</h1>
           <p className="mt-2 text-muted">
-            Customer requests sent to you or your organisation.{" "}
+            Customer requests sent to you or your organisation. Open one to move it along, see its history and keep
+            notes for your team.{" "}
             <Link href="/agent/appointments" className="font-medium text-primary-ink hover:underline">
               Appointments
               <AppointmentsWaiting />
@@ -267,25 +350,9 @@ export function RequestInbox({ requestTypeLabels, contactMethodLabels }: Props) 
             </Link>
           </p>
           <div className="mt-8 space-y-12">
-            <InboxSection
-              id="inbox-property"
-              title="Property requests"
-              noun={["request", "requests"]}
-              emptyText="When a customer enquires about one of your listings, the request appears here."
-              load={loadRequests}
-              contactMethodLabels={contactMethodLabels}
-            />
+            <PropertyRequests typeLabels={requestTypeLabels} />
             {/* Business enquiries go to organisations, so Landlords and Property Sellers (Vendors) have none. */}
-            {isProfessional(user) && (
-              <InboxSection
-                id="inbox-business"
-                title="Business enquiries"
-                noun={["enquiry", "enquiries"]}
-                emptyText="When a customer contacts you from your public profile, the enquiry appears here."
-                load={loadBusinessEnquiries}
-                contactMethodLabels={contactMethodLabels}
-              />
-            )}
+            {isProfessional(user) && <BusinessEnquiries contactMethodLabels={contactMethodLabels} />}
           </div>
         </>
       )}

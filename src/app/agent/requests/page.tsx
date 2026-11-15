@@ -25,7 +25,7 @@ async function InboxWithLabels() {
 
 export default function AgentRequestsPage() {
   return (
-    <Container className="max-w-4xl py-10 md:py-14">
+    <Container className="max-w-5xl py-10 md:py-14">
       <Suspense fallback={<div className="h-64 rounded-lg bg-sunken" aria-busy="true" />}>
         <InboxWithLabels />
       </Suspense>

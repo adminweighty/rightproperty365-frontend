@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ButtonLink } from "@/components/ui/button";
@@ -15,10 +15,14 @@ import type { User } from "@/lib/api/auth";
 export function AdminGate({ children }: { children: (user: User) => ReactNode }) {
   const { status, user, isAdmin } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    if (status === "anonymous") router.replace("/admin/sign-in");
-  }, [status, router]);
+    // Back to this page after signing in; the sign-in only follows /admin addresses.
+    if (status === "anonymous") {
+      router.replace(pathname === "/admin" ? "/admin/sign-in" : `/admin/sign-in?next=${encodeURIComponent(pathname)}`);
+    }
+  }, [status, router, pathname]);
 
   if (status !== "authenticated") {
     return (
@@ -38,8 +42,8 @@ export function AdminGate({ children }: { children: (user: User) => ReactNode })
           not an administrator account.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <ButtonLink href="/account" variant="secondary">
-            Go to your account
+          <ButtonLink href="/dashboard" variant="secondary">
+            Go to your dashboard
           </ButtonLink>
           <ButtonLink href="/sign-in" variant="ghost">
             Sign in to the main site

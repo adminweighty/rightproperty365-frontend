@@ -434,13 +434,49 @@ The site's own check against automated sign-ups on the create-account form: a su
 
 ## Administrator sign-in and landing (`admin/admin-sign-in-form.tsx`, `admin/admin-home.tsx`)
 
-Platform administrators sign in at `/admin/sign-in`, a separate page from the customer sign-in, and land on `/admin`.
+Platform administrators sign in at `/admin/sign-in`, a separate page from the customer sign-in, and land on `/admin` (or on the `/admin` page in `?next=`, which `AdminGate` adds when it sends a signed-out visitor to sign in). Sign-in has a second step, the emailed code (see "Sign-in code step").
 
 - The page uses `AuthShell` with the heading "Administrator sign in". It has no "create an account" link, no role picker and no email password reset; a line of text says to ask a super administrator.
 - It is not linked from the header, footer or customer sign-in, is `noindex, nofollow`, and is not in the sitemap. Administrators are given the address.
 - Every failed attempt shows the same message, "That email and password do not match.", whether the address is unknown, the password is wrong, or the account is not an administrator. The customer sign-in shows the same message for an administrator account.
-- `/admin` states: loading skeleton; signed out (redirects to `/admin/sign-in`); signed in without an administrator session (the "You do not have access" state, which says the area is for Platform Administrators, with links to the account page and the main sign-in); administrator (name, a "Verifications" card with the number of applications waiting and a link to the review queue, platform roles with their market, and an honest list of what is not built yet). `AdminGate` (`admin/admin-gate.tsx`) gives every admin page the same states.
-- For an administrator session the account menu shows "Administration" in place of "Your account", and signing out returns to `/admin/sign-in`.
+- `/admin` states: loading skeleton; signed out (redirects to `/admin/sign-in`); signed in without an administrator session (the "You do not have access" state, which says the area is for Platform Administrators, with links to the dashboard and the main sign-in); administrator (the overview, see "Admin overview"). `AdminGate` (`admin/admin-gate.tsx`) gives every admin page the same states.
+- For an administrator session the account menu shows "Dashboard" (to `/admin`) and "Verifications" in place of the customer items, and signing out returns to `/admin/sign-in`.
+
+## Sign-in code step (`auth/sign-in-code-step.tsx`, `lib/sign-in-code.ts`)
+
+The second step of both sign-in forms. A correct email and password are answered with `CODE_REQUIRED` and a code is emailed; no session exists until the code is accepted.
+
+- The step replaces the email and password fields inside the same card: an `h2` "Check your email", "We sent a code to u•••@example.com", one field "Code from the email" (`inputMode="numeric"`, `autoComplete="one-time-code"`, monospace), the time the code works until as its hint, and "Sign in". Focus moves to the field when the step opens.
+- 4 to 6 digits are accepted (spaces and dashes are removed), not exactly `code_length`, because the test site also takes a 4-digit demo code. On the test site only (`env.testSite`) a line under the field says "Test site: you can use the demo code 1234."
+- A wrong code shows the API's `fields.code` message under the field and selects what was typed. An expired code (`CODE_EXPIRED`) returns to the first step with a warning to sign in again; the email is kept and focused. Once `expires_at` has passed, a warning says so in place.
+- "Send a new code" waits 30 seconds, or the 429 answer's Retry-After, with "Available in 0:27" beside it; the button stays focusable (`aria-disabled`). A new code is announced in a polite live region.
+- "Use a different account" returns to the first step with focus on the email field.
+- An API without the code step answers the first step with the session itself; that is a successful sign-in.
+- After sign-in: `?next=` when it is a path on this site (`safeNextPath` in `lib/portal.ts`; an administrator only to `/admin` pages), else `/dashboard`, or `/admin` for an administrator.
+
+## Dashboard (`dashboard/dashboard-home.tsx`, `/dashboard`)
+
+Every signed-in customer-scope account lands here. Everything comes from `GET /v1/me/dashboard`; the page works out no role rules itself.
+
+- Order: "Dashboard" eyebrow, `h1` "Hello, <first name>", one line for the kind of dashboard, the person's roles as badges, then "What needs your attention": the API's next actions as large cards with their count, each a link (an onboarding action opens that role's application). Nothing waiting: one quiet sentence.
+- **Seeker**: a "Find a property" search (`/listings?q=`), requests by status, latest requests (empty state "You have not sent a request yet" with "Find a property"), next appointments.
+- **Professional, not yet verified**: "Your applications", one card per role: status badge (the API's `status_label`), what is still needed in numbers, the reviewer's reason, the next step in words, and the action ("Continue your application", "Fix and resubmit", "View your application", "Apply again").
+- **Verified professional and direct owner**: counters by group as tiles (property requests, requests by stage as an eight-step pipeline, business enquiries, appointments received, listings including short stays whose calendar needs updating), latest five requests, next five appointments, and "Your workspace" (role at each organisation, links to the inbox, appointments, listings, team when `sees_team`, account).
+- A counter or action whose target has no page on this site is plain text, never a link. Targets map to pages in `TARGET_PATHS` (`lib/portal.ts`); a counter for one stage or status opens the list filtered to it.
+- An administrator session is sent to `/admin`. Tiles and action cards enter with `Stagger` and numbers count up; nothing moves with reduced motion.
+
+## Signed-in lists and details (`portal/portal-ui.tsx`, `portal/use-api.ts`)
+
+- `StatTile`: a number and its label, a link when it has a page. `ChipNav`: filter links with counts, the current one filled and `aria-current`. `EmptyState`, `LoadingBlock`, `LoadError` (403 is the "no access" state), `BackLink`.
+- **`/account/requests`** and **`/account/requests/<id>`**: the person's own requests, status chips with counts, one line on what each status means, paging; the detail shows the message, stay and preferred time, and the status history. Never the lead stage, notes or who handles it.
+- **`/agent/requests`**: stage chips with counts (`stage_counts`), a filter form (search, type, received from and until; a GET form that works without JavaScript), a count in a status region, request cards that link to the detail, `Pagination`. Business enquiries follow at `#business-enquiries`.
+- **`/agent/requests/<id>`**: the customer's message, stay and preferred time; contact links; "Stage" with only the API's `allowed_stages` as radio buttons and "Move the request"; "History"; "Notes", marked "Only your team can see notes. The customer never does." A 409 explains that someone else moved it, and the request is read again.
+- **`/agent/team`**: read-only members of each organisation the person owns or manages: name, role, market and status. No invite or remove controls until the API has them.
+
+## Admin overview (`admin/admin-home.tsx`, `/admin`) and routing exceptions (`admin/routing-exceptions.tsx`)
+
+- `/admin` shows what needs attention (applications waiting, requests nobody could receive), then only the sections `GET /v1/admin/overview` returns for the person's roles: Verifications (counts by status, linking to the queue), Accounts (counts, roles table, newest sign-ups), Listings (by status), Property requests (counts, by stage, routing exceptions). A role with no section is told so. Roles and "Not built yet" follow.
+- `/admin/routing-exceptions`: "Still open", "Dealt with" and "All" as chips, the customer's details so the request can be passed on by hand, and "Mark as dealt with", which opens a note field in place with "Keep it open" to back out. A 409 says another administrator already did it and reloads.
 
 ## TestSiteBanner (`layout/test-site-banner.tsx`)
 
@@ -459,7 +495,7 @@ The session control at the right of the header.
 - Loading: an empty block the size of the button, so the header does not shift.
 - Signed out: "Sign in" as a ghost button at every width and, from `sm`, the primary "Sign up" button to its right, which goes to `/register`. Both are 44px tall. On phones the bar has no room for "Sign up"; it is in the menu panel with "Sign in".
 - From `xl` the "For professionals" link sits before them; it leads to the landing page's section for professionals, whose button goes to registration. Below `lg` that link is in the menu panel. Between `lg` and `xl` the bar has no room for it beside the navigation and the two buttons.
-- Signed in: a secondary button, 44px tall, that opens a menu with the person's email, "Your account", "Complete your profile" (while an onboarding application is not submitted or has changes requested), "Request inbox" (professional accounts only) and "Sign out". From `sm` the button shows the person's first name; on phones it is the account icon alone, with the name kept for screen readers ("Account menu for Tendai"), so the header fits a 320px screen.
+- Signed in: a secondary button, 44px tall, that opens a menu with the person's email, "Dashboard" (always first), "Your account", "Complete your profile" (while an onboarding application is not submitted or has changes requested), "Your requests", "Your appointments", "Request inbox", "Appointments received" and "Your listings" (professional accounts and owners only) and "Sign out". From `sm` the button shows the person's first name; on phones it is the account icon alone, with the name kept for screen readers ("Account menu for Tendai"), so the header fits a 320px screen.
 - The button has `aria-expanded` and `aria-controls`. The menu closes on Escape, on an outside click, and when an item is chosen. Items are 44px tall.
 
 ## RequireAuth (`auth/require-auth.tsx`)
@@ -475,7 +511,7 @@ The list of customer requests routed to the signed-in person: an Estate Agent's 
 
 - Two sections, each with its own `h2`, count and states: "Property requests" (about listings) and "Business enquiries" (sent from a public profile). Landlords and Property Sellers (Vendors) see only the first, because business enquiries go to organisations.
 - A public profile never shows a phone number or email address. The enquiry form is the only way to reach a business, and the customer's details appear only in this inbox.
-- Each request is a card: type and status badges, received time in the viewer's time zone, customer name and listing, the message, then contact links and the reference. The listing's title comes with the request from the API; when it does not, the card says "about a listing". Request type and contact method labels come from the API's reference data.
+- Each request is a card: type and status badges, received time in the viewer's time zone, customer name (a link to the request's own page) and listing, the stage, the first three lines of the message, then "Open the request" and the reference. Contact details are on the request's page. Business enquiries keep their contact links on the card. The listing's title comes with the request from the API; when it does not, the card says "about a listing". Request type and contact method labels come from the API's reference data.
 - A request to stay shows its stay above the message: "Asks to stay 8–11 Dec 2026 · 3 nights · 3 guests". It is a request: the nights are not blocked until the lister marks them in the availability calendar.
 - States: loading skeleton, error with "Try again", empty ("No requests yet"), and the list with a count.
 - Contact details appear only here, behind sign-in. They must never be put in a notification preview or a URL.

@@ -23,7 +23,7 @@ export function VerifyEmail() {
       if (result.ok) {
         setSession(result.data);
         // A listing or agency role has an onboarding step before it is confirmed.
-        router.replace(hasOnboarding(result.data.user) ? "/onboarding?welcome=1" : "/account?welcome=1");
+        router.replace(hasOnboarding(result.data.user) ? "/onboarding?welcome=1" : "/dashboard?welcome=1");
       } else {
         setFailure(result.failure);
       }

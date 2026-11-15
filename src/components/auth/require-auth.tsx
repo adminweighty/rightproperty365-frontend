@@ -25,8 +25,8 @@ export function NoAccess() {
         Property Sellers (Vendors). If you work for an agency, ask the Agency Principal to add
         you.
       </p>
-      <ButtonLink href="/account" variant="secondary" className="mt-6">
-        Back to your account
+      <ButtonLink href="/dashboard" variant="secondary" className="mt-6">
+        Back to your dashboard
       </ButtonLink>
     </div>
   );

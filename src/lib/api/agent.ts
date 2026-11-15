@@ -13,6 +13,11 @@ export type AgentPropertyRequest = {
   listing?: { slug: string; title: string; reference: string } | null;
   request_type: RequestType;
   status: string;
+  /** The lead stage (new in API 0.20.0) and its wording. Optional for older API builds. */
+  stage?: LeadStage;
+  stage_label?: string;
+  /** When the stage last changed; null until somebody moves the request. */
+  stage_changed_at?: string | null;
   message: string;
   preferred_contact_method: ContactMethod;
   contact: { name: string; email: string; phone?: string | null };
@@ -41,6 +46,92 @@ export type InboxBusinessEnquiry = {
 export const listBusinessEnquiries = () =>
   apiFetch<{ items: InboxBusinessEnquiry[] }>("/v1/inbox/business-enquiries");
 
-/** The API scopes this to the caller's organisations; there is nothing to filter here. */
-export const listAgentPropertyRequests = () =>
-  apiFetch<{ items: AgentPropertyRequest[] }>("/v1/agent/property-requests");
+/** The lead stages in pipeline order; their wording comes from the API. */
+export type LeadStage =
+  | "NEW_ENQUIRY"
+  | "ASSIGNED"
+  | "CONTACTED"
+  | "VIEWING_REQUESTED"
+  | "VIEWING_SCHEDULED"
+  | "FOLLOW_UP_REQUIRED"
+  | "CONVERTED"
+  | "CLOSED";
+
+export type StageCount = { stage: LeadStage; label: string; count: number };
+
+/** One page of the received requests (changed in API 0.20.0: it used to be every request, up to 100). */
+export type AgentPropertyRequestPage = {
+  items: AgentPropertyRequest[];
+  page: number;
+  page_size: number;
+  total: number;
+  total_pages: number;
+  /** Every stage with its count under every filter except `stage`. */
+  stage_counts: StageCount[];
+};
+
+export type RequestTimelineEntry = {
+  event: "REQUEST_RECEIVED" | "STAGE_CHANGED" | "NOTE_ADDED" | string;
+  /** "Request received", "Moved to Contacted", "Note added". */
+  label: string;
+  from_stage: LeadStage | null;
+  to_stage: LeadStage | null;
+  actor: "CUSTOMER" | "PROFESSIONAL" | "SYSTEM";
+  actor_name: string | null;
+  at: string;
+};
+
+/** Internal to the receiving side. The customer never sees a note. */
+export type RequestNote = { id: string; body: string; author_name: string; mine: boolean; created_at: string };
+
+/** One received request in full. */
+export type ReceivedPropertyRequest = AgentPropertyRequest & {
+  preferred_slot_utc: string | null;
+  updated_at: string;
+  /** The stages it can be moved to from where it is now (may be empty). */
+  allowed_stages: { stage: LeadStage; label: string }[];
+  timeline: RequestTimelineEntry[];
+  notes: RequestNote[];
+};
+
+/**
+ * The API scopes this to the caller's organisations and own listings; the
+ * filters only narrow it. `query` comes from `requestFiltersApiQuery`.
+ */
+export const listAgentPropertyRequests = (query = "") =>
+  apiFetch<AgentPropertyRequestPage>(`/v1/agent/property-requests${query}`, { cache: "no-store" });
+
+export const getAgentPropertyRequest = (id: string) =>
+  apiFetch<{ request: ReceivedPropertyRequest }>(`/v1/agent/property-requests/${id}`, { cache: "no-store" });
+
+/** 409 `INVALID_STAGE_TRANSITION` when the move is not allowed from the current stage. */
+export const moveAgentPropertyRequest = (id: string, stage: LeadStage) =>
+  apiFetch<{ request: ReceivedPropertyRequest }>(`/v1/agent/property-requests/${id}`, {
+    method: "PATCH",
+    body: { stage },
+  });
+
+/** 1 to 2000 characters. Answers with the whole request, notes included. */
+export const addAgentPropertyRequestNote = (id: string, body: string) =>
+  apiFetch<{ request: ReceivedPropertyRequest }>(`/v1/agent/property-requests/${id}/notes`, {
+    method: "POST",
+    body: { body },
+  });
+
+export type OrganisationMember = {
+  user_id: string;
+  name: string;
+  role: "OWNER" | "MANAGER" | "AGENT" | "STAFF";
+  role_label: string;
+  status: "ACTIVE" | "INVITED" | "SUSPENDED";
+  status_label: string;
+  market_code: string;
+  is_you: boolean;
+};
+
+/** For the organisation's OWNER and MANAGER only (403 for other members). No email or phone is returned. */
+export const listOrganisationMembers = (organisationId: string) =>
+  apiFetch<{ organisation: { id: string; name: string; kind: string }; items: OrganisationMember[] }>(
+    `/v1/agent/organisations/${organisationId}/members`,
+    { cache: "no-store" },
+  );
