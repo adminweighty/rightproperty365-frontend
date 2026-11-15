@@ -29,31 +29,46 @@ type Props = {
  * A listing photo cropped to the frame given by `className` (which must set
  * an aspect ratio, so the layout never shifts while the photo loads).
  *
- * A photo whose file is bundled with the app is optimised and gets a blur
- * placeholder; any other photo is loaded from the URL the API gave
- * (src/lib/photos.ts). A listing without photos shows a neutral frame.
+ * A photo whose file is bundled with the app is optimised by next/image and
+ * gets a blur placeholder; an uploaded photo is a plain `<img>` with the
+ * API's stored sizes as its `srcset` (src/lib/photos.ts). A listing without
+ * photos shows a neutral frame.
  */
 export function ListingMedia({ photo, sizes, priority, eager, zoomOnHover, settle, alt, className }: Props) {
   const resolved = photo ? resolvePhoto(photo) : undefined;
+  const imageClass = cn(
+    "object-cover",
+    zoomOnHover && "transition-transform duration-500 ease-standard group-hover:scale-105",
+    settle && "enter-settle",
+  );
 
   return (
     <div className={cn("relative overflow-hidden bg-sunken", className)}>
-      {resolved ? (
+      {resolved && !resolved.bundled ? (
+        // An uploaded photo: the API made its sizes, so the browser picks one from the srcset.
+        // eslint-disable-next-line @next/next/no-img-element -- served by the API in three stored sizes
+        <img
+          src={resolved.url}
+          srcSet={resolved.srcSet}
+          sizes={resolved.srcSet ? sizes : undefined}
+          alt={alt ?? resolved.alt}
+          width={resolved.width}
+          height={resolved.height}
+          loading={priority || eager ? "eager" : "lazy"}
+          fetchPriority={priority ? "high" : undefined}
+          decoding={priority ? "sync" : "async"}
+          className={cn("absolute inset-0 size-full", imageClass)}
+        />
+      ) : resolved ? (
         <Image
           src={resolved.src}
           alt={alt ?? resolved.alt}
           fill
           sizes={sizes}
-          placeholder={resolved.bundled ? "blur" : "empty"}
-          // Photos outside the bundle come from a host we do not know yet.
-          unoptimized={!resolved.bundled}
+          placeholder="blur"
           loading={priority || eager ? "eager" : "lazy"}
           fetchPriority={priority ? "high" : undefined}
-          className={cn(
-            "object-cover",
-            zoomOnHover && "transition-transform duration-500 ease-standard group-hover:scale-105",
-            settle && "enter-settle",
-          )}
+          className={imageClass}
         />
       ) : (
         <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-sm text-subtle">

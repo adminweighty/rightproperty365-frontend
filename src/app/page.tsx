@@ -287,19 +287,31 @@ async function HomeContent() {
       <Hero
         eyebrow="Verified property"
         photo={
-          heroPhoto && (
+          heroPhoto &&
+          (heroPhoto.bundled ? (
             <Image
               src={heroPhoto.src}
               alt=""
               fill
               sizes="100vw"
-              placeholder={heroPhoto.bundled ? "blur" : "empty"}
-              unoptimized={!heroPhoto.bundled}
+              placeholder="blur"
               loading="eager"
               fetchPriority="high"
               className="object-cover"
             />
-          )
+          ) : (
+            // An uploaded photo: the API's stored sizes are its srcset.
+            // eslint-disable-next-line @next/next/no-img-element -- served by the API in three stored sizes
+            <img
+              src={heroPhoto.url}
+              srcSet={heroPhoto.srcSet}
+              sizes={heroPhoto.srcSet ? "100vw" : undefined}
+              alt=""
+              loading="eager"
+              fetchPriority="high"
+              className="absolute inset-0 size-full object-cover"
+            />
+          ))
         }
         caption={
           heroListing && (

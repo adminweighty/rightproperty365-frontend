@@ -421,9 +421,12 @@ export const faqCategories: FaqCategory[] = [
         question: "How do I add my listings?",
         answer: [
           p(
-            "Adding and editing listings yourself on the website is not available yet. Once your role is approved, write to ",
-            support,
-            " and we will help you get your listings published.",
+            "Once your role is approved, sign in, open ",
+            link("Your listings", "/agent/listings"),
+            " and choose “Add a listing”. Fill in the details, add up to 20 photos and describe each one, then submit it for review. Everything is saved as you type.",
+          ),
+          p(
+            "Our review team checks every listing before it is public, and every change to a public listing before visitors see it. We email you when a decision is made. If we ask for changes, the reason is shown on the listing.",
           ),
         ],
       },

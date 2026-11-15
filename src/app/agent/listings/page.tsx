@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { MyListings } from "@/components/agent/my-listings";
+import { ListingManager } from "@/components/agent/listing-manager";
 import { Container } from "@/components/ui/container";
 import { load } from "@/lib/api/server/load";
 import { getCatalogue } from "@/lib/api/server/reference";
@@ -11,11 +11,12 @@ export const metadata: Metadata = { title: "Your listings", robots: { index: fal
 /**
  * What a price is charged per ("per night") is labelled from the API's
  * reference data. If it cannot be loaded the list still works. The listings
- * themselves are private and are read in the browser with the session cookie.
+ * themselves are private and are read in the browser with the session cookie;
+ * the status tab and page are in the address (`?status=DRAFT&page=2`).
  */
 async function ListingsWithLabels() {
   const loaded = await load(getCatalogue);
-  return <MyListings periods={loaded.ok ? toLabels(loaded.data.sets.price_periods) : {}} />;
+  return <ListingManager periods={loaded.ok ? toLabels(loaded.data.sets.price_periods) : {}} />;
 }
 
 export default function AgentListingsPage() {

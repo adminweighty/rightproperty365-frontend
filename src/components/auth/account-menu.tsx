@@ -93,11 +93,18 @@ export function AccountMenu({ professionals }: { professionals?: NavItem }) {
               </Link>
             </li>
             {isAdmin ? (
-              <li>
-                <Link href="/admin/verifications" className={itemClass} onClick={() => setOpen(false)}>
-                  Verifications
-                </Link>
-              </li>
+              <>
+                <li>
+                  <Link href="/admin/verifications" className={itemClass} onClick={() => setOpen(false)}>
+                    Verifications
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/admin/listings" className={itemClass} onClick={() => setOpen(false)}>
+                    Listing reviews
+                  </Link>
+                </li>
+              </>
             ) : (
               <li>
                 <Link href="/account" className={itemClass} onClick={() => setOpen(false)}>

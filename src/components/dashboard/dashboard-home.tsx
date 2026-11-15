@@ -26,7 +26,7 @@ import {
 import { customerStatusTones } from "@/lib/api/my-requests";
 import { onboardingStatusTones, roleToSlug } from "@/lib/api/onboarding";
 import { cn } from "@/lib/cn";
-import { counterHref, targetHref } from "@/lib/portal";
+import { actionHref as nextActionHref, counterHref } from "@/lib/portal";
 
 /** Numbers that ask for something to be done, shown in the primary colour when above zero. */
 const ACTION_KEYS = new Set([
@@ -35,6 +35,7 @@ const ACTION_KEYS = new Set([
   "appointments.requested",
   "appointments.reschedule_requested",
   "short_stays.calendar_stale",
+  "listings.status.CHANGES_REQUESTED",
   "my_appointments.needs_reply",
 ]);
 
@@ -47,9 +48,11 @@ const groupTitles: Record<DashboardCounterGroup, string> = {
   listings: "Your listings",
 };
 
-/** An onboarding action opens that role's application; every other action uses its target. */
-const actionHref = (action: DashboardAction) =>
-  action.role && action.target === "onboarding" ? `/onboarding/${roleToSlug(action.role)}` : targetHref(action.target);
+/**
+ * An onboarding action opens that role's application, a listing action the
+ * listings filtered to it; every other action uses its target.
+ */
+const actionHref = (action: DashboardAction) => nextActionHref(action, (role) => `/onboarding/${roleToSlug(role)}`);
 
 const intro: Record<Dashboard["kind"], string> = {
   SEEKER: "Your requests, your viewings and a quick way to find your next property.",

@@ -145,11 +145,13 @@ src/app/                Routes (App Router)
   (auth)/               Sign in, register, confirm email, password reset
   onboarding/           Applications for listing, managing and agency roles: hub and one form per role
   admin/verifications/  Review queue and review page for platform administrators
+  admin/listings/       Listing review queue and review page (new listings and changes to public ones)
   api/revalidate/       Protected on-demand cache revalidation (off unless REVALIDATE_SECRET is set)
   account/              Profile, roles and memberships
   account/appointments/ The signed-in person's viewings and consultations
   agent/requests/       Request inbox for professional accounts
-  agent/listings/       "Your listings" (read-only) and the availability calendar of a short stay
+  agent/listings/       "Your listings": the listing manager, a new listing, the editor with photos,
+                        and the availability calendar of a short stay
   agent/appointments/   Appointments received by a professional or their organisation
   legal/                Privacy Policy, Terms and Conditions, Refund Policy, EULA (static)
   faq/                  Frequently asked questions (static)

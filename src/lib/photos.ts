@@ -22,16 +22,19 @@ import standRuwa from "@/assets/images/listing-stand-ruwa.jpg";
 import townhouseGreendale from "@/assets/images/listing-townhouse-greendale.jpg";
 import townhouseMountPleasant from "@/assets/images/listing-townhouse-mount-pleasant.jpg";
 import type { Photo } from "@/lib/api/types";
+import { env } from "@/lib/env";
+import { apiPhotoUrl, photoSrcSet } from "@/lib/listing-photos";
 
 /**
  * Photos.
  *
- * The API stores a photo as `/assets/images/<file>.jpg` with its alt text and
- * pixel size. Object storage and uploads are not built, so today those files
- * are the ones bundled from src/assets/images. Bundled files get hashed URLs,
- * responsive sizes and a blur placeholder from next/image, so a photo whose
- * file name is bundled is served from the bundle; any other photo is served
- * from the URL the API gave, with the API's width and height.
+ * The API's sample photos are `/assets/images/<file>.jpg`, the files bundled
+ * from src/assets/images: they get hashed URLs, responsive sizes and a blur
+ * placeholder from next/image. Photos uploaded by advertisers (API 0.22.0)
+ * are served by the API (`/v1/listing-photos/<id>/<size>?v=…`) in three
+ * stored sizes, its `variants`, which become a `srcset` on a plain `<img>`:
+ * the API's origin differs per environment, so it cannot be listed in
+ * `images.remotePatterns`, and the sizes are already made.
  *
  * This is a file-name index of assets, not content: which photo a listing
  * has, and its alt text, always come from the API.
@@ -70,10 +73,19 @@ export type ResolvedPhoto = {
   width: number;
   height: number;
   bundled: boolean;
+  /**
+   * An uploaded photo's stored sizes as a `srcset` (API 0.22.0), shown with a
+   * plain `<img>`: the API has already made the sizes. Undefined otherwise.
+   */
+  srcSet?: string;
 };
 
 const fileName = (url: string) => url.split(/[?#]/)[0].split("/").pop() ?? "";
 
+/**
+ * A photo ready to show. An uploaded photo's address is relative to the API,
+ * so the public API address goes in front (the visitor's browser loads it).
+ */
 export function resolvePhoto(photo: Photo): ResolvedPhoto {
   const image = photo.url.startsWith("/assets/images/") ? bundled[fileName(photo.url)] : undefined;
   if (image) {
@@ -86,7 +98,16 @@ export function resolvePhoto(photo: Photo): ResolvedPhoto {
       bundled: true,
     };
   }
-  return { src: photo.url, url: photo.url, alt: photo.alt, width: photo.width, height: photo.height, bundled: false };
+  const url = apiPhotoUrl(photo.url, env.apiUrl);
+  return {
+    src: url,
+    url,
+    alt: photo.alt,
+    width: photo.width,
+    height: photo.height,
+    bundled: false,
+    srcSet: photoSrcSet(photo.variants, env.apiUrl),
+  };
 }
 
 /** The cover photo: the first one. Undefined when the listing has no photos. */

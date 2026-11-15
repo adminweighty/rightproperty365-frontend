@@ -71,7 +71,46 @@ export function counterHref(counter: { key: string; target: string | null | unde
   if (counter.key === "requests.new" && counter.target === "requests") return `${base}?stage=NEW_ENQUIRY`;
   const status = /^my_requests\.status\.([A-Z_]+)$/.exec(counter.key)?.[1];
   if (status && isCustomerStatus(status) && counter.target === "my_requests") return `${base}?status=${status}`;
+  const listingStatus = /^listings\.status\.([A-Z_]+)$/.exec(counter.key)?.[1];
+  if (listingStatus && isListingStatus(listingStatus) && counter.target === "listings") return `${base}?status=${listingStatus}`;
   return base;
+}
+
+/** Listing statuses a counter may filter the listing manager by (`ListingStatus` in the OpenAPI). */
+const LISTING_STATUSES = [
+  "DRAFT",
+  "PENDING_REVIEW",
+  "CHANGES_REQUESTED",
+  "REJECTED",
+  "PUBLISHED",
+  "EXPIRED",
+  "ARCHIVED",
+  "PAUSED",
+  "SOLD",
+  "LET",
+  "CLOSED",
+];
+const isListingStatus = (value: string) => LISTING_STATUSES.includes(value);
+
+/** Next actions that open a list already filtered to what needs doing. */
+const ACTION_PATHS: Record<string, string> = {
+  UPDATE_LISTINGS_FOR_REVIEW: "/agent/listings?status=CHANGES_REQUESTED",
+};
+
+/**
+ * The page behind one dashboard next action: a filtered list for the actions
+ * that have one, the application of a role for an onboarding action
+ * (`onboardingPath`, given by the caller), otherwise its target.
+ */
+export function actionHref(
+  action: { code: string; target: string | null | undefined; role?: string | null },
+  onboardingPath?: (role: string) => string,
+): string | null {
+  if (action.role && action.target === "onboarding" && onboardingPath) return onboardingPath(action.role);
+  if (Object.prototype.hasOwnProperty.call(ACTION_PATHS, action.code) && action.target === "listings") {
+    return ACTION_PATHS[action.code];
+  }
+  return targetHref(action.target);
 }
 
 /** Pages a person should never be sent back to after signing in: they would only sign in again. */

@@ -2,7 +2,20 @@
 // code checks and the request-list filters. Run with `npm test`.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { counterHref, landingPath, safeNextPath, targetHref, TARGET_PATHS } from "../src/lib/portal.ts";
+import { actionHref, counterHref, landingPath, safeNextPath, targetHref, TARGET_PATHS } from "../src/lib/portal.ts";
+
+test("listing counters and the listing action open the manager filtered", () => {
+  assert.equal(counterHref({ key: "listings.status.CHANGES_REQUESTED", target: "listings" }), "/agent/listings?status=CHANGES_REQUESTED");
+  assert.equal(counterHref({ key: "listings.status.DRAFT", target: "listings" }), "/agent/listings?status=DRAFT");
+  assert.equal(counterHref({ key: "listings.status.NOPE", target: "listings" }), "/agent/listings");
+  assert.equal(actionHref({ code: "UPDATE_LISTINGS_FOR_REVIEW", target: "listings" }), "/agent/listings?status=CHANGES_REQUESTED");
+  assert.equal(actionHref({ code: "RESPOND_TO_NEW_REQUESTS", target: "requests" }), "/agent/requests");
+  assert.equal(
+    actionHref({ code: "COMPLETE_ONBOARDING", target: "onboarding", role: "LANDLORD" }, (role) => `/onboarding/${role.toLowerCase()}`),
+    "/onboarding/landlord",
+  );
+  assert.equal(actionHref({ code: "X", target: "nowhere" }), null);
+});
 import {
   cleanCode,
   codeProblem,

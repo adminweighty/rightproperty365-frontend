@@ -27,7 +27,21 @@ export type CountryRef = { code: string; name: string };
 /** An exact amount. `amount` is a decimal string; never do float arithmetic on it. */
 export type Money = { amount: string; currency: string };
 
-export type Photo = { url: string; alt: string; width: number; height: number };
+/**
+ * A listing photo. A bundled sample is `/assets/images/<file>.jpg`; an
+ * uploaded photo (API 0.22.0) is a path relative to the API's origin
+ * (`/v1/listing-photos/<id>/large?v=…`) with its stored sizes in `variants`.
+ */
+export type Photo = {
+  url: string;
+  alt: string;
+  width: number;
+  height: number;
+  /** Widest first, for a `srcset`. Empty for a bundled sample; missing from API builds before 0.22. */
+  variants?: PhotoVariant[];
+};
+
+export type PhotoVariant = { width: number; height: number; url: string };
 
 /**
  * A logo or profile photo. `url` is a path relative to the API's origin

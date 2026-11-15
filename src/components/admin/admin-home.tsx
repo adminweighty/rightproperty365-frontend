@@ -14,8 +14,11 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { getAdminOverview, type AdminOverview } from "@/lib/api/admin";
 import { platformRoleLabels, titleFromCode, type PlatformRole, type User } from "@/lib/api/auth";
+import { REVIEW_QUEUE_STATUSES } from "@/lib/listing-manage";
 
 const VERIFICATION_STATUSES = new Set(["SUBMITTED", "CHANGES_REQUESTED", "APPROVED", "REJECTED", "DRAFT"]);
+/** Listing statuses the listing review queue filters by. */
+const REVIEW_STATUSES = new Set<string>(REVIEW_QUEUE_STATUSES);
 
 const marketsText = (codes: string[] | null) => (codes ? `Counted for ${codes.join(", ")}.` : "Counted for every country.");
 
@@ -38,6 +41,7 @@ function SectionCard({ id, title, intro, children }: { id: string; title: string
 }
 
 function Attention({ data }: { data: AdminOverview }) {
+  const listingsWaiting = data.listings?.by_status.find((item) => item.status === "PENDING_REVIEW")?.count ?? 0;
   const items = [
     data.verifications && data.verifications.waiting > 0
       ? {
@@ -45,6 +49,14 @@ function Attention({ data }: { data: AdminOverview }) {
           count: data.verifications.waiting,
           text: data.verifications.waiting === 1 ? "application is waiting for review" : "applications are waiting for review",
           href: "/admin/verifications",
+        }
+      : null,
+    listingsWaiting > 0
+      ? {
+          key: "listings",
+          count: listingsWaiting,
+          text: listingsWaiting === 1 ? "listing is waiting for review" : "listings are waiting for review",
+          href: "/admin/listings",
         }
       : null,
     data.requests && data.requests.routing_exceptions.open > 0
@@ -183,11 +195,18 @@ function Sections({ data }: { data: AdminOverview }) {
                 <li><StatTile label="All listings" value={data.listings.total} /></li>
                 {data.listings.by_status.map((item) => (
                   <li key={item.status}>
-                    <StatTile label={item.label} value={item.count} emphasis={item.status === "PENDING_REVIEW"} />
+                    <StatTile
+                      label={item.label}
+                      value={item.count}
+                      emphasis={item.status === "PENDING_REVIEW"}
+                      href={REVIEW_STATUSES.has(item.status) ? `/admin/listings?status=${item.status}` : null}
+                    />
                   </li>
                 ))}
               </TileGrid>
-              <p className="mt-4 text-sm text-muted">Listing moderation is not in the admin console yet.</p>
+              <ButtonLink href="/admin/listings" className="mt-5">
+                Open the listing reviews
+              </ButtonLink>
             </SectionCard>
           );
         }
@@ -292,7 +311,7 @@ function Home({ user }: { user: User }) {
           <Card>
             <h2 className="text-2xl">Not built yet</h2>
             <p className="mt-2 leading-relaxed text-muted">
-              Listing moderation, markets and reference data, invoices, user management and the audit log are not in
+              Markets and reference data, invoices, user management and the audit log are not in
               the admin console yet. They will appear here as each one is released.
             </p>
             <p className="mt-4 text-sm leading-relaxed text-muted">
