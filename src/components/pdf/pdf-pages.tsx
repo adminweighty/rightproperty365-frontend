@@ -115,9 +115,9 @@ export function PdfPages({ data, zoom = 1, maxWidth = 880, label, renderOverlay,
     let cancelled = false;
     let task: { destroy: () => Promise<void> } | null = null;
     loadPdfJs()
-      .then(async (pdfjs) => {
+      .then(async ({ pdfjs, worker }) => {
         // pdf.js takes over the buffer it is given: hand it a copy.
-        const loadingTask = pdfjs.getDocument({ data: new Uint8Array(data.slice(0)) });
+        const loadingTask = pdfjs.getDocument({ data: new Uint8Array(data.slice(0)), worker });
         task = loadingTask;
         const doc = await loadingTask.promise;
         const sizes: { width: number; height: number }[] = [];
