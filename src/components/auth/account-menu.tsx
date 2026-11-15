@@ -7,7 +7,14 @@ import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import type { NavItem } from "@/components/layout/nav-items";
 import { buttonClasses, ButtonLink } from "@/components/ui/button";
-import { canManageTeam, canUseInbox, hasOnboardingToDo } from "@/lib/api/auth";
+import {
+  canManageTeam,
+  canUseInbox,
+  hasOnboardingToDo,
+  hasPlatformRole,
+  LEASE_TEMPLATE_ROLES,
+  SIGNING_OVERSIGHT_ROLES,
+} from "@/lib/api/auth";
 
 const itemClass =
   "flex min-h-11 w-full items-center rounded-sm px-3 text-left text-sm text-ink hover:bg-sunken focus-visible:bg-sunken";
@@ -104,6 +111,27 @@ export function AccountMenu({ professionals }: { professionals?: NavItem }) {
                     Listing reviews
                   </Link>
                 </li>
+                {hasPlatformRole(user, LEASE_TEMPLATE_ROLES) && (
+                  <li>
+                    <Link href="/admin/lease-templates" className={itemClass} onClick={() => setOpen(false)}>
+                      Lease templates
+                    </Link>
+                  </li>
+                )}
+                {hasPlatformRole(user, SIGNING_OVERSIGHT_ROLES) && (
+                  <>
+                    <li>
+                      <Link href="/admin/leases" className={itemClass} onClick={() => setOpen(false)}>
+                        All leases
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="/admin/agreements" className={itemClass} onClick={() => setOpen(false)}>
+                        All agreements
+                      </Link>
+                    </li>
+                  </>
+                )}
               </>
             ) : (
               <li>
@@ -131,6 +159,11 @@ export function AccountMenu({ professionals }: { professionals?: NavItem }) {
                     Your appointments
                   </Link>
                 </li>
+                <li>
+                  <Link href="/account/signing" className={itemClass} onClick={() => setOpen(false)}>
+                    Documents to sign
+                  </Link>
+                </li>
               </>
             )}
             {!isAdmin && canUseInbox(user) && (
@@ -148,6 +181,16 @@ export function AccountMenu({ professionals }: { professionals?: NavItem }) {
                 <li>
                   <Link href="/agent/listings" className={itemClass} onClick={() => setOpen(false)}>
                     Your listings
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/agent/leases" className={itemClass} onClick={() => setOpen(false)}>
+                    Leases
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/agent/agreements" className={itemClass} onClick={() => setOpen(false)}>
+                    Agreements
                   </Link>
                 </li>
                 {canManageTeam(user) && (

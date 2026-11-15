@@ -39,6 +39,7 @@ const ACTION_KEYS = new Set([
   "short_stays.calendar_stale",
   "listings.status.CHANGES_REQUESTED",
   "my_appointments.needs_reply",
+  "agreements.waiting_for_you",
 ]);
 
 const groupTitles: Record<DashboardCounterGroup, string> = {
@@ -48,6 +49,7 @@ const groupTitles: Record<DashboardCounterGroup, string> = {
   business_enquiries: "Business enquiries",
   appointments: "Appointments received",
   listings: "Your listings",
+  leases: "Leases and documents for signature",
 };
 
 /**
@@ -246,8 +248,8 @@ function CounterGroup({ group, counters, title }: { group: DashboardCounterGroup
 function Counters({ data }: { data: Dashboard }) {
   const order: DashboardCounterGroup[] =
     data.kind === "SEEKER" || data.kind === "PROFESSIONAL_PENDING"
-      ? ["my_activity", "requests", "requests_by_stage", "business_enquiries", "appointments", "listings"]
-      : ["requests", "requests_by_stage", "business_enquiries", "appointments", "listings", "my_activity"];
+      ? ["my_activity", "requests", "requests_by_stage", "business_enquiries", "appointments", "listings", "leases"]
+      : ["requests", "requests_by_stage", "business_enquiries", "appointments", "listings", "leases", "my_activity"];
   const groups = order
     .map((group) => ({ group, counters: data.counters.filter((counter) => counter.group === group) }))
     .filter(({ counters }) => counters.length > 0);
@@ -458,14 +460,38 @@ function TeamWaiting({ organisationId }: { organisationId: string }) {
 
 const managesTeam = (organisation: DashboardOrganisation) => Boolean(organisation.can_manage_team);
 
+/** May draft leases and send documents for signature (API 0.24.0). */
+const createsLeases = (data: Dashboard) =>
+  Boolean(data.capabilities.creates_leases || data.organisations.some((organisation) => organisation.can_create_leases));
+
+const counterValue = (data: Dashboard, ...keys: string[]) =>
+  data.counters.filter((counter) => keys.includes(counter.key)).reduce((sum, counter) => sum + counter.value, 0);
+
+type WorkspaceLink = { href: string; label: string; count?: number; countLabel?: string };
+
 function Workspace({ data }: { data: Dashboard }) {
-  const links = [
+  const leases = createsLeases(data);
+  const toSign = counterValue(data, "agreements.waiting_for_you");
+  const links = ([
     data.capabilities.receives_requests && { href: "/agent/requests", label: "Request inbox" },
     data.capabilities.manages_appointments && { href: "/agent/appointments", label: "Appointments received" },
     data.capabilities.manages_listings && { href: "/agent/listings", label: "Your listings" },
+    leases && {
+      href: "/agent/leases",
+      label: "Leases",
+      count: counterValue(data, "leases.drafts", "leases.awaiting_signatures"),
+      countLabel: "drafts and leases waiting for signatures",
+    },
+    leases && {
+      href: "/agent/agreements",
+      label: "Agreements",
+      count: counterValue(data, "agreements.waiting_for_others"),
+      countLabel: "documents waiting for others",
+    },
+    { href: "/account/signing", label: "Documents to sign", count: toSign, countLabel: "waiting for your signature" },
     (data.capabilities.sees_team || data.organisations.some(managesTeam)) && { href: "/agent/team", label: "Your team" },
     { href: "/account", label: "Your account and roles" },
-  ].filter((link): link is { href: string; label: string } => Boolean(link));
+  ] as (WorkspaceLink | false)[]).filter((link): link is WorkspaceLink => Boolean(link));
   return (
     <section aria-labelledby="dash-workspace">
       <h2 id="dash-workspace" className="text-xl">
@@ -501,6 +527,12 @@ function Workspace({ data }: { data: Dashboard }) {
           <li key={link.href}>
             <ButtonLink href={link.href} variant="secondary">
               {link.label}
+              {link.count !== undefined && link.count > 0 && (
+                <span className="rounded-full bg-primary px-2 text-xs tabular-nums text-on-primary">
+                  {link.count}
+                  <span className="sr-only"> {link.countLabel}</span>
+                </span>
+              )}
             </ButtonLink>
           </li>
         ))}

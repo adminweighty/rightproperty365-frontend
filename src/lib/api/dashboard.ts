@@ -17,7 +17,8 @@ export type DashboardCounterGroup =
   | "requests_by_stage"
   | "business_enquiries"
   | "appointments"
-  | "listings";
+  | "listings"
+  | "leases";
 
 export type DashboardCounter = {
   /** Stable: `requests.new`, `requests.stage.CONTACTED`, `listings.status.PUBLISHED`… */
@@ -51,6 +52,8 @@ export type DashboardOrganisation = {
   can_manage_listings: boolean;
   /** New in API 0.23.0: may invite people, decide join requests and change, suspend or remove members. Optional for older API builds. */
   can_manage_team?: boolean;
+  /** New in API 0.24.0: may draft leases and send documents for signature for the organisation. Optional for older API builds. */
+  can_create_leases?: boolean;
 };
 
 export type DashboardOnboarding = {
@@ -91,6 +94,8 @@ export type Dashboard = {
     manages_appointments: boolean;
     manages_listings: boolean;
     sees_team: boolean;
+    /** New in API 0.24.0: /v1/me/leases and /v1/me/agreements are open to the caller. Optional for older API builds. */
+    creates_leases?: boolean;
   };
   onboarding: DashboardOnboarding[];
   counters: DashboardCounter[];
