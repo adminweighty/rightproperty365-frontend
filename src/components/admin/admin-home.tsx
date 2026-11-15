@@ -13,7 +13,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { getAdminOverview, type AdminOverview } from "@/lib/api/admin";
-import { platformRoleLabels, titleFromCode, type PlatformRole, type User } from "@/lib/api/auth";
+import {
+  hasPlatformRole,
+  LEASE_TEMPLATE_ROLES,
+  platformRoleLabels,
+  SIGNING_OVERSIGHT_ROLES,
+  titleFromCode,
+  type PlatformRole,
+  type User,
+} from "@/lib/api/auth";
 import { REVIEW_QUEUE_STATUSES } from "@/lib/listing-manage";
 
 const VERIFICATION_STATUSES = new Set(["SUBMITTED", "CHANGES_REQUESTED", "APPROVED", "REJECTED", "DRAFT"]);
@@ -287,6 +295,28 @@ function Home({ user }: { user: User }) {
               <Sections data={state.data} />
             )}
           </>
+        )}
+
+        {(hasPlatformRole(user, LEASE_TEMPLATE_ROLES) || hasPlatformRole(user, SIGNING_OVERSIGHT_ROLES)) && (
+          <SectionCard
+            id="admin-signing"
+            title="Leases and signing"
+            intro="The lease template library, and every lease and document sent for signature (read-only)."
+          >
+            <div className="mt-5 flex flex-wrap gap-3">
+              {hasPlatformRole(user, LEASE_TEMPLATE_ROLES) && <ButtonLink href="/admin/lease-templates">Lease templates</ButtonLink>}
+              {hasPlatformRole(user, SIGNING_OVERSIGHT_ROLES) && (
+                <>
+                  <ButtonLink href="/admin/leases" variant="secondary">
+                    All leases
+                  </ButtonLink>
+                  <ButtonLink href="/admin/agreements" variant="secondary">
+                    All agreements
+                  </ButtonLink>
+                </>
+              )}
+            </div>
+          </SectionCard>
         )}
 
         <div className="grid gap-6 lg:grid-cols-2">
