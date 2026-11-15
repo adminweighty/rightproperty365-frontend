@@ -258,6 +258,11 @@ function Review({ listingId, lists }: Props) {
         reload();
         return;
       }
+      if (result.failure.code === "SELF_REVIEW_FORBIDDEN") {
+        // API 0.23.0: a reviewer never decides a listing of their own organisation, or one they sell or submitted.
+        setFailure("You can't review a listing from your own organisation. Another reviewer must decide it.");
+        return;
+      }
       if (result.failure.fields?.reason) {
         setReasonError(result.failure.fields.reason);
         return;

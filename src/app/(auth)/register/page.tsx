@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Suspense } from "react";
-import { authLinkClass, AuthShell } from "@/components/auth/auth-shell";
+import { AuthShell } from "@/components/auth/auth-shell";
+import { AuthSwitchLink } from "@/components/auth/auth-switch-link";
 import { RegisterForm } from "@/components/auth/register-form";
 import { ErrorState } from "@/components/ui/error-state";
 import { load } from "@/lib/api/server/load";
@@ -27,9 +27,7 @@ export default function RegisterPage() {
       footer={
         <>
           Already have an account?{" "}
-          <Link href="/sign-in" className={authLinkClass}>
-            Sign in
-          </Link>
+          <AuthSwitchLink href="/sign-in">Sign in</AuthSwitchLink>
         </>
       }
     >

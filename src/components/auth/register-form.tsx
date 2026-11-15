@@ -1,6 +1,7 @@
 "use client";
 
 import { MailCheck } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import { useFieldErrors } from "@/components/auth/use-field-errors";
 import { register, type AccountRole, type AccountRoleGroup } from "@/lib/api/auth";
 import type { ApiFailure } from "@/lib/api/http";
 import { captchaAnswerProblem, hasProblems, registerProblems, type Problems } from "@/lib/auth-validation";
+import { rememberAfterSignUp } from "@/lib/return-after-sign-up";
 
 export const PASSWORD_HINT = "At least 10 characters. A short phrase works well.";
 
@@ -43,6 +45,8 @@ function serverProblems(fields: Record<string, string> | undefined): Problems {
 
 /** `roleGroups` is the API's `account_roles` reference set, loaded by the page. */
 export function RegisterForm({ roleGroups }: { roleGroups: AccountRoleGroup[] }) {
+  // Where to go once the address is confirmed (an invitation page, say); only a path on this site is kept.
+  const nextParam = useSearchParams().get("next");
   const [pending, setPending] = useState(false);
   const [failure, setFailure] = useState<ApiFailure | null>(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
@@ -92,6 +96,7 @@ export function RegisterForm({ roleGroups }: { roleGroups: AccountRoleGroup[] })
     setPending(false);
 
     if (result.ok) {
+      rememberAfterSignUp(nextParam);
       setSentTo(input.email);
       return;
     }

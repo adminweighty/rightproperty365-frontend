@@ -145,6 +145,13 @@ export const hasOnboardingToDo = (user: User | null) =>
 /** True when the user belongs to at least one organisation. */
 export const isProfessional = (user: User | null) => Boolean(user?.memberships.length);
 
+/**
+ * True for an OWNER or MANAGER of an organisation: who is shown the team
+ * page's link. The API decides what they may do there.
+ */
+export const canManageTeam = (user: User | null) =>
+  Boolean(user?.memberships.some(({ role }) => role === "OWNER" || role === "MANAGER"));
+
 /** Individual owners who advertise their own property and have no organisation. */
 const OWNER_ROLES = ["PRIVATE_SELLER", "LANDLORD"];
 

@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import type { NavItem } from "@/components/layout/nav-items";
 import { buttonClasses, ButtonLink } from "@/components/ui/button";
-import { canUseInbox, hasOnboardingToDo } from "@/lib/api/auth";
+import { canManageTeam, canUseInbox, hasOnboardingToDo } from "@/lib/api/auth";
 
 const itemClass =
   "flex min-h-11 w-full items-center rounded-sm px-3 text-left text-sm text-ink hover:bg-sunken focus-visible:bg-sunken";
@@ -150,6 +150,13 @@ export function AccountMenu({ professionals }: { professionals?: NavItem }) {
                     Your listings
                   </Link>
                 </li>
+                {canManageTeam(user) && (
+                  <li>
+                    <Link href="/agent/team" className={itemClass} onClick={() => setOpen(false)}>
+                      Your team
+                    </Link>
+                  </li>
+                )}
               </>
             )}
             <li className="mt-1 border-t border-line pt-1">

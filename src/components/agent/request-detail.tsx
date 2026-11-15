@@ -2,7 +2,7 @@
 
 import { CalendarDays, Lock, Mail, Phone } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { stageTones } from "@/components/agent/request-inbox";
 import { RequireAuth } from "@/components/auth/require-auth";
 import { BackLink, formatWhen, LoadError, LoadingBlock } from "@/components/portal/portal-ui";
@@ -12,14 +12,20 @@ import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, fieldDescribedBy, Textarea } from "@/components/ui/field";
+import { SearchableSelect, type SelectGroup, type SelectOption } from "@/components/ui/searchable-select";
 import {
   addAgentPropertyRequestNote,
+  assignAgentPropertyRequest,
   getAgentPropertyRequest,
   moveAgentPropertyRequest,
   type LeadStage,
   type ReceivedPropertyRequest,
+  type RequestTimelineEntry,
 } from "@/lib/api/agent";
 import { canUseInbox } from "@/lib/api/auth";
+import { getDashboard } from "@/lib/api/dashboard";
+import { listTeamMembers } from "@/lib/api/team";
+import { teamMessage } from "@/lib/team-messages";
 import { formatStay, guestCount } from "@/lib/nights";
 
 type Labels = Record<string, string>;
@@ -120,6 +126,172 @@ function StageControl({
       </div>
     </section>
   );
+}
+
+/** The value of "nobody": the request waits in the organisation's inbox. */
+const UNASSIGNED = "";
+const ASSIGN_HINT = "They are emailed. A new request moves to Assigned.";
+
+type Assignees = { status: "ready"; options: (SelectOption | SelectGroup)[]; ids: Set<string> } | { status: "failed" };
+
+/**
+ * The people a request can be given to: the ACTIVE members who hold leads in
+ * each team the caller manages. The request does not say which organisation
+ * received it, so with several teams the members are grouped by team (the
+ * API refuses anyone outside the receiving one).
+ */
+function useAssignees(enabled: boolean): Assignees | null {
+  const [assignees, setAssignees] = useState<Assignees | null>(null);
+  useEffect(() => {
+    if (!enabled) return;
+    let cancelled = false;
+    (async () => {
+      const dashboard = await getDashboard();
+      if (!dashboard.ok) {
+        if (!cancelled) setAssignees({ status: "failed" });
+        return;
+      }
+      const teams = dashboard.data.organisations.filter((item) => item.can_manage_team ?? item.can_assign_work);
+      const lists = await Promise.all(teams.map((team) => listTeamMembers(team.id)));
+      if (cancelled) return;
+      if (lists.every((list) => !list.ok)) {
+        setAssignees({ status: "failed" });
+        return;
+      }
+      const ids = new Set<string>();
+      const groups: SelectGroup[] = [];
+      lists.forEach((list, index) => {
+        if (!list.ok) return;
+        const options = list.data.items
+          .filter((member) => member.can_hold_leads && member.status === "ACTIVE" && !ids.has(member.user_id))
+          .map((member) => {
+            ids.add(member.user_id);
+            return {
+              value: member.user_id,
+              label: member.is_you ? `${member.name} (you)` : member.name,
+              secondary: member.job_title ?? member.role_label,
+            };
+          });
+        if (options.length > 0) groups.push({ label: teams[index].name, options });
+      });
+      const none: SelectOption = { value: UNASSIGNED, label: "Unassigned (team inbox)" };
+      setAssignees({
+        status: "ready",
+        options: groups.length === 1 ? [none, ...groups[0].options] : [none, ...groups],
+        ids,
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled]);
+  return assignees;
+}
+
+/** Who holds the request, and (for the team's owner or manager) a picker to change it. */
+function AssignControl({
+  request,
+  onChanged,
+  onStale,
+}: {
+  request: ReceivedPropertyRequest;
+  onChanged: (request: ReceivedPropertyRequest) => void;
+  onStale: () => void;
+}) {
+  const canAssign = Boolean(request.can_assign);
+  const assignees = useAssignees(canAssign);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | undefined>();
+  const [message, setMessage] = useState<Message | null>(null);
+  const result = useRef<HTMLDivElement>(null);
+  const current = request.assigned_to?.user_id ?? UNASSIGNED;
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const chosen = String(new FormData(event.currentTarget).get("assignee") ?? UNASSIGNED);
+    setMessage(null);
+    if (assignees?.status === "ready" && chosen !== UNASSIGNED && !assignees.ids.has(chosen)) {
+      setError("Choose someone from the list.");
+      return;
+    }
+    setError(undefined);
+    if (chosen === current) {
+      setMessage({
+        tone: "warning",
+        text: request.assigned_to ? `It is already assigned to ${request.assigned_to.name}.` : "It is already in the team inbox.",
+      });
+      result.current?.focus();
+      return;
+    }
+    setPending(true);
+    const answer = await assignAgentPropertyRequest(request.request_id, chosen === UNASSIGNED ? null : chosen);
+    setPending(false);
+    if (answer.ok) {
+      onChanged(answer.data.request);
+      const to = answer.data.request.assigned_to;
+      setMessage({ tone: "success", text: to ? `Assigned to ${to.name}. We have emailed them.` : "Returned to the team inbox." });
+    } else if (answer.failure.fields?.user_id) {
+      setError("That person cannot take this request. Choose an active agent, manager or principal of the team that received it.");
+    } else if (answer.failure.status === 404) {
+      setMessage({ tone: "warning", text: "This request is no longer in your inbox. We have refreshed it." });
+      onStale();
+    } else {
+      setMessage({ tone: "danger", text: teamMessage(answer.failure), traceId: answer.failure.traceId });
+    }
+    result.current?.focus();
+  }
+
+  return (
+    <section aria-labelledby="request-assignee">
+      <h2 id="request-assignee" className="text-xl">
+        Assigned to
+      </h2>
+      <p className="mt-2 text-ink">
+        {request.assigned_to ? (
+          <span className="font-medium">{request.assigned_to.name}</span>
+        ) : (
+          <span className="text-muted">Nobody yet: it is in the team inbox, where every agent of the team can see it.</span>
+        )}
+      </p>
+      {canAssign &&
+        (assignees === null ? (
+          <div aria-busy="true" aria-label="Loading the team" className="mt-4 h-11 rounded-md bg-sunken" />
+        ) : assignees.status === "failed" ? (
+          <p className="mt-3 text-sm text-muted">
+            We could not load your team, so the request cannot be assigned right now. Reload the page to try again.
+          </p>
+        ) : (
+          <form onSubmit={handleSubmit} noValidate className="mt-4">
+            <Field id="request-assign" label="Give it to" hint={ASSIGN_HINT} error={error}>
+              {/* key: after a change the picker starts from the new assignee. */}
+              <SearchableSelect
+                key={current}
+                id="request-assign"
+                name="assignee"
+                options={assignees.options}
+                defaultValue={current}
+                aria-invalid={Boolean(error)}
+                aria-describedby={fieldDescribedBy("request-assign", { error, hint: ASSIGN_HINT })}
+              />
+            </Field>
+            <Button type="submit" variant="secondary" className="mt-3" disabled={pending} aria-busy={pending}>
+              {pending ? "Saving…" : "Save the assignment"}
+            </Button>
+          </form>
+        ))}
+      <div ref={result} tabIndex={-1} className="mt-3 outline-none" aria-live="polite">
+        {message && <Alert tone={message.tone} title={message.text} traceId={message.traceId} />}
+      </div>
+    </section>
+  );
+}
+
+/** The words of a history entry: the API's label, with a fallback for the assignment entries. */
+function timelineLabel(entry: RequestTimelineEntry): string {
+  if (entry.label) return entry.label;
+  if (entry.event === "ASSIGNED") return entry.assignee_name ? `Assigned to ${entry.assignee_name}` : "Assigned";
+  if (entry.event === "UNASSIGNED") return "Returned to the organisation inbox";
+  return entry.event;
 }
 
 function Notes({ request, onChanged }: { request: ReceivedPropertyRequest; onChanged: (request: ReceivedPropertyRequest) => void }) {
@@ -322,6 +494,12 @@ function Detail({ id, typeLabels, contactMethodLabels }: { id: string; typeLabel
             <StageControl request={request} onChanged={setRequest} onConflict={reload} />
           </Card>
 
+          {(request.can_assign || request.assigned_to) && (
+            <Card>
+              <AssignControl request={request} onChanged={setRequest} onStale={reload} />
+            </Card>
+          )}
+
           <Card>
             <section aria-labelledby="request-history">
               <h2 id="request-history" className="text-xl">
@@ -330,7 +508,7 @@ function Detail({ id, typeLabels, contactMethodLabels }: { id: string; typeLabel
               <ol className="mt-4 space-y-3 border-l-2 border-line pl-4">
                 {request.timeline.map((entry, index) => (
                   <li key={`${entry.at}-${index}`}>
-                    <p className="font-medium text-ink">{entry.label}</p>
+                    <p className="font-medium text-ink">{timelineLabel(entry)}</p>
                     <p className="text-sm text-muted">
                       {entry.actor === "CUSTOMER" ? "The customer" : entry.actor_name ?? (entry.actor === "SYSTEM" ? "RightProperty365" : "Your team")}
                       {", "}

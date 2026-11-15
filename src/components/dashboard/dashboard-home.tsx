@@ -3,7 +3,7 @@
 import { ArrowRight, Search } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { RequireAuth } from "@/components/auth/require-auth";
 import { CountUp } from "@/components/motion/count-up";
@@ -22,7 +22,9 @@ import {
   type DashboardCounter,
   type DashboardCounterGroup,
   type DashboardOnboarding,
+  type DashboardOrganisation,
 } from "@/lib/api/dashboard";
+import { listJoinRequests, listTeamInvitations } from "@/lib/api/team";
 import { customerStatusTones } from "@/lib/api/my-requests";
 import { onboardingStatusTones, roleToSlug } from "@/lib/api/onboarding";
 import { cn } from "@/lib/cn";
@@ -422,12 +424,46 @@ function FindAProperty() {
   );
 }
 
+/**
+ * What waits in a team the caller manages: people asking to join and
+ * invitations not yet accepted. Read only for those teams; says nothing
+ * when both are zero or cannot be read.
+ */
+function TeamWaiting({ organisationId }: { organisationId: string }) {
+  const [counts, setCounts] = useState<{ joins: number; invitations: number } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([listJoinRequests(organisationId), listTeamInvitations(organisationId)]).then(([joins, invitations]) => {
+      if (cancelled) return;
+      setCounts({
+        joins: joins.ok ? joins.data.items.filter((item) => item.can_decide).length : 0,
+        invitations: invitations.ok ? invitations.data.items.filter((item) => !item.expired).length : 0,
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [organisationId]);
+  if (!counts || (counts.joins === 0 && counts.invitations === 0)) return null;
+  const parts = [
+    counts.joins > 0 && `${counts.joins} asking to join`,
+    counts.invitations > 0 && `${counts.invitations} ${counts.invitations === 1 ? "invitation" : "invitations"} waiting`,
+  ].filter(Boolean);
+  return (
+    <Badge tone={counts.joins > 0 ? "primary" : "neutral"} className="ml-1">
+      {parts.join(" · ")}
+    </Badge>
+  );
+}
+
+const managesTeam = (organisation: DashboardOrganisation) => Boolean(organisation.can_manage_team);
+
 function Workspace({ data }: { data: Dashboard }) {
   const links = [
     data.capabilities.receives_requests && { href: "/agent/requests", label: "Request inbox" },
     data.capabilities.manages_appointments && { href: "/agent/appointments", label: "Appointments received" },
     data.capabilities.manages_listings && { href: "/agent/listings", label: "Your listings" },
-    data.capabilities.sees_team && { href: "/agent/team", label: "Your team" },
+    (data.capabilities.sees_team || data.organisations.some(managesTeam)) && { href: "/agent/team", label: "Your team" },
     { href: "/account", label: "Your account and roles" },
   ].filter((link): link is { href: string; label: string } => Boolean(link));
   return (
@@ -441,6 +477,18 @@ function Workspace({ data }: { data: Dashboard }) {
             <li key={organisation.id} className="text-ink">
               <span className="font-medium">{organisation.role_label}</span> at {organisation.name}{" "}
               <Badge tone="accent">{organisation.market_code}</Badge>
+              {managesTeam(organisation) && (
+                <>
+                  {" · "}
+                  <Link
+                    href={`/agent/team?org=${organisation.id}`}
+                    className="font-medium text-primary-ink hover:underline"
+                  >
+                    Manage the team<span className="sr-only"> of {organisation.name}</span>
+                  </Link>
+                  <TeamWaiting organisationId={organisation.id} />
+                </>
+              )}
             </li>
           ))}
         </ul>

@@ -27,6 +27,11 @@ export type AgentPropertyRequest = {
    */
   stay?: { check_in: string; check_out: string; nights: number; guests: number } | null;
   created_at: string;
+  /**
+   * The member the request is assigned to (new in API 0.23.0); null in the
+   * organisation inbox and for a direct seller. Optional for older API builds.
+   */
+  assigned_to?: { user_id: string; name: string } | null;
 };
 
 /** An enquiry sent to a directory profile, as seen by its authorised recipient. */
@@ -71,9 +76,11 @@ export type AgentPropertyRequestPage = {
 };
 
 export type RequestTimelineEntry = {
-  event: "REQUEST_RECEIVED" | "STAGE_CHANGED" | "NOTE_ADDED" | string;
-  /** "Request received", "Moved to Contacted", "Note added". */
+  event: "REQUEST_RECEIVED" | "STAGE_CHANGED" | "NOTE_ADDED" | "ASSIGNED" | "UNASSIGNED" | string;
+  /** "Request received", "Moved to Contacted", "Note added", "Assigned to <name>", "Returned to the organisation inbox". */
   label: string;
+  /** ASSIGNED only (new in API 0.23.0): who the request was given to. */
+  assignee_name?: string | null;
   from_stage: LeadStage | null;
   to_stage: LeadStage | null;
   actor: "CUSTOMER" | "PROFESSIONAL" | "SYSTEM";
@@ -90,6 +97,8 @@ export type ReceivedPropertyRequest = AgentPropertyRequest & {
   updated_at: string;
   /** The stages it can be moved to from where it is now (may be empty). */
   allowed_stages: { stage: LeadStage; label: string }[];
+  /** New in API 0.23.0: the caller may assign it (its organisation's OWNER or MANAGER). */
+  can_assign?: boolean;
   timeline: RequestTimelineEntry[];
   notes: RequestNote[];
 };
@@ -111,27 +120,20 @@ export const moveAgentPropertyRequest = (id: string, stage: LeadStage) =>
     body: { stage },
   });
 
+/**
+ * Gives the request to a member (an ACTIVE OWNER, MANAGER or AGENT of the
+ * organisation that received it), or back to the organisation inbox with
+ * null. A NEW_ENQUIRY moves to ASSIGNED. OWNER and MANAGER only.
+ */
+export const assignAgentPropertyRequest = (id: string, userId: string | null) =>
+  apiFetch<{ request: ReceivedPropertyRequest }>(`/v1/agent/property-requests/${id}/assign`, {
+    method: "POST",
+    body: { user_id: userId },
+  });
+
 /** 1 to 2000 characters. Answers with the whole request, notes included. */
 export const addAgentPropertyRequestNote = (id: string, body: string) =>
   apiFetch<{ request: ReceivedPropertyRequest }>(`/v1/agent/property-requests/${id}/notes`, {
     method: "POST",
     body: { body },
   });
-
-export type OrganisationMember = {
-  user_id: string;
-  name: string;
-  role: "OWNER" | "MANAGER" | "AGENT" | "STAFF";
-  role_label: string;
-  status: "ACTIVE" | "INVITED" | "SUSPENDED";
-  status_label: string;
-  market_code: string;
-  is_you: boolean;
-};
-
-/** For the organisation's OWNER and MANAGER only (403 for other members). No email or phone is returned. */
-export const listOrganisationMembers = (organisationId: string) =>
-  apiFetch<{ organisation: { id: string; name: string; kind: string }; items: OrganisationMember[] }>(
-    `/v1/agent/organisations/${organisationId}/members`,
-    { cache: "no-store" },
-  );

@@ -49,6 +49,8 @@ export type DashboardOrganisation = {
   can_see_members: boolean;
   can_assign_work: boolean;
   can_manage_listings: boolean;
+  /** New in API 0.23.0: may invite people, decide join requests and change, suspend or remove members. Optional for older API builds. */
+  can_manage_team?: boolean;
 };
 
 export type DashboardOnboarding = {

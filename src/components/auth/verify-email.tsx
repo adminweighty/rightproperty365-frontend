@@ -7,6 +7,7 @@ import { Alert } from "@/components/ui/alert";
 import { ButtonLink } from "@/components/ui/button";
 import { hasOnboarding, verifyEmail } from "@/lib/api/auth";
 import type { ApiFailure } from "@/lib/api/http";
+import { takeAfterSignUp } from "@/lib/return-after-sign-up";
 
 export function VerifyEmail() {
   const token = useSearchParams().get("token");
@@ -22,8 +23,10 @@ export function VerifyEmail() {
     verifyEmail(token).then((result) => {
       if (result.ok) {
         setSession(result.data);
-        // A listing or agency role has an onboarding step before it is confirmed.
-        router.replace(hasOnboarding(result.data.user) ? "/onboarding?welcome=1" : "/dashboard?welcome=1");
+        // Back to the page the person signed up from (an invitation), if any. Otherwise a
+        // listing or agency role has an onboarding step before it is confirmed.
+        const next = takeAfterSignUp();
+        router.replace(next ?? (hasOnboarding(result.data.user) ? "/onboarding?welcome=1" : "/dashboard?welcome=1"));
       } else {
         setFailure(result.failure);
       }

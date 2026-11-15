@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, Mail, Phone } from "lucide-react";
+import { CalendarDays, Mail, Phone, UserRound } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
@@ -15,7 +15,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { listAgentPropertyRequests, listBusinessEnquiries, type AgentPropertyRequest } from "@/lib/api/agent";
 import { getInboxSummary } from "@/lib/api/appointments";
-import { canUseInbox, isProfessional } from "@/lib/api/auth";
+import { canManageTeam, canUseInbox, isProfessional } from "@/lib/api/auth";
 import { formatStay, guestCount } from "@/lib/nights";
 import {
   hasNarrowingFilters,
@@ -65,7 +65,31 @@ export const stageTones: Record<string, "primary" | "info" | "warning" | "succes
   CLOSED: "neutral",
 };
 
-function RequestCard({ item, typeLabels }: { item: AgentPropertyRequest; typeLabels: Labels }) {
+/**
+ * Who holds a request. Organisation requests are either with a member or in
+ * the team inbox; a direct seller's own requests are never assigned, so they
+ * say nothing (`inTeam` false).
+ */
+function Assignee({ item, inTeam }: { item: AgentPropertyRequest; inTeam: boolean }) {
+  if (item.assigned_to === undefined) return null; // an API build without assignment
+  if (item.assigned_to) {
+    return (
+      <span className="flex items-center gap-1.5 text-sm text-ink">
+        <UserRound className="size-4 shrink-0 text-primary-ink" aria-hidden="true" />
+        <span className="text-muted">Assigned to</span> <span className="font-medium">{item.assigned_to.name}</span>
+      </span>
+    );
+  }
+  if (!inTeam) return null;
+  return (
+    <span className="flex items-center gap-1.5 text-sm text-muted">
+      <UserRound className="size-4 shrink-0" aria-hidden="true" />
+      Not assigned: in the team inbox
+    </span>
+  );
+}
+
+function RequestCard({ item, typeLabels, inTeam }: { item: AgentPropertyRequest; typeLabels: Labels; inTeam: boolean }) {
   return (
     <Card>
       <div className="flex flex-wrap items-center gap-2">
@@ -93,6 +117,7 @@ function RequestCard({ item, typeLabels }: { item: AgentPropertyRequest; typeLab
         <Link href={`${PATH}/${item.request_id}`} className="font-semibold text-primary-ink hover:underline">
           Open the request<span className="sr-only"> from {item.contact.name}</span>
         </Link>
+        <Assignee item={item} inTeam={inTeam} />
         <span className="font-mono text-xs text-subtle sm:ml-auto">{item.reference}</span>
       </div>
     </Card>
@@ -151,7 +176,7 @@ function Filters({ filters, typeLabels }: { filters: RequestFilters; typeLabels:
   );
 }
 
-function PropertyRequests({ typeLabels }: { typeLabels: Labels }) {
+function PropertyRequests({ typeLabels, inTeam }: { typeLabels: Labels; inTeam: boolean }) {
   const params = useSearchParams();
   const search = params.toString();
   const filters = useMemo(() => parseRequestFilters(new URLSearchParams(search)), [search]);
@@ -237,7 +262,7 @@ function PropertyRequests({ typeLabels }: { typeLabels: Labels }) {
             <ul className="space-y-4">
               {state.data.items.map((item) => (
                 <li key={item.request_id}>
-                  <RequestCard item={item} typeLabels={typeLabels} />
+                  <RequestCard item={item} typeLabels={typeLabels} inTeam={inTeam} />
                 </li>
               ))}
             </ul>
@@ -348,9 +373,17 @@ export function RequestInbox({ requestTypeLabels, contactMethodLabels }: Props) 
             <Link href="/agent/listings" className="font-medium text-primary-ink hover:underline">
               Your listings
             </Link>
+            {canManageTeam(user) && (
+              <>
+                {" · "}
+                <Link href="/agent/team" className="font-medium text-primary-ink hover:underline">
+                  Your team
+                </Link>
+              </>
+            )}
           </p>
           <div className="mt-8 space-y-12">
-            <PropertyRequests typeLabels={requestTypeLabels} />
+            <PropertyRequests typeLabels={requestTypeLabels} inTeam={isProfessional(user)} />
             {/* Business enquiries go to organisations, so Landlords and Property Sellers (Vendors) have none. */}
             {isProfessional(user) && <BusinessEnquiries contactMethodLabels={contactMethodLabels} />}
           </div>
