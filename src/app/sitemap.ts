@@ -53,6 +53,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: listing.updated_at,
     })),
     { url: absoluteUrl("/faq") },
+    { url: absoluteUrl("/verify") },
     { url: absoluteUrl(LEGAL_INDEX_PATH) },
     ...legalDocuments.map((document) => ({
       url: absoluteUrl(document.path),

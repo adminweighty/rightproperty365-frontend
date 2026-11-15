@@ -164,6 +164,15 @@ export const canUseInbox = (user: User | null) =>
   isProfessional(user) ||
   Boolean(user?.account_roles?.some(({ role }) => OWNER_ROLES.includes(role)));
 
+/** True when an administrator holds one of these platform roles. The API decides what each may do. */
+export const hasPlatformRole = (user: User | null, roles: readonly PlatformRole[]) =>
+  Boolean(user?.platform_roles.some(({ role }) => roles.includes(role)));
+
+/** Who keeps the lease template library (API 0.24.0). */
+export const LEASE_TEMPLATE_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "CONTENT_ADMIN"];
+/** Who may read every lease and agreement (read-only). */
+export const SIGNING_OVERSIGHT_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "SUPPORT"];
+
 export const getMe = () => apiFetch<SessionResponse>("/v1/me");
 
 /**

@@ -15,6 +15,9 @@ export type DashboardTarget =
   | "appointments"
   | "listings"
   | "team"
+  | "leases"
+  | "agreements"
+  | "signing_requests"
   | "admin_overview";
 
 /** Each target and the page of this site that shows it. */
@@ -28,6 +31,9 @@ export const TARGET_PATHS: Record<DashboardTarget, string> = {
   appointments: "/agent/appointments",
   listings: "/agent/listings",
   team: "/agent/team",
+  leases: "/agent/leases",
+  agreements: "/agent/agreements",
+  signing_requests: "/account/signing",
   admin_overview: "/admin",
 };
 
@@ -73,6 +79,8 @@ export function counterHref(counter: { key: string; target: string | null | unde
   if (status && isCustomerStatus(status) && counter.target === "my_requests") return `${base}?status=${status}`;
   const listingStatus = /^listings\.status\.([A-Z_]+)$/.exec(counter.key)?.[1];
   if (listingStatus && isListingStatus(listingStatus) && counter.target === "listings") return `${base}?status=${listingStatus}`;
+  if (counter.key === "leases.drafts" && counter.target === "leases") return `${base}?status=DRAFT`;
+  if (counter.key === "leases.awaiting_signatures" && counter.target === "leases") return `${base}?status=SENT_FOR_SIGNING`;
   return base;
 }
 

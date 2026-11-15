@@ -63,14 +63,7 @@ export async function apiFetch<T>(path: string, options: Options = {}): Promise<
       body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
     });
   } catch {
-    return {
-      ok: false,
-      failure: {
-        code: "NETWORK_ERROR",
-        status: 0,
-        message: "We could not reach RightProperty365. Check your connection and try again.",
-      },
-    };
+    return { ok: false, failure: networkFailure };
   }
 
   const payload: unknown = response.status === 204 ? null : await response.json().catch(() => null);
@@ -78,24 +71,54 @@ export async function apiFetch<T>(path: string, options: Options = {}): Promise<
   if (response.ok) {
     return { ok: true, data: payload as T, status: response.status };
   }
+  return { ok: false, failure: failureFrom(response, payload) };
+}
 
+const networkFailure: ApiFailure = {
+  code: "NETWORK_ERROR",
+  status: 0,
+  message: "We could not reach RightProperty365. Check your connection and try again.",
+};
+
+/** The failure an unsuccessful answer describes: its error envelope, or a plain message for its status. */
+function failureFrom(response: Response, payload: unknown): ApiFailure {
   const envelope = payload as {
     error?: { code?: string; message?: string; fields?: Record<string, string> };
     trace_id?: string;
   } | null;
 
   return {
-    ok: false,
-    failure: {
-      code: envelope?.error?.code ?? `HTTP_${response.status}`,
-      status: response.status,
-      message:
-        envelope?.error?.message ??
-        fallbackMessages[response.status] ??
-        "Something went wrong on our side. Please try again.",
-      fields: envelope?.error?.fields,
-      traceId: envelope?.trace_id,
-      retryAfter: retryAfterSeconds(response.headers.get("Retry-After")),
-    },
+    code: envelope?.error?.code ?? `HTTP_${response.status}`,
+    status: response.status,
+    message:
+      envelope?.error?.message ??
+      fallbackMessages[response.status] ??
+      "Something went wrong on our side. Please try again.",
+    fields: envelope?.error?.fields,
+    traceId: envelope?.trace_id,
+    retryAfter: retryAfterSeconds(response.headers.get("Retry-After")),
   };
+}
+
+/**
+ * A file the API streams (a PDF), as bytes, with the session cookie. Errors
+ * come back in the same shape as `apiFetch`. Never cached.
+ */
+export async function apiFetchBytes(path: string): Promise<ApiResult<{ bytes: ArrayBuffer; type: string }>> {
+  let response: Response;
+  try {
+    response = await fetch(`${env.apiUrl}${path}`, { credentials: "include", cache: "no-store" });
+  } catch {
+    return { ok: false, failure: networkFailure };
+  }
+  if (!response.ok) {
+    const payload: unknown = await response.json().catch(() => null);
+    return { ok: false, failure: failureFrom(response, payload) };
+  }
+  try {
+    const bytes = await response.arrayBuffer();
+    return { ok: true, status: response.status, data: { bytes, type: response.headers.get("Content-Type") ?? "" } };
+  } catch {
+    return { ok: false, failure: networkFailure };
+  }
 }
