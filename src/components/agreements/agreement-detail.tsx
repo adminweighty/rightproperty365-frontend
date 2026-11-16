@@ -135,7 +135,7 @@ function detailText(event: AgreementEvent): string | null {
   if (typeof detail.email === "string") parts.push(String(detail.email));
   if (typeof detail.to === "string") parts.push(`To ${detail.to}`);
   if (typeof detail.final_sha256 === "string") parts.push(`Final SHA-256 ${detail.final_sha256}`);
-  if (typeof detail.fields === "number") parts.push(`${detail.fields} fields`);
+  if (typeof detail.fields === "number") parts.push(detail.fields === 1 ? "1 field" : `${detail.fields} fields`);
   if (typeof detail.file_name === "string") parts.push(detail.file_name);
   return parts.length ? parts.join(" · ") : null;
 }

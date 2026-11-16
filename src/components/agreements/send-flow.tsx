@@ -609,7 +609,7 @@ function Review({ agreement, settings, fields: all }: { agreement: Agreement; se
                 <span className="break-all text-sm text-muted">{recipient.email}</span>
                 <Badge>{ROLE_LABELS[recipient.role]}</Badge>
                 <span className="text-sm text-muted sm:ml-auto">
-                  {recipient.role === "CC" ? "Gets the completed copy" : own.length === 0 ? "No fields" : `${own.length} fields: ${kinds.join(", ")}`}
+                  {recipient.role === "CC" ? "Gets the completed copy" : own.length === 0 ? "No fields" : `${own.length === 1 ? "1 field" : `${own.length} fields`}: ${kinds.join(", ")}`}
                 </span>
               </li>
             );

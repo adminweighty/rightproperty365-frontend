@@ -42,6 +42,8 @@ const icons: Record<string, typeof Type> = {
 };
 
 const DRAG_TYPE = "application/x-rp365-field";
+
+const countFields = (count: number) => (count === 1 ? "1 field" : `${count} fields`);
 let counter = 0;
 const newKey = () => `f${Date.now().toString(36)}${(counter++).toString(36)}`;
 
@@ -234,10 +236,12 @@ function FieldOnPage({
         onPointerMove={moveTo}
         onPointerUp={end}
         onPointerCancel={end}
-        className="absolute bottom-0 right-0 size-3 cursor-nwse-resize"
-        style={{ background: colour }}
+        // A 24px target (WCAG 2.5.8) around the 12px corner that shows.
+        className="absolute -bottom-1.5 -right-1.5 flex size-6 cursor-nwse-resize touch-none items-end justify-end p-1.5"
         aria-hidden="true"
-      />
+      >
+        <span className="size-3" style={{ background: colour }} />
+      </span>
     </div>
   );
 }
@@ -442,7 +446,7 @@ export function FieldEditor({
               <ColourDot index={index} />
               <span className={cn("truncate", recipient.id === activeRecipient?.id ? "font-semibold text-ink" : "text-muted")}>{recipient.name}</span>
               <span className="text-xs text-subtle">
-                {recipient.role === "CC" ? "copy" : `${fields.filter((field) => field.recipient_id === recipient.id).length} fields`}
+                {recipient.role === "CC" ? "copy" : countFields(fields.filter((field) => field.recipient_id === recipient.id).length)}
               </span>
             </li>
           ))}
