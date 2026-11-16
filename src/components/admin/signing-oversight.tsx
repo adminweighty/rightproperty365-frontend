@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useCallback } from "react";
-import { RoleGate } from "@/components/admin/lease-templates";
+import { RoleGate } from "@/components/admin/admin-gate";
 import { AgreementStatusBadge, RecipientChips } from "@/components/agreements/shared";
 import { BackLink, ChipNav, EmptyState, formatWhen, LoadError, LoadingBlock } from "@/components/portal/portal-ui";
 import { useApi } from "@/components/portal/use-api";

@@ -122,3 +122,28 @@ export async function apiFetchBytes(path: string): Promise<ApiResult<{ bytes: Ar
     return { ok: false, failure: networkFailure };
   }
 }
+
+/**
+ * A file the API sends as a download (a CSV export), with the session
+ * cookie, as a Blob and the response headers it exposes. Never cached.
+ * Headers the API does not list in Access-Control-Expose-Headers read as null
+ * from another origin.
+ */
+export async function apiFetchFile(path: string): Promise<ApiResult<{ blob: Blob; headers: Headers }>> {
+  let response: Response;
+  try {
+    response = await fetch(`${env.apiUrl}${path}`, { credentials: "include", cache: "no-store" });
+  } catch {
+    return { ok: false, failure: networkFailure };
+  }
+  if (!response.ok) {
+    const payload: unknown = await response.json().catch(() => null);
+    return { ok: false, failure: failureFrom(response, payload) };
+  }
+  try {
+    const blob = await response.blob();
+    return { ok: true, status: response.status, data: { blob, headers: response.headers } };
+  } catch {
+    return { ok: false, failure: networkFailure };
+  }
+}

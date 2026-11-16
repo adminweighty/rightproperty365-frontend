@@ -3,7 +3,7 @@
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { useAuth } from "@/components/auth/auth-provider";
 import { Stagger } from "@/components/motion/stagger";
@@ -14,14 +14,20 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { getAdminOverview, type AdminOverview } from "@/lib/api/admin";
 import {
+  AUDIT_ROLES,
   hasPlatformRole,
   LEASE_TEMPLATE_ROLES,
   platformRoleLabels,
+  REFERENCE_ROLES,
+  REPORT_ROLES,
   SIGNING_OVERSIGHT_ROLES,
+  SUBSCRIPTION_READ_ROLES,
   titleFromCode,
+  USER_READ_ROLES,
   type PlatformRole,
   type User,
 } from "@/lib/api/auth";
+import { adminListSubscriptions } from "@/lib/api/subscriptions";
 import { REVIEW_QUEUE_STATUSES } from "@/lib/listing-manage";
 
 const VERIFICATION_STATUSES = new Set(["SUBMITTED", "CHANGES_REQUESTED", "APPROVED", "REJECTED", "DRAFT"]);
@@ -48,7 +54,7 @@ function SectionCard({ id, title, intro, children }: { id: string; title: string
   );
 }
 
-function Attention({ data }: { data: AdminOverview }) {
+function Attention({ data, awaitingPayment }: { data: AdminOverview; awaitingPayment: number | null }) {
   const listingsWaiting = data.listings?.by_status.find((item) => item.status === "PENDING_REVIEW")?.count ?? 0;
   const items = [
     data.verifications && data.verifications.waiting > 0
@@ -76,6 +82,14 @@ function Attention({ data }: { data: AdminOverview }) {
               ? "request could not be sent to anyone"
               : "requests could not be sent to anyone",
           href: "/admin/routing-exceptions",
+        }
+      : null,
+    awaitingPayment
+      ? {
+          key: "subscriptions",
+          count: awaitingPayment,
+          text: awaitingPayment === 1 ? "subscription is waiting for its payment to be recorded" : "subscriptions are waiting for their payment to be recorded",
+          href: "/admin/subscriptions",
         }
       : null,
   ].filter((item) => item !== null);
@@ -263,10 +277,66 @@ function Sections({ data }: { data: AdminOverview }) {
   );
 }
 
+/** The pages of the console, each shown only to the roles the API lets in. */
+const TOOLS: { href: string; label: string; text: string; roles: readonly PlatformRole[] }[] = [
+  { href: "/admin/users", label: "Accounts", text: "Find an account; suspend, reactivate or delete it.", roles: USER_READ_ROLES },
+  { href: "/admin/subscriptions", label: "Subscriptions", text: "Record payments, and reject or cancel subscriptions.", roles: SUBSCRIPTION_READ_ROLES },
+  { href: "/admin/subscription-plans", label: "Subscription plans", text: "What professionals can subscribe to, and the prices.", roles: SUBSCRIPTION_READ_ROLES },
+  { href: "/admin/reference", label: "Reference data", text: "Property types, features, places and the other lists.", roles: REFERENCE_ROLES },
+  { href: "/admin/reports", label: "Reports", text: "Figures over a range of days, and spreadsheet downloads.", roles: REPORT_ROLES },
+  { href: "/admin/audit", label: "Audit log", text: "Every change administrators made here.", roles: AUDIT_ROLES },
+];
+
+function Tools({ user }: { user: User }) {
+  const tools = TOOLS.filter((tool) => hasPlatformRole(user, tool.roles));
+  if (tools.length === 0) return null;
+  return (
+    <nav aria-labelledby="admin-tools">
+      <h2 id="admin-tools" className="text-2xl">
+        Accounts, money and data
+      </h2>
+      <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {tools.map((tool) => (
+          <li key={tool.href}>
+            <Link
+              href={tool.href}
+              className="flex h-full min-h-11 flex-col gap-1 rounded-lg border border-line bg-surface p-4 shadow-xs transition-colors hover:border-primary hover:bg-tint"
+            >
+              <span className="flex items-center gap-1 font-semibold text-primary-ink">
+                {tool.label}
+                <ArrowRight className="size-4" aria-hidden="true" />
+              </span>
+              <span className="text-sm text-muted">{tool.text}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
+/** How many subscriptions wait for a payment to be recorded (the overview does not count them). Null when unknown. */
+function useAwaitingPayment(user: User) {
+  const [count, setCount] = useState<number | null>(null);
+  const allowed = hasPlatformRole(user, SUBSCRIPTION_READ_ROLES);
+  useEffect(() => {
+    if (!allowed) return;
+    let cancelled = false;
+    adminListSubscriptions({ status: "PENDING_PAYMENT", page_size: 1 }).then((result) => {
+      if (!cancelled && result.ok) setCount(result.data.total);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [allowed]);
+  return count;
+}
+
 function Home({ user }: { user: User }) {
   const { signOut } = useAuth();
   const router = useRouter();
   const { state, reload } = useApi(getAdminOverview);
+  const awaitingPayment = useAwaitingPayment(user);
 
   return (
     <>
@@ -282,13 +352,13 @@ function Home({ user }: { user: User }) {
         {state.status === "error" && <LoadError failure={state.failure} onRetry={reload} />}
         {state.status === "ready" && (
           <>
-            <Attention data={state.data} />
+            <Attention data={state.data} awaitingPayment={awaitingPayment} />
             {state.data.sections.length === 0 ? (
               <Card>
-                <h2 className="text-2xl">Nothing to show for your role yet</h2>
+                <h2 className="text-2xl">No figures for your role here</h2>
                 <p className="mt-2 text-muted">
-                  The parts of the console your role works on are not built yet. They will appear here as each one is
-                  released.
+                  The overview counts accounts, applications, listings and requests. Open the pages your role works on
+                  below.
                 </p>
               </Card>
             ) : (
@@ -296,6 +366,8 @@ function Home({ user }: { user: User }) {
             )}
           </>
         )}
+
+        <Tools user={user} />
 
         {(hasPlatformRole(user, LEASE_TEMPLATE_ROLES) || hasPlatformRole(user, SIGNING_OVERSIGHT_ROLES)) && (
           <SectionCard
@@ -339,13 +411,10 @@ function Home({ user }: { user: User }) {
           </Card>
 
           <Card>
-            <h2 className="text-2xl">Not built yet</h2>
+            <h2 className="text-2xl">Your session</h2>
             <p className="mt-2 leading-relaxed text-muted">
-              Markets and reference data, invoices, user management and the audit log are not in
-              the admin console yet. They will appear here as each one is released.
-            </p>
-            <p className="mt-4 text-sm leading-relaxed text-muted">
-              Administrator sessions end after 30 minutes without activity.
+              Administrator sessions end after 30 minutes without activity. Every change you make to accounts,
+              subscriptions, plans and reference data is kept in the audit log.
             </p>
           </Card>
         </div>

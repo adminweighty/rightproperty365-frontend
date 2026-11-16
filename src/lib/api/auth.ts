@@ -173,7 +173,48 @@ export const LEASE_TEMPLATE_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "CO
 /** Who may read every lease and agreement (read-only). */
 export const SIGNING_OVERSIGHT_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "SUPPORT"];
 
+/*
+ * The administrators' area (API 0.25.0). Each list is who the API lets in;
+ * the pages show a link or an action only to these roles.
+ */
+/** Read accounts (list, search, detail). */
+export const USER_READ_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "PLATFORM_ADMIN", "SUPPORT"];
+/** Suspend, reactivate and delete accounts (an administrator account: SUPER_ADMIN only). */
+export const USER_MANAGE_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "PLATFORM_ADMIN"];
+/** Read the administrators' audit trail. */
+export const AUDIT_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "PLATFORM_ADMIN"];
+/** Read plans and subscriptions. */
+export const SUBSCRIPTION_READ_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "FINANCE_ADMIN", "PLATFORM_ADMIN", "SUPPORT"];
+/** Change plans; record payments, reject and cancel subscriptions. */
+export const SUBSCRIPTION_MANAGE_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "FINANCE_ADMIN"];
+/** Reference data (a MARKET_ADMIN only changes the rows of its own market). */
+export const REFERENCE_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "PLATFORM_ADMIN", "CONTENT_ADMIN", "MARKET_ADMIN"];
+/** The report summary. */
+export const REPORT_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "PLATFORM_ADMIN", "FINANCE_ADMIN"];
+/** The users and listings CSV exports (personal data). */
+export const PEOPLE_EXPORT_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "PLATFORM_ADMIN"];
+/** The subscriptions CSV export. */
+export const SUBSCRIPTION_EXPORT_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "FINANCE_ADMIN", "PLATFORM_ADMIN"];
+
 export const getMe = () => apiFetch<SessionResponse>("/v1/me");
+
+/** What deleting an account did (`AccountDeleted`). */
+export type AccountDeleted = {
+  status: "DELETED";
+  sessions_revoked: number;
+  organisations_left: number;
+  listings_withdrawn: number;
+  listings_unassigned: number;
+  subscriptions_cancelled: number;
+};
+
+/**
+ * Deletes (anonymises) the signed-in account after the password is typed
+ * again (API 0.25.0). 401 `INVALID_PASSWORD`, 409 `SOLE_OWNER`, 403
+ * `ADMIN_ACCOUNT_CANNOT_SELF_DELETE`. The API clears the session cookie.
+ */
+export const deleteMe = (password: string) =>
+  apiFetch<AccountDeleted>("/v1/me", { method: "DELETE", body: { password } });
 
 /**
  * What a correct email and password answer: a code challenge (the code is

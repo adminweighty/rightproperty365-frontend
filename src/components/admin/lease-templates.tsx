@@ -3,8 +3,8 @@
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, type ReactNode } from "react";
-import { AdminGate } from "@/components/admin/admin-gate";
+import { useCallback } from "react";
+import { RoleGate } from "@/components/admin/admin-gate";
 import { BackLink, ChipNav, EmptyState, formatWhen, LoadError, LoadingBlock } from "@/components/portal/portal-ui";
 import { useApi } from "@/components/portal/use-api";
 import { Badge } from "@/components/ui/badge";
@@ -12,30 +12,11 @@ import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { hasPlatformRole, LEASE_TEMPLATE_ROLES, type PlatformRole, type User } from "@/lib/api/auth";
+import { LEASE_TEMPLATE_ROLES } from "@/lib/api/auth";
 import { adminListLeaseTemplates, type LeaseTemplateStatus } from "@/lib/api/leases";
 import { isSampleReview, statusOf, TEMPLATE_STATUS } from "@/lib/signing";
 
 const PATH = "/admin/lease-templates";
-
-/** The "no access" state of an admin page for roles that do not work on it. */
-export function RoleNoAccess({ roles, what }: { roles: readonly PlatformRole[]; what: string }) {
-  const names: Record<string, string> = { SUPER_ADMIN: "Super Administrators", CONTENT_ADMIN: "Content Administrators", SUPPORT: "Support" };
-  return (
-    <div className="rounded-lg border border-dashed border-line-strong p-10 text-center">
-      <h1 className="text-2xl">You do not have access to {what}</h1>
-      <p className="mx-auto mt-2 max-w-md text-muted">It is for {roles.map((role) => names[role] ?? role).join(" and ")}.</p>
-      <ButtonLink href="/admin" variant="secondary" className="mt-6">
-        Back to the overview
-      </ButtonLink>
-    </div>
-  );
-}
-
-/** An admin page for some platform roles only. The API enforces the same rule. */
-export function RoleGate({ roles, what, children }: { roles: readonly PlatformRole[]; what: string; children: (user: User) => ReactNode }) {
-  return <AdminGate>{(user) => (hasPlatformRole(user, roles) ? children(user) : <RoleNoAccess roles={roles} what={what} />)}</AdminGate>;
-}
 
 const STATUSES: { key: string; label: string; status?: LeaseTemplateStatus }[] = [
   { key: "all", label: "All" },

@@ -3,7 +3,7 @@
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import { RoleGate } from "@/components/admin/lease-templates";
+import { RoleGate } from "@/components/admin/admin-gate";
 import { failureNotice, NoticeArea, type Notice } from "@/components/agreements/shared";
 import { BackLink, formatWhen, LoadError, LoadingBlock } from "@/components/portal/portal-ui";
 import { Alert } from "@/components/ui/alert";

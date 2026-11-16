@@ -37,6 +37,10 @@ type Props = {
   organisationKindLabels: Record<string, string>;
 };
 
+/** An approved role that came through onboarding: a professional who may take a plan. */
+const hasActiveProfessionalRole = (user: User) =>
+  user.account_roles.some(({ status, onboarding_status }) => status === "ACTIVE" && Boolean(onboarding_status));
+
 function Details({ user, roleLabels, organisationKindLabels }: Props & { user: User }) {
   const { signOut } = useAuth();
   const router = useRouter();
@@ -205,6 +209,11 @@ function Details({ user, roleLabels, organisationKindLabels }: Props & { user: U
             Your listings
           </ButtonLink>
         )}
+        {(canUseInbox(user) || hasActiveProfessionalRole(user)) && (
+          <ButtonLink href="/account/subscription" variant="secondary">
+            Subscription
+          </ButtonLink>
+        )}
         <ButtonLink href="/account/requests" variant="secondary">
           Your requests
         </ButtonLink>
@@ -230,6 +239,20 @@ function Details({ user, roleLabels, organisationKindLabels }: Props & { user: U
           Sign out
         </Button>
       </div>
+
+      {user.platform_roles.length === 0 && (
+        <section aria-labelledby="account-delete" className="mt-12 border-t border-line pt-8">
+          <h2 id="account-delete" className="text-2xl">
+            Delete your account
+          </h2>
+          <p className="mt-2 max-w-2xl leading-relaxed text-muted">
+            This signs you out for good and removes your name and email address. It cannot be undone.
+          </p>
+          <ButtonLink href="/account/delete" variant="secondary" className="mt-4">
+            Delete my account
+          </ButtonLink>
+        </section>
+      )}
     </>
   );
 }

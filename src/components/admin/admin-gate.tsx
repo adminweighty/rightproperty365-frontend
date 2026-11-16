@@ -4,7 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ButtonLink } from "@/components/ui/button";
-import type { User } from "@/lib/api/auth";
+import { hasPlatformRole, type PlatformRole, type User } from "@/lib/api/auth";
 
 /**
  * Shows its children only to an administrator session. Signed-out visitors are
@@ -54,4 +54,37 @@ export function AdminGate({ children }: { children: (user: User) => ReactNode })
   }
 
   return <>{children(user)}</>;
+}
+
+/** Plural titles for "It is for …". */
+const roleGroupNames: Record<PlatformRole, string> = {
+  SUPER_ADMIN: "Super Administrators",
+  PLATFORM_ADMIN: "Platform Administrators",
+  MARKET_ADMIN: "Market Administrators",
+  FINANCE_ADMIN: "Finance Administrators",
+  CONTENT_ADMIN: "Content Administrators",
+  MODERATOR: "Moderators",
+  SUPPORT: "Support",
+};
+
+/** "A, B and C". */
+const listText = (items: string[]) =>
+  items.length <= 1 ? (items[0] ?? "") : `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
+
+/** The "no access" state of an admin page for roles that do not work on it. */
+export function RoleNoAccess({ roles, what }: { roles: readonly PlatformRole[]; what: string }) {
+  return (
+    <div className="rounded-lg border border-dashed border-line-strong p-10 text-center">
+      <h1 className="text-2xl">You do not have access to {what}</h1>
+      <p className="mx-auto mt-2 max-w-md text-muted">It is for {listText(roles.map((role) => roleGroupNames[role] ?? role))}.</p>
+      <ButtonLink href="/admin" variant="secondary" className="mt-6">
+        Back to the overview
+      </ButtonLink>
+    </div>
+  );
+}
+
+/** An admin page for some platform roles only. The API enforces the same rule. */
+export function RoleGate({ roles, what, children }: { roles: readonly PlatformRole[]; what: string; children: (user: User) => ReactNode }) {
+  return <AdminGate>{(user) => (hasPlatformRole(user, roles) ? children(user) : <RoleNoAccess roles={roles} what={what} />)}</AdminGate>;
 }

@@ -490,6 +490,7 @@ function Workspace({ data }: { data: Dashboard }) {
     },
     { href: "/account/signing", label: "Documents to sign", count: toSign, countLabel: "waiting for your signature" },
     (data.capabilities.sees_team || data.organisations.some(managesTeam)) && { href: "/agent/team", label: "Your team" },
+    { href: "/account/subscription", label: "Subscription" },
     { href: "/account", label: "Your account and roles" },
   ] as (WorkspaceLink | false)[]).filter((link): link is WorkspaceLink => Boolean(link));
   return (
