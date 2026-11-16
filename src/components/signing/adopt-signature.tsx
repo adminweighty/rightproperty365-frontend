@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Field, fieldDescribedBy, Input } from "@/components/ui/field";
 import type { AdoptedSignature, SignatureFont } from "@/lib/api/agreements";
 import { cn } from "@/lib/cn";
+import { allura, greatVibes, kaushanScript } from "@/fonts/signature";
 import {
   base64Bytes,
   initialsOf,
@@ -19,15 +20,14 @@ import {
  * Adobe's "Adopt your signature": type it in one of the styles the API
  * draws, draw it, or upload a picture of it. The same dialog adopts initials.
  *
- * The API's three styles are the Go italic faces, which are not web fonts, so
- * each style is previewed as an italic of the site's own typeface at the
- * matching weight; the PDF is drawn with the real face.
+ * Each typed style is previewed in the same script font the API draws the PDF
+ * with (src/fonts/signature).
  */
 
 const fontStyles: Record<string, CSSProperties> = {
-  FLOWING: { fontStyle: "italic", fontWeight: 400 },
-  BOLD: { fontStyle: "italic", fontWeight: 700 },
-  CLASSIC: { fontStyle: "italic", fontWeight: 500, letterSpacing: "0.02em" },
+  FLOWING: greatVibes.style,
+  BOLD: kaushanScript.style,
+  CLASSIC: allura.style,
 };
 
 export const DEFAULT_FONTS: SignatureFont[] = [
@@ -46,7 +46,7 @@ export const imageSource = (base64: string) => (base64.startsWith("data:") ? bas
 export function SignaturePreview({ value, className }: { value: AdoptedSignature; className?: string }) {
   if (value.kind === "TYPED") {
     return (
-      <span className={cn("block truncate leading-none text-ink", className)} style={fontStyle(value.font)}>
+      <span className={cn("block truncate leading-tight text-ink", className)} style={fontStyle(value.font)}>
         {value.text}
       </span>
     );
@@ -364,7 +364,7 @@ export function AdoptSignatureDialog({
                         onChange={() => setFont(String(style.key))}
                         className="size-4 accent-primary"
                       />
-                      <span className="min-w-0 flex-1 truncate text-3xl text-ink" style={fontStyle(String(style.key))}>
+                      <span className="min-w-0 flex-1 truncate py-1 text-3xl leading-snug text-ink" style={fontStyle(String(style.key))}>
                         {text.trim() || fallbackText || "Your name"}
                       </span>
                       <span className="text-xs text-muted">{style.label}</span>
