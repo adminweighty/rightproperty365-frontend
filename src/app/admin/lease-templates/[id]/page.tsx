@@ -8,7 +8,7 @@ import { getAllCountries } from "@/lib/api/server/reference";
 
 type Props = PageProps<"/admin/lease-templates/[id]">;
 
-export const metadata: Metadata = { title: "Lease template", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Sample template", robots: { index: false, follow: false } };
 
 const UUID = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 

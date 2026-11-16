@@ -14,7 +14,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Field, fieldDescribedBy, Input, Textarea } from "@/components/ui/field";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { LEASE_TEMPLATE_ROLES } from "@/lib/api/auth";
-import type { ApiFailure } from "@/lib/api/http";
+import type { ApiFailure, ApiResult } from "@/lib/api/http";
 import {
   adminApproveLeaseTemplate,
   adminCreateLeaseTemplate,
@@ -28,9 +28,48 @@ import {
   type LeaseTemplateInput,
   type LeaseVariable,
 } from "@/lib/api/leases";
-import { CLAUSE_CODE, dayAfter, eventLabel, isDay, isSampleReview, placeholderProblem, statusOf, TEMPLATE_STATUS } from "@/lib/signing";
+import { CLAUSE_CODE, dayAfter, eventLabel, isDay, isSampleReview, ORG_TEMPLATE_STATUS, placeholderProblem, statusOf, TEMPLATE_STATUS } from "@/lib/signing";
 
-const PATH = "/admin/lease-templates";
+type Saved = ApiResult<{ template: LeaseTemplate; new_version?: boolean }>;
+
+/**
+ * Where the editor reads and saves: the administrators' sample templates, or
+ * one organisation's own templates (API 0.26.0). The same form serves both;
+ * samples are approved (with an optional legal review), an organisation's
+ * templates are published.
+ */
+export type TemplateEditorMode = {
+  kind: "sample" | "organisation";
+  /** The list page; a template is at `${path}/<id>`. */
+  path: string;
+  /** Added to every link: "?org=<id>". */
+  query: string;
+  backLabel: string;
+  /** The country a new template starts with. */
+  defaultMarket?: string;
+  read: (id: string) => Promise<ApiResult<{ template: LeaseTemplate; events: LeaseTemplateEvent[]; variables: LeaseVariable[] }>>;
+  variables: () => Promise<ApiResult<LeaseVariable[]>>;
+  create: (input: LeaseTemplateInput) => Promise<Saved>;
+  edit: (id: string, input: LeaseTemplateInput) => Promise<Saved>;
+  retire: (id: string) => Promise<Saved>;
+  /** Organisations: DRAFT to published. */
+  publish?: (id: string) => Promise<Saved>;
+};
+
+const SAMPLES: TemplateEditorMode = {
+  kind: "sample",
+  path: "/admin/lease-templates",
+  query: "",
+  backLabel: "Sample templates",
+  read: adminGetLeaseTemplate,
+  variables: async () => {
+    const list = await adminListLeaseTemplates();
+    return list.ok ? { ok: true, status: list.status, data: list.data.variables } : list;
+  },
+  create: adminCreateLeaseTemplate,
+  edit: adminEditLeaseTemplate,
+  retire: adminRetireLeaseTemplate,
+};
 
 type Section = { key: string; heading: string; text: string };
 type Clause = { key: string; code: string; title: string; text: string };
@@ -40,7 +79,7 @@ type Problems = Record<string, string | undefined>;
 let counter = 0;
 const newKey = () => `k${Date.now().toString(36)}${(counter++).toString(36)}`;
 
-const fromTemplate = (template: LeaseTemplate | null): Values =>
+const fromTemplate = (template: LeaseTemplate | null, market = ""): Values =>
   template
     ? {
         market: template.market_code,
@@ -50,7 +89,7 @@ const fromTemplate = (template: LeaseTemplate | null): Values =>
         sections: template.sections.map((section) => ({ key: newKey(), ...section })),
         clauses: template.optional_clauses.map((clause) => ({ key: newKey(), ...clause })),
       }
-    : { market: "", name: "", kind: "RESIDENTIAL", description: "", sections: [{ key: newKey(), heading: "", text: "" }], clauses: [] };
+    : { market, name: "", kind: "RESIDENTIAL", description: "", sections: [{ key: newKey(), heading: "", text: "" }], clauses: [] };
 
 function problemsOf(values: Values, allowed: Set<string>): Problems {
   const problems: Problems = {};
@@ -111,6 +150,7 @@ function ApproveDialog({ open, template, onCancel, onApproved }: { open: boolean
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<string | undefined>();
   const [today] = useState(() => dayAfter(Date.now(), 0));
+  const [withReview, setWithReview] = useState(false);
 
   useEffect(() => {
     const element = dialog.current;
@@ -121,6 +161,17 @@ function ApproveDialog({ open, template, onCancel, onApproved }: { open: boolean
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setFailure(undefined);
+    // The legal review is optional (API 0.26.0): approve without one.
+    if (!withReview) {
+      setErrors({});
+      setBusy(true);
+      const result = await adminApproveLeaseTemplate(template.id);
+      setBusy(false);
+      if (result.ok) onApproved(result.data.template);
+      else setFailure(failureNotice(result.failure).text);
+      return;
+    }
     const data = new FormData(event.currentTarget);
     const review = {
       reviewer_name: String(data.get("reviewer_name") ?? "").trim(),
@@ -179,15 +230,26 @@ function ApproveDialog({ open, template, onCancel, onApproved }: { open: boolean
           Approve version {template.version}
         </h2>
         <p className="mt-2 text-muted">
-          Leases can then be drafted from it in {template.market_code}. Any earlier approved version of this template is
-          retired at the same time; leases made from it keep their wording. Record who reviewed the wording.
+          It is then offered as a sample in {template.market_code}, for anyone to draft from or copy. Any earlier approved
+          version of this sample is retired at the same time; leases made from it keep their wording.
         </p>
-        {control("reviewer_name", "Reviewed by")}
-        {control("organisation", "Firm or organisation")}
-        {control("reviewed_on", "Reviewed on", "date")}
-        <Field id="approve-note" label="Note" optional error={errors.note} className="mt-4" hint='Shown with the template. For sample wording, write "SAMPLE".'>
-          <Textarea id="approve-note" name="note" rows={3} maxLength={2100} aria-invalid={Boolean(errors.note)} aria-describedby={fieldDescribedBy("approve-note", { error: errors.note, hint: "x" })} />
-        </Field>
+        <label className="mt-4 flex min-h-11 items-center gap-3 text-ink">
+          <input type="checkbox" checked={withReview} onChange={(event) => setWithReview(event.currentTarget.checked)} className="size-5 accent-primary" />
+          <span>
+            <span className="font-medium">Record a legal review</span>
+            <span className="block text-sm text-muted">Optional: who reviewed the wording, shown with the sample.</span>
+          </span>
+        </label>
+        {withReview && (
+          <>
+            {control("reviewer_name", "Reviewed by")}
+            {control("organisation", "Firm or organisation")}
+            {control("reviewed_on", "Reviewed on", "date")}
+            <Field id="approve-note" label="Note" optional error={errors.note} className="mt-4" hint="Shown with the template.">
+              <Textarea id="approve-note" name="note" rows={3} maxLength={2100} aria-invalid={Boolean(errors.note)} aria-describedby={fieldDescribedBy("approve-note", { error: errors.note, hint: "x" })} />
+            </Field>
+          </>
+        )}
         {failure && <Alert title={failure} className="mt-4" />}
         <div className="mt-6 flex flex-wrap justify-end gap-3">
           <Button variant="secondary" onClick={onCancel} disabled={busy}>
@@ -202,18 +264,25 @@ function ApproveDialog({ open, template, onCancel, onApproved }: { open: boolean
   );
 }
 
-function Editor({ templateId, countries }: { templateId: string | null; countries: { value: string; label: string }[] }) {
+/** The template form, for the sample templates and for an organisation's own. */
+export function TemplateEditor({ templateId, countries, mode }: { templateId: string | null; countries: { value: string; label: string }[]; mode: TemplateEditorMode }) {
   const router = useRouter();
+  const sample = mode.kind === "sample";
+  const PATH = mode.path;
+  const link = (path: string, extra?: string) => {
+    const query = [mode.query.replace(/^\?/, ""), extra].filter(Boolean).join("&");
+    return query ? `${path}?${query}` : path;
+  };
   const [template, setTemplate] = useState<LeaseTemplate | null>(null);
   const [events, setEvents] = useState<LeaseTemplateEvent[]>([]);
   const [variables, setVariables] = useState<LeaseVariable[] | null>(null);
-  const [values, setValues] = useState<Values | null>(templateId ? null : fromTemplate(null));
+  const [values, setValues] = useState<Values | null>(templateId ? null : fromTemplate(null, mode.defaultMarket));
   const [loadFailure, setLoadFailure] = useState<ApiFailure | null>(null);
   const [problems, setProblems] = useState<Problems>({});
   const [touched, setTouched] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [busy, setBusy] = useState(false);
-  const [confirm, setConfirm] = useState<"version" | "retire" | null>(null);
+  const [confirm, setConfirm] = useState<"version" | "retire" | "publish" | null>(null);
   const [approving, setApproving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const lastText = useRef<{ id: string; apply: (text: string) => void } | null>(null);
@@ -222,12 +291,12 @@ function Editor({ templateId, countries }: { templateId: string | null; countrie
 
   const read = useCallback(async () => {
     if (!templateId) {
-      const list = await adminListLeaseTemplates();
-      if (list.ok) setVariables(list.data.variables);
+      const list = await mode.variables();
+      if (list.ok) setVariables(list.data);
       else setLoadFailure(list.failure);
       return;
     }
-    const result = await adminGetLeaseTemplate(templateId);
+    const result = await mode.read(templateId);
     if (!result.ok) {
       setLoadFailure(result.failure);
       return;
@@ -237,7 +306,7 @@ function Editor({ templateId, countries }: { templateId: string | null; countrie
     setVariables(result.data.variables);
     setValues(fromTemplate(result.data.template));
     setDirty(false);
-  }, [templateId]);
+  }, [templateId, mode]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => void read(), 0);
@@ -250,8 +319,12 @@ function Editor({ templateId, countries }: { templateId: string | null; countrie
   const allowed = new Set(variables.map((variable) => variable.name));
   const current = problemsOf(values, allowed);
   const shown = touched ? { ...current, ...problems } : problems;
-  const readOnly = template?.status === "RETIRED";
-  const status = template ? statusOf(TEMPLATE_STATUS, template.status) : null;
+  const retired = template?.status === "RETIRED";
+  // can_edit is new in API 0.26.0; an older build leaves it out.
+  const viewOnly = template?.can_edit === false;
+  const readOnly = retired || viewOnly;
+  const status = template ? statusOf(sample ? TEMPLATE_STATUS : ORG_TEMPLATE_STATUS, template.status) : null;
+  const inUse = sample ? "approved" : "published";
 
   function change(next: Values) {
     setValues(next);
@@ -299,7 +372,7 @@ function Editor({ templateId, countries }: { templateId: string | null; countrie
       return;
     }
     setBusy(true);
-    const result = template ? await adminEditLeaseTemplate(template.id, toInput(values, false)) : await adminCreateLeaseTemplate(toInput(values, true));
+    const result = template ? await mode.edit(template.id, toInput(values, false)) : await mode.create(toInput(values, true));
     setBusy(false);
     setConfirm(null);
     if (!result.ok) {
@@ -312,7 +385,7 @@ function Editor({ templateId, countries }: { templateId: string | null; countrie
     const saved = result.data.template;
     setDirty(false);
     if (!template || result.data.new_version) {
-      router.push(`${PATH}/${saved.id}${result.data.new_version ? "?new_version=1" : ""}`);
+      router.push(link(`${PATH}/${saved.id}`, result.data.new_version ? "new_version=1" : undefined));
       return;
     }
     setTemplate(saved);
@@ -324,7 +397,7 @@ function Editor({ templateId, countries }: { templateId: string | null; countrie
   async function retire() {
     if (!template) return;
     setBusy(true);
-    const result = await adminRetireLeaseTemplate(template.id);
+    const result = await mode.retire(template.id);
     setBusy(false);
     setConfirm(null);
     if (!result.ok) {
@@ -335,14 +408,28 @@ function Editor({ templateId, countries }: { templateId: string | null; countrie
     void read();
   }
 
+  async function publish() {
+    if (!template || !mode.publish) return;
+    setBusy(true);
+    const result = await mode.publish(template.id);
+    setBusy(false);
+    setConfirm(null);
+    if (!result.ok) {
+      setNotice(failureNotice(result.failure));
+      return;
+    }
+    setNotice({ tone: "success", text: "Published. Your organisation can now draft leases from it." });
+    void read();
+  }
+
   const countryName = countries.find((country) => country.value === values.market)?.label ?? values.market;
 
   return (
     <>
-      <BackLink href={PATH}>Lease templates</BackLink>
+      <BackLink href={link(PATH)}>{mode.backLabel}</BackLink>
       <div className="mt-1 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-4xl">{template ? template.name : "New lease template"}</h1>
+          <h1 className="text-4xl">{template ? template.name : sample ? "New sample template" : "New lease template"}</h1>
           {template && (
             <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted">
               <Badge tone={status!.tone}>{status!.label}</Badge>
@@ -350,10 +437,18 @@ function Editor({ templateId, countries }: { templateId: string | null; countrie
             </p>
           )}
         </div>
-        {template && (
+        {template && !viewOnly && (
           <div className="flex flex-wrap gap-2">
-            {template.status === "DRAFT" && (
+            {template.status === "DRAFT" && sample && (
               <Button onClick={() => (dirty ? setNotice({ tone: "warning", text: "Save your changes before approving." }) : setApproving(true))}>Approve…</Button>
+            )}
+            {template.status === "DRAFT" && !sample && (
+              <Button onClick={() => (dirty ? setNotice({ tone: "warning", text: "Save your changes before publishing." }) : setConfirm("publish"))}>Publish</Button>
+            )}
+            {!sample && template.status === "DRAFT" && (
+              <Button variant="ghost" className="text-danger" onClick={() => setConfirm("retire")}>
+                Retire
+              </Button>
             )}
             {template.status === "APPROVED" && (
               <Button variant="ghost" className="text-danger" onClick={() => setConfirm("retire")}>
@@ -364,17 +459,22 @@ function Editor({ templateId, countries }: { templateId: string | null; countrie
         )}
       </div>
       <NoticeArea ref={noticeRef} notice={notice} />
-      {template?.status === "APPROVED" && (
-        <Alert tone="info" title="This version is approved and in use" className="mt-4">
-          Saving changes starts version {template.version + 1} as a draft. This version stays approved until the new one is approved.
+      {template?.status === "APPROVED" && !viewOnly && (
+        <Alert tone="info" title={`This version is ${inUse} and in use`} className="mt-4">
+          Saving changes starts version {template.version + 1} as a draft. This version stays {inUse} until the new one is {inUse}.
         </Alert>
       )}
       {newVersion && template?.status === "DRAFT" && (
         <Alert tone="success" title={`Version ${template.version} was created as a draft with your changes.`} className="mt-4">
-          It needs a legal review and approval before it is offered. The earlier version stays in use until then.
+          It is offered once it is {inUse}. The earlier version stays in use until then.
         </Alert>
       )}
-      {readOnly && <Alert tone="warning" title="This version is retired. It can no longer be changed or offered." className="mt-4" />}
+      {retired && <Alert tone="warning" title="This version is retired. It can no longer be changed or offered." className="mt-4" />}
+      {viewOnly && !retired && (
+        <Alert tone="info" title="You can read this template but not change it." className="mt-4">
+          {sample ? "Only administrators change the sample templates." : "Your organisation's owner or managers design, publish and retire its templates."}
+        </Alert>
+      )}
       {template?.legal_review && (
         <Card className="mt-4">
           <h2 className="font-sans text-base font-semibold tracking-normal">Legal review</h2>
@@ -384,7 +484,7 @@ function Editor({ templateId, countries }: { templateId: string | null; countrie
             {template.approved_at && ` on ${formatWhen(template.approved_at)}`}
           </p>
           {template.legal_review.note && <p className="mt-1 text-sm text-muted">{template.legal_review.note}</p>}
-          {isSampleReview(template.legal_review) && <Badge tone="warning" className="mt-2">Sample wording: people drafting a lease are told so</Badge>}
+          {sample && isSampleReview(template.legal_review) && <Badge tone="warning" className="mt-2">Sample wording: people drafting a lease are told so</Badge>}
         </Card>
       )}
 
@@ -585,7 +685,7 @@ function Editor({ templateId, countries }: { templateId: string | null; countrie
         </aside>
       </div>
 
-      {template && <ApproveDialog open={approving} template={template} onCancel={() => setApproving(false)} onApproved={() => {
+      {template && sample && <ApproveDialog open={approving} template={template} onCancel={() => setApproving(false)} onApproved={() => {
         setApproving(false);
         setNotice({ tone: "success", text: "Approved. It is now offered for new leases in its country." });
         void read();
@@ -593,16 +693,19 @@ function Editor({ templateId, countries }: { templateId: string | null; countrie
       <ConfirmDialog
         open={confirm !== null}
         tone={confirm === "retire" ? "danger" : "primary"}
-        title={confirm === "retire" ? "Retire this template?" : `Start version ${(template?.version ?? 0) + 1}?`}
-        confirmLabel={confirm === "retire" ? "Retire it" : "Save as a new version"}
+        title={confirm === "retire" ? "Retire this template?" : confirm === "publish" ? `Publish version ${template?.version ?? 1}?` : `Start version ${(template?.version ?? 0) + 1}?`}
+        confirmLabel={confirm === "retire" ? "Retire it" : confirm === "publish" ? "Publish it" : "Save as a new version"}
+        busyLabel={confirm === "publish" ? "Publishing…" : undefined}
         busy={busy}
         onCancel={() => setConfirm(null)}
-        onConfirm={() => (confirm === "retire" ? void retire() : void save(true))}
+        onConfirm={() => (confirm === "retire" ? void retire() : confirm === "publish" ? void publish() : void save(true))}
       >
         {confirm === "retire" ? (
           <p>It is no longer offered for new leases. Leases already made from it keep its wording.</p>
+        ) : confirm === "publish" ? (
+          <p>Your organisation can then draft leases from it in {template?.market_code}. Any earlier published version of this template is retired at the same time; leases made from it keep their wording.</p>
         ) : (
-          <p>Your changes become a new draft version. It needs its own legal review and approval before it is offered; until then this version stays in use.</p>
+          <p>Your changes become a new draft version. It is offered once it is {inUse}; until then this version stays in use.</p>
         )}
       </ConfirmDialog>
     </>
@@ -615,11 +718,11 @@ function swap<T>(items: T[], from: number, to: number): T[] {
   return copy;
 }
 
-/** `/admin/lease-templates/new` and `/admin/lease-templates/<id>` (SUPER_ADMIN, CONTENT_ADMIN). */
+/** `/admin/lease-templates/new` and `/admin/lease-templates/<id>`: the sample templates (SUPER_ADMIN, CONTENT_ADMIN). */
 export function LeaseTemplateEditor({ templateId, countries }: { templateId: string | null; countries: { value: string; label: string }[] }) {
   return (
-    <RoleGate roles={LEASE_TEMPLATE_ROLES} what="the lease templates">
-      {() => <Editor templateId={templateId} countries={countries} />}
+    <RoleGate roles={LEASE_TEMPLATE_ROLES} what="the sample templates">
+      {() => <TemplateEditor templateId={templateId} countries={countries} mode={SAMPLES} />}
     </RoleGate>
   );
 }

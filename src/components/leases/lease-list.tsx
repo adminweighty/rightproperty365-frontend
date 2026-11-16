@@ -91,12 +91,15 @@ function Leases() {
       <div className="mt-1 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-4xl">Leases</h1>
-          <p className="mt-2 max-w-2xl text-muted">Draft a lease from an approved template, check its PDF, and send it to the landlords and tenants to sign.</p>
+          <p className="mt-2 max-w-2xl text-muted">Draft a lease from one of your templates or a sample, check its PDF, and send it to the landlords and tenants to sign.</p>
         </div>
         <div className="flex flex-wrap gap-3">
           <ButtonLink href="/agent/leases/new">
             <FilePlus2 className="size-4" aria-hidden="true" />
             New lease
+          </ButtonLink>
+          <ButtonLink href="/agent/lease-templates" variant="secondary">
+            Lease templates
           </ButtonLink>
           <ButtonLink href="/agent/agreements" variant="secondary">
             Agreements

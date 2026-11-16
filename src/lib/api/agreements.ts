@@ -1,4 +1,5 @@
 import { apiFetch, apiFetchBytes } from "@/lib/api/http";
+import type { Stamp } from "@/lib/api/stamps";
 
 /*
  * Agreements (API 0.24.0), modelled on Adobe Acrobat Sign: a PDF sent to
@@ -12,7 +13,8 @@ export type AgreementView = "WAITING_FOR_YOU" | "WAITING_FOR_OTHERS" | "COMPLETE
 export type RecipientRole = "SIGNER" | "APPROVER" | "CC";
 export type RecipientStatus = "WAITING" | "ACTIVE" | "SIGNED" | "APPROVED" | "DECLINED" | "CC";
 export type ReminderFrequency = "NONE" | "DAILY" | "EVERY_3_DAYS" | "WEEKLY";
-export type FieldType = "SIGNATURE" | "INITIALS" | "DATE_SIGNED" | "NAME" | "TEXT" | "CHECKBOX";
+/** STAMP (API 0.26.0): a generated company stamp, SIGNER recipients only. */
+export type FieldType = "SIGNATURE" | "INITIALS" | "STAMP" | "DATE_SIGNED" | "NAME" | "TEXT" | "CHECKBOX";
 
 /** A page's size in PDF points (1/72 inch), unrotated. */
 export type PageSize = { width: number; height: number };
@@ -247,13 +249,18 @@ export type SavedAdopted = {
 export type SavedSignature = {
   signature: SavedAdopted | null;
   initials: SavedAdopted | null;
+  /** API 0.26.0: the saved stamp. Optional for older API builds. */
+  stamp?: Stamp | null;
   signature_fonts: SignatureFont[];
 };
 
 export const getMySignature = () => apiFetch<SavedSignature>("/v1/me/signature", { cache: "no-store" });
 
-/** A missing one is cleared, so send both to keep both. */
-export const putMySignature = (input: { signature?: AdoptedSignature; initials?: AdoptedSignature }) =>
+/**
+ * A missing signature or initials is cleared, so send both to keep both. The
+ * stamp is the other way round: omit it to keep it, send null to clear it.
+ */
+export const putMySignature = (input: { signature?: AdoptedSignature; initials?: AdoptedSignature; stamp?: Stamp | null }) =>
   apiFetch<SavedSignature>("/v1/me/signature", { method: "PUT", body: input });
 
 /** A saved signature in the shape a submit or a save sends it; null when it cannot be used. */
@@ -300,6 +307,8 @@ export type SigningView = {
   statement: string;
   signature_fonts: SignatureFont[];
   link_expires_at: string;
+  /** API 0.26.0: the signed-in signer's saved stamp, when they have STAMP fields. */
+  saved_stamp?: Stamp | null;
 };
 
 export type SubmitInput = {
@@ -308,6 +317,8 @@ export type SubmitInput = {
   field_values?: { field_id: string; value: string }[];
   signature?: AdoptedSignature;
   initials?: AdoptedSignature;
+  /** Required when the recipient has a required STAMP field. */
+  stamp?: Stamp;
 };
 
 const signing = (token: string) => `/v1/signing/${encodeURIComponent(token)}`;

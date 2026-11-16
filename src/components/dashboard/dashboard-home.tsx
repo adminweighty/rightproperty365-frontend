@@ -482,6 +482,7 @@ function Workspace({ data }: { data: Dashboard }) {
       count: counterValue(data, "leases.drafts", "leases.awaiting_signatures"),
       countLabel: "drafts and leases waiting for signatures",
     },
+    leases && { href: "/agent/lease-templates", label: "Lease templates" },
     leases && {
       href: "/agent/agreements",
       label: "Agreements",

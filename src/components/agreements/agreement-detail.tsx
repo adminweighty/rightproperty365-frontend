@@ -26,7 +26,7 @@ import {
   type AgreementRecipient,
 } from "@/lib/api/agreements";
 import { EMAIL_MAX, emailProblem } from "@/lib/auth-validation";
-import { eventLabel, RECIPIENT_STATUS, REMINDER_OPTIONS, ROLE_LABELS, signingMessage, statusOf } from "@/lib/signing";
+import { eventLabel, fieldTypeLabel, RECIPIENT_STATUS, REMINDER_OPTIONS, ROLE_LABELS, signingMessage, statusOf } from "@/lib/signing";
 
 const STALE = new Set(["AGREEMENT_STATE_CONFLICT", "RECIPIENT_NOT_FOUND", "NOT_OPEN_FOR_SIGNING"]);
 
@@ -125,6 +125,13 @@ function ReplaceDialog({
       )}
     </dialog>
   );
+}
+
+/** "2 fields: Signature, Stamp", as the review step of the send flow says it. */
+function fieldSummary(fields: { type: string }[]): string {
+  if (fields.length === 0) return "No fields";
+  const kinds = [...new Set(fields.map((field) => fieldTypeLabel(field.type)))];
+  return `${fields.length === 1 ? "1 field" : `${fields.length} fields`}: ${kinds.join(", ")}`;
 }
 
 function detailText(event: AgreementEvent): string | null {
@@ -382,6 +389,9 @@ export function AgreementDetail({ initial, onReload }: { initial: Agreement; onR
                           <Badge tone={tone}>{label}</Badge>
                         </p>
                         <p className="break-all text-sm text-muted">{recipient.email}</p>
+                        {recipient.role !== "CC" && (
+                          <p className="text-sm text-muted">{fieldSummary(agreement.fields.filter((field) => field.recipient_id === recipient.id))}</p>
+                        )}
                         <p className="text-xs text-subtle">
                           {[
                             recipient.activated_at && `emailed ${formatWhen(recipient.activated_at)}`,

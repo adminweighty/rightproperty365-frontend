@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, CheckSquare, FileSignature, Minus, Plus, SquarePen, Trash2, Type, UserRound } from "lucide-react";
+import { CalendarDays, CheckSquare, FileSignature, Minus, Plus, SquarePen, Stamp, Trash2, Type, UserRound } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type PointerEvent } from "react";
 import { ColourDot } from "@/components/agreements/shared";
 import { PdfPages, type RenderedPage } from "@/components/pdf/pdf-pages";
@@ -10,7 +10,7 @@ import { Field, Input } from "@/components/ui/field";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { putAgreementFields, type Agreement, type AgreementRecipient, type FieldInput, type FieldType, type PageSize } from "@/lib/api/agreements";
 import { cn } from "@/lib/cn";
-import { boxAt, clampBox, FIELD_TYPES, fieldTypeLabel, recipientColour, signersWithoutSignature, signingMessage, type Box } from "@/lib/signing";
+import { boxAt, clampBox, FIELD_TYPES, fieldMin, fieldTypeLabel, isSignerOnly, recipientColour, signersWithoutSignature, signingMessage, type Box } from "@/lib/signing";
 
 /*
  * The field editor of the send flow (Adobe's "Prepare"): the PDF's pages
@@ -35,6 +35,7 @@ export type EditorField = Box & {
 const icons: Record<string, typeof Type> = {
   SIGNATURE: FileSignature,
   INITIALS: SquarePen,
+  STAMP: Stamp,
   DATE_SIGNED: CalendarDays,
   NAME: UserRound,
   TEXT: Type,
@@ -63,13 +64,13 @@ export const toEditorFields = (agreement: Agreement): EditorField[] =>
 
 /**
  * The fields that can still be stored: for a recipient who is still on the
- * document, is not a copy recipient, and (for a signature or initials) still signs.
+ * document, is not a copy recipient, and (for a signature, initials or a stamp) still signs.
  */
 export const usableFields = (fields: EditorField[], recipients: { id: string; role: string }[]) =>
   fields.filter((field) => {
     const recipient = recipients.find((item) => item.id === field.recipient_id);
     if (!recipient || recipient.role === "CC") return false;
-    return recipient.role === "SIGNER" || (field.type !== "SIGNATURE" && field.type !== "INITIALS");
+    return recipient.role === "SIGNER" || !isSignerOnly(field.type);
   });
 
 export const toFieldInputs = (fields: EditorField[]): FieldInput[] =>
@@ -166,7 +167,7 @@ function FieldOnPage({
       current.mode === "move"
         ? { ...current.box, x: current.box.x + dx, y: current.box.y + dy }
         : { ...current.box, w: current.box.w + dx, h: current.box.h + dy };
-    onChange(clampBox(box, pageSize));
+    onChange(clampBox(box, pageSize, fieldMin(field.type)));
   }
 
   function end() {
@@ -180,7 +181,7 @@ function FieldOnPage({
       event.preventDefault();
       const [dx, dy] = arrows[event.key];
       const box = { x: field.x, y: field.y, w: field.w, h: field.h };
-      onChange(clampBox(event.altKey ? { ...box, w: box.w + dx, h: box.h + dy } : { ...box, x: box.x + dx, y: box.y + dy }, pageSize));
+      onChange(clampBox(event.altKey ? { ...box, w: box.w + dx, h: box.h + dy } : { ...box, x: box.x + dx, y: box.y + dy }, pageSize, fieldMin(field.type)));
       return;
     }
     if (event.key === "Delete" || event.key === "Backspace") {
@@ -339,7 +340,7 @@ export function FieldEditor({
     [],
   );
 
-  const sizeOf = (type: FieldType) => FIELD_TYPES.find((item) => item.type === type) ?? FIELD_TYPES[0];
+  const sizeOf = (type: FieldType): (typeof FIELD_TYPES)[number] => FIELD_TYPES.find((item) => item.type === type) ?? FIELD_TYPES[0];
   const allowed = (type: FieldType) => !(approver && sizeOf(type).signerOnly);
 
   function add(type: FieldType, pageNumber: number, point?: { x: number; y: number }) {
@@ -350,7 +351,7 @@ export function FieldEditor({
     // Without a point (the keyboard), fields go near the middle, a little apart from the last one.
     const onPage = latest.current.filter((field) => field.page === pageNumber).length;
     const where = point ?? { x: size.width / 2, y: Math.min(size.height / 2 + onPage * 28, size.height - preset.h) };
-    const box = boxAt(where, { w: preset.w, h: preset.h }, size);
+    const box = clampBox(boxAt(where, { w: preset.w, h: preset.h }, size), size, preset.min);
     const field: EditorField = { key: newKey(), recipient_id: activeRecipient.id, type, page: pageNumber, ...box, required: true, label: "" };
     setFields([...latest.current, field]);
     setSelected(field.key);
@@ -556,13 +557,16 @@ export function FieldEditor({
                       const value = Number(event.currentTarget.value);
                       if (!Number.isFinite(value)) return;
                       const size = pages[chosen.page - 1];
-                      if (size) update(chosen.key, clampBox({ x: chosen.x, y: chosen.y, w: chosen.w, h: chosen.h, [axis]: value }, size));
+                      if (size) update(chosen.key, clampBox({ x: chosen.x, y: chosen.y, w: chosen.w, h: chosen.h, [axis]: value }, size, fieldMin(chosen.type)));
                     }}
                   />
                 </Field>
               ))}
             </div>
-            <p className="mt-1 text-xs text-muted">In points (1/72 inch). Arrow keys move it; with Shift by 10; with Alt they resize it.</p>
+            <p className="mt-1 text-xs text-muted">
+              In points (1/72 inch). Arrow keys move it; with Shift by 10; with Alt they resize it.
+              {chosen.type === "STAMP" && " A stamp is at least 57 points (20 mm) each way and keeps its shape inside the box."}
+            </p>
             <Button variant="ghost" size="sm" className="mt-2 text-danger" onClick={() => remove(chosen.key)}>
               <Trash2 className="size-4" aria-hidden="true" />
               Remove this field

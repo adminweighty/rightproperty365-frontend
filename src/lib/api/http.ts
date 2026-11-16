@@ -124,6 +124,36 @@ export async function apiFetchBytes(path: string): Promise<ApiResult<{ bytes: Ar
 }
 
 /**
+ * A file the API makes from a JSON body (a stamp preview PNG), with the
+ * session cookie, as a Blob. Errors, field errors included, come back in the
+ * same shape as `apiFetch`. Never cached.
+ */
+export async function apiPostForFile(path: string, body: unknown): Promise<ApiResult<{ blob: Blob; type: string }>> {
+  let response: Response;
+  try {
+    response = await fetch(`${env.apiUrl}${path}`, {
+      method: "POST",
+      credentials: "include",
+      cache: "no-store",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    return { ok: false, failure: networkFailure };
+  }
+  if (!response.ok) {
+    const payload: unknown = await response.json().catch(() => null);
+    return { ok: false, failure: failureFrom(response, payload) };
+  }
+  try {
+    const blob = await response.blob();
+    return { ok: true, status: response.status, data: { blob, type: response.headers.get("Content-Type") ?? blob.type } };
+  } catch {
+    return { ok: false, failure: networkFailure };
+  }
+}
+
+/**
  * A file the API sends as a download (a CSV export), with the session
  * cookie, as a Blob and the response headers it exposes. Never cached.
  * Headers the API does not list in Access-Control-Expose-Headers read as null

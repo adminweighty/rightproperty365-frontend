@@ -373,10 +373,10 @@ function Home({ user }: { user: User }) {
           <SectionCard
             id="admin-signing"
             title="Leases and signing"
-            intro="The lease template library, and every lease and document sent for signature (read-only)."
+            intro="The sample lease templates anyone can copy, and every lease and document sent for signature (read-only)."
           >
             <div className="mt-5 flex flex-wrap gap-3">
-              {hasPlatformRole(user, LEASE_TEMPLATE_ROLES) && <ButtonLink href="/admin/lease-templates">Lease templates</ButtonLink>}
+              {hasPlatformRole(user, LEASE_TEMPLATE_ROLES) && <ButtonLink href="/admin/lease-templates">Sample templates</ButtonLink>}
               {hasPlatformRole(user, SIGNING_OVERSIGHT_ROLES) && (
                 <>
                   <ButtonLink href="/admin/leases" variant="secondary">

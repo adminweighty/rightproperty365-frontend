@@ -47,15 +47,16 @@ function Templates({ countries }: { countries: { value: string; label: string }[
       <BackLink href="/admin">Administration</BackLink>
       <div className="mt-1 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-4xl">Lease templates</h1>
+          <h1 className="text-4xl">Sample templates</h1>
           <p className="mt-2 max-w-2xl text-muted">
-            The wording leases are drafted from, per country. Only an approved template is offered, and approving needs a
-            legal review. Editing an approved template starts its next version.
+            Starting points for leases, per country. Anyone can draft from an approved sample, and agencies and landlords
+            copy them to design their own templates. A legal review is optional. Editing an approved sample starts its
+            next version.
           </p>
         </div>
         <ButtonLink href={`${PATH}/new`}>
           <Plus className="size-4" aria-hidden="true" />
-          New template
+          New sample
         </ButtonLink>
       </div>
       <div className="mt-8 flex flex-wrap items-end gap-4">
@@ -73,8 +74,8 @@ function Templates({ countries }: { countries: { value: string; label: string }[
         {state.status === "loading" && <LoadingBlock label="Loading the templates" rows={3} />}
         {state.status === "error" && <LoadError failure={state.failure} onRetry={reload} />}
         {state.status === "ready" && state.data.items.length === 0 && (
-          <EmptyState title="No templates here" action={<ButtonLink href={`${PATH}/new`} variant="secondary">Write a template</ButtonLink>}>
-            Change the filters, or write the first template for a country.
+          <EmptyState title="No templates here" action={<ButtonLink href={`${PATH}/new`} variant="secondary">Write a sample</ButtonLink>}>
+            Change the filters, or write the first sample for a country.
           </EmptyState>
         )}
         {state.status === "ready" && state.data.items.length > 0 && (
@@ -82,7 +83,7 @@ function Templates({ countries }: { countries: { value: string; label: string }[
             <ul className="divide-y divide-line">
               {state.data.items.map((template) => {
                 const { label, tone } = statusOf(TEMPLATE_STATUS, template.status);
-                const sample = template.status !== "DRAFT" && isSampleReview(template.legal_review);
+                const sample = template.status !== "DRAFT" && template.legal_review !== null && isSampleReview(template.legal_review);
                 return (
                   <li key={template.id} className="flex flex-col gap-2 px-5 py-4 sm:flex-row sm:items-center">
                     <div className="min-w-0 flex-1">
@@ -101,7 +102,7 @@ function Templates({ countries }: { countries: { value: string; label: string }[
                       <p className="text-xs text-subtle">
                         {template.legal_review
                           ? `Reviewed by ${template.legal_review.reviewer_name}, ${template.legal_review.organisation}, ${template.legal_review.reviewed_on}`
-                          : "Not reviewed yet"}{" "}
+                          : "No legal review recorded"}{" "}
                         · updated {formatWhen(template.updated_at)}
                       </p>
                     </div>
@@ -123,7 +124,7 @@ function Templates({ countries }: { countries: { value: string; label: string }[
 /** `/admin/lease-templates` (SUPER_ADMIN, CONTENT_ADMIN). */
 export function LeaseTemplates({ countries }: { countries: { value: string; label: string }[] }) {
   return (
-    <RoleGate roles={LEASE_TEMPLATE_ROLES} what="the lease templates">
+    <RoleGate roles={LEASE_TEMPLATE_ROLES} what="the sample templates">
       {() => <Templates countries={countries} />}
     </RoleGate>
   );

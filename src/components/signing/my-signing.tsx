@@ -8,6 +8,8 @@ import { RequireAuth } from "@/components/auth/require-auth";
 import { BackLink, EmptyState, formatWhen, LoadError, LoadingBlock } from "@/components/portal/portal-ui";
 import { useApi } from "@/components/portal/use-api";
 import { AdoptSignatureDialog, SignaturePreview } from "@/components/signing/adopt-signature";
+import { defaultStamp, StampDesigner, StampPreview } from "@/components/signing/stamp-designer";
+import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -22,7 +24,8 @@ import {
   type SavedSignature,
   type SigningRequest,
 } from "@/lib/api/agreements";
-import { RECIPIENT_STATUS, ROLE_LABELS, signingMessage, statusOf } from "@/lib/signing";
+import type { Stamp } from "@/lib/api/stamps";
+import { cleanStamp, RECIPIENT_STATUS, ROLE_LABELS, signingMessage, stampFieldErrors, stampProblems, statusOf } from "@/lib/signing";
 
 function Request({ item, onNotice }: { item: SigningRequest; onNotice: (notice: Notice) => void }) {
   const router = useRouter();
@@ -178,28 +181,142 @@ function SavedOne({
   );
 }
 
+type StoreFailure = { fields: Record<string, string>; text?: string };
+
+/** The saved stamp: its preview, or the designer while it is changed. */
+function SavedStamp({
+  name,
+  stamp,
+  busy,
+  onSave,
+  onClear,
+}: {
+  name: string;
+  stamp: Stamp | null;
+  busy: boolean;
+  /** Null once saved, or what the API refused. */
+  onSave: (stamp: Stamp) => Promise<StoreFailure | null>;
+  onClear: () => void;
+}) {
+  const [draft, setDraft] = useState<Stamp | null>(null);
+  const [submitted, setSubmitted] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [problem, setProblem] = useState<string | undefined>();
+
+  async function save() {
+    if (!draft) return;
+    setSubmitted(true);
+    const cleaned = cleanStamp(draft);
+    if (Object.values(stampProblems(cleaned)).some(Boolean)) return;
+    setProblem(undefined);
+    const failed = await onSave(cleaned);
+    if (failed) {
+      setErrors(failed.fields);
+      setProblem(failed.text);
+      return;
+    }
+    setDraft(null);
+    setSubmitted(false);
+    setErrors({});
+  }
+
+  return (
+    <section aria-labelledby="saved-stamp" className="mt-10">
+      <h2 id="saved-stamp" className="text-2xl">
+        Stamp
+      </h2>
+      <p className="mt-1 max-w-2xl text-muted">
+        A company stamp for documents that ask for one, such as a lease you sign as a landlord. Type its text and we draw
+        it. The day it is applied can be printed in the centre.
+      </p>
+      <Card className="mt-4">
+        {draft ? (
+          <>
+            <StampDesigner
+              value={draft}
+              onChange={(next) => {
+                setDraft(next);
+                setErrors({});
+              }}
+              errors={errors}
+              showAll={submitted}
+            />
+            {problem && <Alert title={problem} className="mt-4" />}
+            <div className="mt-6 flex flex-wrap gap-2">
+              <Button onClick={() => void save()} disabled={busy} aria-busy={busy || undefined}>
+                {busy ? "Saving…" : "Save the stamp"}
+              </Button>
+              <Button variant="secondary" disabled={busy} onClick={() => setDraft(null)}>
+                Cancel
+              </Button>
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <div className="flex size-36 shrink-0 items-center justify-center rounded-md border border-dashed border-line-strong bg-white p-2">
+              {stamp ? <StampPreview stamp={stamp} className="size-full" /> : <span className="text-sm text-subtle">None saved</span>}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={stamp ? "secondary" : "primary"}
+                onClick={() => {
+                  setDraft(stamp ?? defaultStamp(name));
+                  setSubmitted(false);
+                  setErrors({});
+                  setProblem(undefined);
+                }}
+              >
+                {stamp ? "Change" : "Design a stamp"}
+                {stamp && <span className="sr-only"> stamp</span>}
+              </Button>
+              {stamp && (
+                <Button variant="ghost" className="text-danger" onClick={onClear}>
+                  Remove<span className="sr-only"> stamp</span>
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+      </Card>
+    </section>
+  );
+}
+
 function Signature({ name }: { name: string }) {
   const { state, reload, replace } = useApi(getMySignature);
   const [editing, setEditing] = useState<{ kind: "signature" | "initials"; round: number } | null>(null);
-  const [clearing, setClearing] = useState<"signature" | "initials" | null>(null);
+  const [clearing, setClearing] = useState<"signature" | "initials" | "stamp" | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [notice, setNotice] = useState<Notice | null>(null);
 
-  async function store(saved: SavedSignature, change: { signature?: AdoptedSignature | null; initials?: AdoptedSignature | null }) {
+  /**
+   * Saves a change: null when saved. The signature and initials are always
+   * sent (a missing one is cleared); the stamp only when it changes (a
+   * missing stamp is kept, null clears it).
+   */
+  async function store(
+    saved: SavedSignature,
+    change: { signature?: AdoptedSignature | null; initials?: AdoptedSignature | null; stamp?: Stamp | null },
+  ): Promise<StoreFailure | null> {
     const signature = change.signature !== undefined ? change.signature : fromSaved(saved.signature);
     const initials = change.initials !== undefined ? change.initials : fromSaved(saved.initials);
     setBusy(true);
     setError(undefined);
-    const result = await putMySignature({ ...(signature ? { signature } : {}), ...(initials ? { initials } : {}) });
+    const result = await putMySignature({
+      ...(signature ? { signature } : {}),
+      ...(initials ? { initials } : {}),
+      ...(change.stamp !== undefined ? { stamp: change.stamp } : {}),
+    });
     setBusy(false);
     if (!result.ok) {
-      const text = signingMessage(result.failure);
-      setError(text);
-      return false;
+      const fields = stampFieldErrors(result.failure.fields);
+      const text = Object.keys(fields).length > 0 ? undefined : signingMessage(result.failure);
+      setError(text ?? "Some of the stamp's text was not accepted.");
+      return { fields, text };
     }
     replace(result.data);
-    return true;
+    return null;
   }
 
   return (
@@ -207,8 +324,8 @@ function Signature({ name }: { name: string }) {
       <BackLink href="/account">Your account</BackLink>
       <h1 className="mt-1 text-4xl">Your signature</h1>
       <p className="mt-2 max-w-2xl text-muted">
-        Save a signature and initials to add them with one click when you sign a document on RightProperty365. You can
-        still change them on each document.
+        Save a signature, initials and a stamp to add them with one click when you sign a document on RightProperty365.
+        You can still change them on each document.
       </p>
       <NoticeArea notice={notice} />
       <div className="mt-8">
@@ -230,6 +347,22 @@ function Signature({ name }: { name: string }) {
             />
           </div>
         )}
+        {state.status === "ready" && (
+          <SavedStamp
+            name={name}
+            stamp={state.data.stamp ?? null}
+            busy={busy}
+            onSave={async (stamp) => {
+              const failed = await store(state.data, { stamp });
+              if (!failed) setNotice({ tone: "success", text: "Your stamp is saved." });
+              return failed;
+            }}
+            onClear={() => {
+              setError(undefined);
+              setClearing("stamp");
+            }}
+          />
+        )}
       </div>
       {editing && state.status === "ready" && (
         <AdoptSignatureDialog
@@ -244,7 +377,7 @@ function Signature({ name }: { name: string }) {
           error={error}
           onCancel={() => setEditing(null)}
           onAdopt={async (value) => {
-            if (await store(state.data, { [editing.kind]: value })) {
+            if (!(await store(state.data, { [editing.kind]: value }))) {
               setNotice({ tone: "success", text: editing.kind === "initials" ? "Your initials are saved." : "Your signature is saved." });
               setEditing(null);
             }
@@ -253,20 +386,20 @@ function Signature({ name }: { name: string }) {
       )}
       <ConfirmDialog
         open={clearing !== null}
-        title={clearing === "initials" ? "Remove your saved initials?" : "Remove your saved signature?"}
+        title={clearing === "initials" ? "Remove your saved initials?" : clearing === "stamp" ? "Remove your saved stamp?" : "Remove your saved signature?"}
         confirmLabel="Remove"
         busy={busy}
         error={error}
         onCancel={() => setClearing(null)}
         onConfirm={async () => {
           if (state.status !== "ready" || !clearing) return;
-          if (await store(state.data, { [clearing]: null })) {
-            setNotice({ tone: "success", text: "Removed. Documents you already signed keep their signatures." });
+          if (!(await store(state.data, { [clearing]: null }))) {
+            setNotice({ tone: "success", text: clearing === "stamp" ? "Removed. Documents you already stamped keep their stamps." : "Removed. Documents you already signed keep their signatures." });
             setClearing(null);
           }
         }}
       >
-        <p>Documents you already signed keep their signatures.</p>
+        <p>{clearing === "stamp" ? "Documents you already stamped keep their stamps." : "Documents you already signed keep their signatures."}</p>
       </ConfirmDialog>
     </>
   );

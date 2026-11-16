@@ -32,6 +32,12 @@ import {
   statusOf,
   AGREEMENT_STATUS,
   toPoints,
+  cleanStamp,
+  fieldMin,
+  isSignerOnly,
+  ORG_TEMPLATE_STATUS,
+  stampFieldErrors,
+  stampProblems,
 } from "../src/lib/signing.ts";
 
 test("known codes get plain words, unknown ones keep the API's message", () => {
@@ -141,4 +147,28 @@ test("the dashboard's lease and signing targets have pages", () => {
   assert.equal(counterHref({ key: "leases.drafts", target: "leases" }), "/agent/leases?status=DRAFT");
   assert.equal(counterHref({ key: "leases.awaiting_signatures", target: "leases" }), "/agent/leases?status=SENT_FOR_SIGNING");
   assert.equal(counterHref({ key: "agreements.waiting_for_you", target: "signing_requests" }), "/account/signing");
+});
+
+test("a stamp field is signer-only, starts 113 points square and is at least 57", () => {
+  assert.equal(isSignerOnly("STAMP"), true);
+  assert.equal(isSignerOnly("TEXT"), false);
+  assert.equal(fieldMin("STAMP"), 57);
+  assert.equal(fieldMin("TEXT"), 6);
+  assert.deepEqual(clampBox({ x: 0, y: 0, w: 20, h: 20 }, { width: 600, height: 800 }, fieldMin("STAMP")), { x: 0, y: 0, w: 57, h: 57 });
+});
+
+test("stamp text follows the limits of the API", () => {
+  const ok = { top_text: "ACME PROPERTIES", centre_lines: ["HARARE"], bottom_text: "" };
+  assert.equal(Object.values(stampProblems(ok)).some(Boolean), false);
+  assert.ok(stampProblems({ ...ok, top_text: "  " }).top_text);
+  assert.ok(stampProblems({ ...ok, top_text: "x".repeat(61) }).top_text);
+  assert.ok(stampProblems({ ...ok, centre_lines: ["a", "b", "c", "d"] }).centre_lines);
+  assert.ok(stampProblems({ ...ok, centre_lines: ["x".repeat(31)] })["centre_lines[0]"]);
+  assert.ok(stampProblems({ ...ok, bottom_text: "x".repeat(61) }).bottom_text);
+  assert.deepEqual(cleanStamp({ top_text: " A ", centre_lines: [" B ", "  "], bottom_text: " C " }), { top_text: "A", centre_lines: ["B"], bottom_text: "C" });
+  assert.deepEqual(stampFieldErrors({ "stamp.top_text": "too long", "centre_lines[1]": "too long", code: "x" }), { top_text: "too long", "centre_lines[1]": "too long" });
+});
+
+test("an organisation's approved template reads Published", () => {
+  assert.equal(statusOf(ORG_TEMPLATE_STATUS, "APPROVED").label, "Published");
 });

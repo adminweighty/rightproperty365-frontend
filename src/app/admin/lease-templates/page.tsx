@@ -5,7 +5,7 @@ import { Container } from "@/components/ui/container";
 import { load } from "@/lib/api/server/load";
 import { getAllCountries } from "@/lib/api/server/reference";
 
-export const metadata: Metadata = { title: "Lease templates", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Sample templates", robots: { index: false, follow: false } };
 
 /** The templates are read in the browser with the administrator's session; the country names come from the server. */
 async function WithCountries() {

@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, CircleCheck, Download, FileSignature, MailWarning, X } from "lucide-react";
+import { Check, CircleCheck, Download, FileSignature, MailWarning, Stamp as StampIcon, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { PdfPages, type RenderedPage } from "@/components/pdf/pdf-pages";
@@ -8,6 +8,7 @@ import { formatWhen, LoadingBlock } from "@/components/portal/portal-ui";
 import { useApi } from "@/components/portal/use-api";
 import { AdoptSignatureDialog, SignaturePreview } from "@/components/signing/adopt-signature";
 import { pdfName, savePdf } from "@/components/signing/pdf-file";
+import { AdoptStampDialog, StampImage, useStampPreview } from "@/components/signing/stamp-designer";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
@@ -28,10 +29,11 @@ import {
   type SigningView,
 } from "@/lib/api/agreements";
 import type { ApiFailure } from "@/lib/api/http";
+import type { Stamp } from "@/lib/api/stamps";
 import { cn } from "@/lib/cn";
 import { env } from "@/lib/env";
 import { cleanCode, formatCountdown, RESEND_WAIT_SECONDS, secondsLeft } from "@/lib/sign-in-code";
-import { isSelfFilled, ROLE_LABELS, signingMessage } from "@/lib/signing";
+import { isSelfFilled, ROLE_LABELS, signingMessage, stampFieldErrors } from "@/lib/signing";
 
 /** 43 URL-safe characters from the API; a little room either way, nothing else is sent to it. */
 const TOKEN = /^[A-Za-z0-9_-]{20,128}$/;
@@ -265,6 +267,7 @@ function FieldBox({
   applied,
   signature,
   initials,
+  stamp,
   name,
   missing,
   onSign,
@@ -277,6 +280,8 @@ function FieldBox({
   applied: boolean;
   signature: AdoptedSignature | null;
   initials: AdoptedSignature | null;
+  /** Whether a stamp is adopted, and its preview image (an object URL). */
+  stamp: { adopted: boolean; url: string | null; loading: boolean };
   name: string;
   missing: boolean;
   onSign: (field: AgreementField) => void;
@@ -301,6 +306,34 @@ function FieldBox({
   }
 
   const label = field.label ?? undefined;
+
+  if (field.type === "STAMP") {
+    const done = applied && stamp.adopted;
+    return (
+      <button
+        id={domId}
+        type="button"
+        onClick={() => onSign(field)}
+        className={cn(
+          box,
+          "justify-center overflow-hidden border-2 p-0.5 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus",
+          done ? "border-primary/40 bg-white/60" : "border-warning bg-warning-soft/90 font-semibold text-warning",
+          missing && "ring-2 ring-danger",
+        )}
+        style={style}
+        aria-label={done ? "Stamp added. Change it" : `Stamp here${field.required ? " (required)" : ""}`}
+      >
+        {done ? (
+          <StampImage url={stamp.url} loading={stamp.loading} alt="" className="size-full" />
+        ) : (
+          <span className="flex flex-col items-center gap-1 text-xs" style={{ fontSize: Math.min(fontSize, 14) }}>
+            <StampIcon className="size-4" aria-hidden="true" />
+            Stamp
+          </span>
+        )}
+      </button>
+    );
+  }
 
   if (field.type === "SIGNATURE" || field.type === "INITIALS") {
     const adopted = field.type === "SIGNATURE" ? signature : initials;
@@ -667,6 +700,9 @@ function Guided({ token, view, bytes, onDone, onDeclined }: {
   const [applied, setApplied] = useState<Set<string>>(new Set());
   const [signature, setSignature] = useState<AdoptedSignature | null>(null);
   const [initials, setInitials] = useState<AdoptedSignature | null>(null);
+  const [stamp, setStamp] = useState<Stamp | null>(view.saved_stamp ?? null);
+  const [stampAdopting, setStampAdopting] = useState<{ field: AgreementField; round: number } | null>(null);
+  const [stampErrors, setStampErrors] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState<SavedSignature | null>(null);
   const [adopting, setAdopting] = useState<{ field: AgreementField; round: number } | null>(null);
   const [adoptError, setAdoptError] = useState<string | undefined>();
@@ -687,7 +723,9 @@ function Guided({ token, view, bytes, onDone, onDeclined }: {
       const savedInitials = fromSaved(result.data.initials);
       setSignature((current) => current ?? savedSignature);
       setInitials((current) => current ?? savedInitials);
-      if (savedSignature || savedInitials) setNotice("Your saved signature is ready. Click each signature field to add it; click it again to change it.");
+      const savedStamp = result.data.stamp ?? null;
+      setStamp((current) => current ?? savedStamp);
+      if (savedSignature || savedInitials || savedStamp) setNotice("Your saved signature is ready. Click each signature field to add it; click it again to change it.");
     });
     return () => {
       cancelled = true;
@@ -700,12 +738,17 @@ function Guided({ token, view, bytes, onDone, onDeclined }: {
     (field: AgreementField) => {
       if (field.type === "SIGNATURE") return applied.has(field.id) && signature !== null;
       if (field.type === "INITIALS") return applied.has(field.id) && initials !== null;
+      if (field.type === "STAMP") return applied.has(field.id) && stamp !== null;
       if (field.type === "TEXT") return (values[field.id] ?? "").trim() !== "";
       if (field.type === "CHECKBOX") return values[field.id] === "true";
       return true;
     },
-    [applied, signature, initials, values],
+    [applied, signature, initials, stamp, values],
   );
+
+  // One preview of the adopted stamp for every stamp field (the preview is rate-limited).
+  const hasStampFields = mine.some((field) => field.type === "STAMP");
+  const stampPreview = useStampPreview(hasStampFields ? stamp : null, 0);
 
   const required = mine.filter((field) => isSelfFilled(field.type) && field.required);
   const done = required.filter(isFilled).length;
@@ -731,6 +774,17 @@ function Guided({ token, view, bytes, onDone, onDeclined }: {
   }
 
   function onSign(field: AgreementField) {
+    if (field.type === "STAMP") {
+      if (stamp && !applied.has(field.id)) {
+        setApplied((current) => new Set(current).add(field.id));
+        return;
+      }
+      round.current += 1;
+      setAdoptError(undefined);
+      setStampErrors({});
+      setStampAdopting({ field, round: round.current });
+      return;
+    }
     const adopted = field.type === "SIGNATURE" ? signature : initials;
     if (adopted && !applied.has(field.id)) {
       setApplied((current) => new Set(current).add(field.id));
@@ -766,18 +820,50 @@ function Guided({ token, view, bytes, onDone, onDeclined }: {
     requestAnimationFrame(() => document.getElementById(`field-${field.id}`)?.focus());
   }
 
+  /** The stamp goes in every stamp field of this document; saving it keeps the saved signature and initials. */
+  async function adoptStamp(value: Stamp, save: boolean) {
+    if (!stampAdopting) return;
+    const field = stampAdopting.field;
+    if (save) {
+      setAdoptBusy(true);
+      const keepSignature = fromSaved(saved?.signature ?? null);
+      const keepInitials = fromSaved(saved?.initials ?? null);
+      const result = await putMySignature({ stamp: value, ...(keepSignature ? { signature: keepSignature } : {}), ...(keepInitials ? { initials: keepInitials } : {}) });
+      setAdoptBusy(false);
+      if (!result.ok) {
+        const fields = stampFieldErrors(result.failure.fields);
+        setStampErrors(fields);
+        setAdoptError(Object.keys(fields).length > 0 ? undefined : `${signingMessage(result.failure)} Untick "Save to my account" to use it only here.`);
+        return;
+      }
+      setSaved(result.data);
+    }
+    setStamp(value);
+    setApplied((current) => {
+      const next = new Set(current);
+      for (const item of mine) if (item.type === "STAMP") next.add(item.id);
+      return next;
+    });
+    setStampAdopting(null);
+    requestAnimationFrame(() => document.getElementById(`field-${field.id}`)?.focus());
+  }
+
   function build() {
     const fieldValues = mine
       .filter((field) => field.type === "TEXT" || field.type === "CHECKBOX")
       .map((field) => ({ field_id: field.id, value: field.type === "CHECKBOX" ? (values[field.id] === "true" ? "true" : "false") : (values[field.id] ?? "").trim() }))
       .filter((entry) => entry.value !== "");
     const hasInitials = mine.some((field) => field.type === "INITIALS");
+    const hasStamp = mine.some((field) => field.type === "STAMP");
     return {
       field_values: fieldValues,
       ...(!approver && signature ? { signature } : {}),
       ...(!approver && hasInitials && initials ? { initials } : {}),
+      ...(!approver && hasStamp && stamp ? { stamp } : {}),
     };
   }
+
+  const stampView = { adopted: stamp !== null, url: stampPreview.url, loading: stampPreview.loading };
 
   const overlay = (page: RenderedPage) => {
     const onPage = [...others, ...mine].filter((field) => field.page === page.number);
@@ -792,6 +878,7 @@ function Guided({ token, view, bytes, onDone, onDeclined }: {
         applied={applied.has(field.id)}
         signature={signature}
         initials={initials}
+        stamp={stampView}
         name={recipient.name}
         missing={showMissing && field.recipient_id === recipient.id && isSelfFilled(field.type) && field.required && !isFilled(field)}
         onSign={onSign}
@@ -899,6 +986,20 @@ function Guided({ token, view, bytes, onDone, onDeclined }: {
           onAdopt={adopt}
           onCancel={() => setAdopting(null)}
           error={adoptError}
+          busy={adoptBusy}
+        />
+      )}
+      {stampAdopting && (
+        <AdoptStampDialog
+          key={stampAdopting.round}
+          open
+          name={recipient.name}
+          current={stamp}
+          canSave={signedIn}
+          onAdopt={adoptStamp}
+          onCancel={() => setStampAdopting(null)}
+          error={adoptError}
+          fieldErrors={stampErrors}
           busy={adoptBusy}
         />
       )}

@@ -5,10 +5,16 @@ import { apiFetch, apiFetchBytes } from "@/lib/api/http";
  * Leases (API 0.24.0): the template library administrators keep, and the
  * leases people who manage listings draft from an approved template and send
  * for signing (an agreement whose fields are placed automatically).
+ *
+ * API 0.26.0: templates belong to organisations, which design and publish
+ * their own; the administrators' library becomes the sample templates anyone
+ * can copy. No legal review is needed anywhere.
  */
 
 export type LeaseKind = "RESIDENTIAL" | "COMMERCIAL";
+/** APPROVED is shown as "Published" for an organisation's template. */
 export type LeaseTemplateStatus = "DRAFT" | "APPROVED" | "RETIRED";
+export type LeaseTemplateSource = "SAMPLE" | "ORGANISATION";
 export type LeaseStatus = "DRAFT" | "SENT_FOR_SIGNING" | "SIGNED" | "DECLINED" | "CANCELLED" | "EXPIRED";
 export type RentPeriod = "MONTHLY" | "WEEKLY" | "ANNUALLY";
 
@@ -25,6 +31,11 @@ export type LeaseTemplate = {
   family_id: string;
   version: number;
   market_code: string;
+  /** API 0.26.0: null for a sample. */
+  organisation_id: string | null;
+  source: LeaseTemplateSource;
+  /** True when the caller may manage it. */
+  can_edit: boolean;
   name: string;
   lease_kind: LeaseKind;
   description: string | null;
@@ -55,7 +66,7 @@ export type LeaseActor = { type: "USER" | "SYSTEM" | "RECIPIENT"; user_id: strin
 
 export type LeaseTemplateEvent = {
   id: string;
-  action: "CREATED" | "EDITED" | "NEW_VERSION" | "APPROVED" | "RETIRED" | string;
+  action: "CREATED" | "EDITED" | "NEW_VERSION" | "APPROVED" | "PUBLISHED" | "RETIRED" | string;
   actor: LeaseActor;
   detail: Record<string, unknown> | null;
   at: string;
@@ -86,6 +97,8 @@ export type LeaseInput = {
   notice_period_days?: number;
   optional_clauses?: string[];
   special_conditions?: string;
+  /** API 0.26.0: a STAMP field for each landlord next to their signature block. Default false. */
+  landlord_stamp?: boolean;
 };
 
 export type LeaseDocument = {
@@ -119,6 +132,8 @@ export type Lease = {
   notice_period_days: number;
   optional_clauses: string[];
   special_conditions: string | null;
+  /** API 0.26.0. Optional for older API builds. */
+  landlord_stamp?: boolean;
   /** The PDF `GET .../pdf` returns now. */
   document: LeaseDocument | null;
   /** The frozen copy sent for signing. */
@@ -168,8 +183,9 @@ export const adminGetLeaseTemplate = (id: string) =>
 export const adminEditLeaseTemplate = (id: string, input: LeaseTemplateInput) =>
   apiFetch<TemplateEnvelope>(adminTemplate(id), { method: "PATCH", body: input });
 
-export const adminApproveLeaseTemplate = (id: string, review: LegalReview) =>
-  apiFetch<TemplateEnvelope>(`${adminTemplate(id)}/approve`, { method: "POST", body: { legal_review: review } });
+/** The legal review is optional (API 0.26.0). */
+export const adminApproveLeaseTemplate = (id: string, review?: LegalReview) =>
+  apiFetch<TemplateEnvelope>(`${adminTemplate(id)}/approve`, { method: "POST", body: review ? { legal_review: review } : {} });
 
 export const adminRetireLeaseTemplate = (id: string) =>
   apiFetch<TemplateEnvelope>(`${adminTemplate(id)}/retire`, { method: "POST" });
@@ -184,11 +200,53 @@ export function adminListLeases(query: { status?: LeaseStatus; page?: number }) 
 
 /* People who manage listings. */
 
-/** Only APPROVED templates, of `market` when given. */
-export const listOfferedLeaseTemplates = (market?: string) =>
-  apiFetch<LeaseTemplateList>(`/v1/me/lease-templates${market ? `?market=${encodeURIComponent(market)}` : ""}`, {
-    cache: "no-store",
-  });
+/**
+ * Only APPROVED templates, of `market` when given: every sample, and the
+ * published templates of the caller's organisations (only that one's with
+ * `organisationId`).
+ */
+export function listOfferedLeaseTemplates(market?: string, organisationId?: string) {
+  const params = new URLSearchParams();
+  if (market) params.set("market", market);
+  if (organisationId) params.set("organisation_id", organisationId);
+  const text = params.toString();
+  return apiFetch<LeaseTemplateList>(`/v1/me/lease-templates${text ? `?${text}` : ""}`, { cache: "no-store" });
+}
+
+/* An organisation's own templates (API 0.26.0). OWNER or MANAGER manage them; members who draft leases read them. */
+
+const orgTemplates = (orgId: string) => `/v1/me/organisations/${encodeURIComponent(orgId)}/lease-templates`;
+const orgTemplate = (orgId: string, id: string) => `${orgTemplates(orgId)}/${encodeURIComponent(id)}`;
+
+/** Every version, like the admin list. */
+export function listOrgLeaseTemplates(orgId: string, query: { market?: string; status?: LeaseTemplateStatus } = {}) {
+  const params = new URLSearchParams();
+  if (query.market) params.set("market", query.market);
+  if (query.status) params.set("status", query.status);
+  const text = params.toString();
+  return apiFetch<LeaseTemplateList>(`${orgTemplates(orgId)}${text ? `?${text}` : ""}`, { cache: "no-store" });
+}
+
+/** A new DRAFT, version 1 of a new family: written from scratch, or a copy of a sample (or of this organisation's template). */
+export const createOrgLeaseTemplate = (orgId: string, input: LeaseTemplateInput | { copy_from_template_id: string; name?: string }) =>
+  apiFetch<TemplateEnvelope>(orgTemplates(orgId), { method: "POST", body: input });
+
+export const getOrgLeaseTemplate = (orgId: string, id: string) =>
+  apiFetch<{ template: LeaseTemplate; variables?: LeaseVariable[] }>(orgTemplate(orgId, id), { cache: "no-store" });
+
+/** A DRAFT changes in place (200); a published one gets its next version as a DRAFT (201, `new_version`). */
+export const editOrgLeaseTemplate = (orgId: string, id: string, input: LeaseTemplateInput) =>
+  apiFetch<TemplateEnvelope>(orgTemplate(orgId, id), { method: "PATCH", body: input });
+
+/** DRAFT to APPROVED ("Published"); the family's other published version is retired. */
+export const publishOrgLeaseTemplate = (orgId: string, id: string) =>
+  apiFetch<TemplateEnvelope>(`${orgTemplate(orgId, id)}/publish`, { method: "POST" });
+
+export const retireOrgLeaseTemplate = (orgId: string, id: string) =>
+  apiFetch<TemplateEnvelope>(`${orgTemplate(orgId, id)}/retire`, { method: "POST" });
+
+export const listOrgLeaseTemplateEvents = (orgId: string, id: string) =>
+  apiFetch<{ items: LeaseTemplateEvent[] }>(`${orgTemplate(orgId, id)}/events`, { cache: "no-store" });
 
 const mine = (id: string) => `/v1/me/leases/${encodeURIComponent(id)}`;
 

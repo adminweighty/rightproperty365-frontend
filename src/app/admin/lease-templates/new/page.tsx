@@ -5,7 +5,7 @@ import { Container } from "@/components/ui/container";
 import { load } from "@/lib/api/server/load";
 import { getAllCountries } from "@/lib/api/server/reference";
 
-export const metadata: Metadata = { title: "New lease template", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "New sample template", robots: { index: false, follow: false } };
 
 async function Editor() {
   const loaded = await load(getAllCountries);

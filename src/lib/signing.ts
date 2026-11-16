@@ -21,7 +21,7 @@ const messages: Record<string, string> = {
   LEASE_STATE_CONFLICT: "This lease has moved on since you opened it. The page has been loaded again.",
   LEASE_TEMPLATE_DRAFT_EXISTS: "This template already has a draft of its next version. Edit that draft instead.",
   LEASE_TEMPLATE_NOT_EDITABLE: "A retired template cannot be changed.",
-  LEASE_TEMPLATE_STATE_CONFLICT: "Only a draft can be approved, and only an approved template can be retired.",
+  LEASE_TEMPLATE_STATE_CONFLICT: "Only a draft can be published or approved, and a retired template cannot be retired again.",
   LEASE_TEMPLATE_NOT_AVAILABLE: "That template is no longer offered. Choose another one.",
   LEASE_MARKET_MISMATCH: "That template is for another country than the property. Choose a template for the property's country.",
   AGREEMENT_NOT_FOUND: "We could not find that document, or you no longer have access to it.",
@@ -86,6 +86,13 @@ export const TEMPLATE_STATUS: Record<string, { label: string; tone: Tone }> = {
   RETIRED: { label: "Retired", tone: "warning" },
 };
 
+/** An organisation's own templates: APPROVED reads "Published". */
+export const ORG_TEMPLATE_STATUS: Record<string, { label: string; tone: Tone }> = {
+  DRAFT: { label: "Draft", tone: "neutral" },
+  APPROVED: { label: "Published", tone: "success" },
+  RETIRED: { label: "Retired", tone: "warning" },
+};
+
 export const statusOf = (table: Record<string, { label: string; tone: Tone }>, status: string) =>
   table[status] ?? { label: status.charAt(0) + status.slice(1).toLowerCase().replace(/_/g, " "), tone: "neutral" as Tone };
 
@@ -134,6 +141,8 @@ export const EVENT_LABELS: Record<string, string> = {
   EDITED: "Edited",
   PDF_GENERATED: "PDF made",
   NEW_VERSION: "New version started",
+  PUBLISHED: "Published",
+  COPIED: "Copied",
   RETIRED: "Retired",
 };
 
@@ -194,26 +203,34 @@ export function initialsOf(name: string): string {
 
 export const FIELD_MIN = 6;
 
-/** The field types in the editor's toolbar, with their size when placed (PDF points). */
+/** The field types in the editor's toolbar, with their size when placed and their smallest size (PDF points). */
 export const FIELD_TYPES = [
-  { type: "SIGNATURE", label: "Signature", w: 180, h: 40, signerOnly: true },
-  { type: "INITIALS", label: "Initials", w: 60, h: 30, signerOnly: true },
-  { type: "DATE_SIGNED", label: "Date signed", w: 110, h: 20, signerOnly: false },
-  { type: "NAME", label: "Name", w: 160, h: 20, signerOnly: false },
-  { type: "TEXT", label: "Text", w: 160, h: 22, signerOnly: false },
-  { type: "CHECKBOX", label: "Checkbox", w: 16, h: 16, signerOnly: false },
+  { type: "SIGNATURE", label: "Signature", w: 180, h: 40, min: FIELD_MIN, signerOnly: true },
+  { type: "INITIALS", label: "Initials", w: 60, h: 30, min: FIELD_MIN, signerOnly: true },
+  // A 40 mm square; at least 57 points (20 mm) so the stamp stays legible.
+  { type: "STAMP", label: "Stamp", w: 113, h: 113, min: 57, signerOnly: true },
+  { type: "DATE_SIGNED", label: "Date signed", w: 110, h: 20, min: FIELD_MIN, signerOnly: false },
+  { type: "NAME", label: "Name", w: 160, h: 20, min: FIELD_MIN, signerOnly: false },
+  { type: "TEXT", label: "Text", w: 160, h: 22, min: FIELD_MIN, signerOnly: false },
+  { type: "CHECKBOX", label: "Checkbox", w: 16, h: 16, min: FIELD_MIN, signerOnly: false },
 ] as const;
 
 export const fieldTypeLabel = (type: string) => FIELD_TYPES.find((item) => item.type === type)?.label ?? type;
+
+/** The smallest a field of `type` may be, in points. */
+export const fieldMin = (type: string): number => FIELD_TYPES.find((item) => item.type === type)?.min ?? FIELD_MIN;
+
+/** Only a SIGNER can have these (an approver approves without signing). */
+export const isSignerOnly = (type: string) => FIELD_TYPES.some((item) => item.type === type && item.signerOnly);
 
 export type Box = { x: number; y: number; w: number; h: number };
 
 const round2 = (value: number) => Math.round(value * 100) / 100;
 
-/** Keeps a field on its page and at least 6 x 6 points, rounded to hundredths. */
-export function clampBox(box: Box, page: { width: number; height: number }): Box {
-  const w = Math.min(Math.max(box.w, FIELD_MIN), page.width);
-  const h = Math.min(Math.max(box.h, FIELD_MIN), page.height);
+/** Keeps a field on its page and at least `min` x `min` points (6 by default), rounded to hundredths. */
+export function clampBox(box: Box, page: { width: number; height: number }, min: number = FIELD_MIN): Box {
+  const w = Math.min(Math.max(box.w, min), page.width);
+  const h = Math.min(Math.max(box.h, min), page.height);
   const x = Math.min(Math.max(box.x, 0), page.width - w);
   const y = Math.min(Math.max(box.y, 0), page.height - h);
   return { x: round2(x), y: round2(y), w: round2(w), h: round2(h) };
@@ -398,6 +415,68 @@ export function placeholderProblem(text: string, allowed: Set<string>): string |
 }
 
 export const CLAUSE_CODE = /^[A-Z][A-Z0-9_]{1,39}$/;
+
+/* ------------------------------------------------------------------------ */
+/* Stamps                                                                    */
+/* ------------------------------------------------------------------------ */
+
+export const STAMP_SHAPES = [
+  { value: "ROUND", label: "Round" },
+  { value: "OVAL", label: "Oval" },
+  { value: "RECTANGLE", label: "Rectangle" },
+] as const;
+
+export const STAMP_COLOURS = [
+  { value: "BLUE", label: "Blue" },
+  { value: "RED", label: "Red" },
+  { value: "BLACK", label: "Black" },
+  { value: "GREEN", label: "Green" },
+  { value: "PURPLE", label: "Purple" },
+] as const;
+
+export const STAMP_LINES_MAX = 3;
+
+type StampText = { top_text: string; centre_lines: string[]; bottom_text: string };
+
+const length = (text: string) => Array.from(text).length;
+
+/**
+ * What is wrong with a stamp's text, keyed like the API's field errors:
+ * `top_text`, `centre_lines`, `centre_lines[0]`, `bottom_text`.
+ */
+export function stampProblems(stamp: StampText): Record<string, string | undefined> {
+  const problems: Record<string, string | undefined> = {};
+  const top = stamp.top_text.trim();
+  if (!top) problems.top_text = "Type the text along the top, such as the company name.";
+  else if (length(top) > 60) problems.top_text = "Use 60 characters or fewer.";
+  if (stamp.centre_lines.length > STAMP_LINES_MAX) problems.centre_lines = "Use at most 3 centre lines.";
+  stamp.centre_lines.forEach((line, index) => {
+    if (length(line.trim()) > 30) problems[`centre_lines[${index}]`] = "Use 30 characters or fewer.";
+  });
+  if (length(stamp.bottom_text.trim()) > 60) problems.bottom_text = "Use 60 characters or fewer.";
+  return problems;
+}
+
+/** A stamp as it is sent: text trimmed, empty centre lines left out. */
+export function cleanStamp<T extends StampText>(stamp: T): T {
+  return {
+    ...stamp,
+    top_text: stamp.top_text.trim(),
+    centre_lines: stamp.centre_lines.map((line) => line.trim()).filter(Boolean),
+    bottom_text: stamp.bottom_text.trim(),
+  };
+}
+
+/** API field names (`stamp.top_text`, `centre_lines[1]`) as the keys of `stampProblems`. */
+export function stampFieldErrors(fields: Record<string, string> | undefined): Record<string, string> {
+  const errors: Record<string, string> = {};
+  for (const [key, message] of Object.entries(fields ?? {})) {
+    const name = key.replace(/^stamp\./, "");
+    if (name === key && !/^(shape|colour|top_text|centre_lines|bottom_text|include_date)/.test(key)) continue;
+    errors[name] = message;
+  }
+  return errors;
+}
 
 /* ------------------------------------------------------------------------ */
 /* Verification                                                              */

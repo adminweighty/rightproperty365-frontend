@@ -189,6 +189,11 @@ export function AccountMenu({ professionals }: { professionals?: NavItem }) {
                   </Link>
                 </li>
                 <li>
+                  <Link href="/agent/lease-templates" className={itemClass} onClick={() => setOpen(false)}>
+                    Lease templates
+                  </Link>
+                </li>
+                <li>
                   <Link href="/agent/agreements" className={itemClass} onClick={() => setOpen(false)}>
                     Agreements
                   </Link>

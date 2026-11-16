@@ -77,6 +77,8 @@ type Values = {
   notice: string;
   clauses: string[];
   special: string;
+  /** A stamp box next to each landlord's signature (API 0.26.0). */
+  landlordStamp: boolean;
 };
 
 type Problems = Record<string, string | undefined>;
@@ -105,6 +107,7 @@ const blank = (currency: string): Values => ({
   notice: "30",
   clauses: [],
   special: "",
+  landlordStamp: false,
 });
 
 const fromLease = (lease: Lease): Values => ({
@@ -125,6 +128,7 @@ const fromLease = (lease: Lease): Values => ({
   notice: String(lease.notice_period_days),
   clauses: lease.optional_clauses,
   special: lease.special_conditions ?? "",
+  landlordStamp: lease.landlord_stamp ?? false,
 });
 
 function toInput(values: Values, create: boolean): LeaseInput {
@@ -146,6 +150,7 @@ function toInput(values: Values, create: boolean): LeaseInput {
     notice_period_days: Number(values.notice),
     optional_clauses: values.clauses,
     special_conditions: values.special.trim(),
+    landlord_stamp: Boolean(values.landlordStamp),
   };
 }
 
@@ -241,14 +246,28 @@ async function loadContext(): Promise<ApiResult<Context>> {
   };
 }
 
-function TemplateNote({ template }: { template: LeaseTemplate }) {
+function TemplateNote({ template, organisations }: { template: LeaseTemplate; organisations: DashboardOrganisation[] }) {
   const review = template.legal_review;
+  if (template.source === "ORGANISATION" || template.organisation_id) {
+    const owner = organisations.find((item) => item.id === template.organisation_id);
+    return (
+      <p className="mt-2 text-sm text-muted">
+        {owner ? `${owner.name}'s own template` : "Your organisation's own template"}
+        {template.approved_at && `, published ${formatWhen(template.approved_at)}`}
+        {template.approved_by_name && ` by ${template.approved_by_name}`}.
+      </p>
+    );
+  }
   if (isSampleReview(review)) {
     return (
       <Alert tone="warning" title="The wording of this template is a sample" className="mt-3">
         <p>
-          It has not been approved by a lawyer{review ? ` (${review.reviewer_name}, ${review.organisation})` : ""}. Use it for
-          trying the site only, or have the lease checked by counsel before anyone signs it.
+          It is a starting point and has not been checked by a lawyer{review ? ` (${review.reviewer_name}, ${review.organisation})` : ""}. Check
+          that it suits this lease before anyone signs it, or{" "}
+          <Link href="/agent/lease-templates" className="font-medium text-primary-ink underline">
+            copy it as a template of your own
+          </Link>{" "}
+          and change its wording.
         </p>
       </Alert>
     );
@@ -395,6 +414,7 @@ function SendPanel({ lease, settle, onSent }: { lease: Lease; settle: () => Prom
       <p className="mt-1 text-muted">
         The lease is frozen and every landlord and tenant is emailed a link to sign, in any order. Their initials go on
         every page and their signature, name and date in the signature section: nothing to place by hand.
+        {lease.landlord_stamp && " Each landlord also adds their stamp next to their signature."}
       </p>
       <div className="mt-4 grid gap-4 md:grid-cols-2">
         <Field id="lease-send-message" label="Message" optional className="md:col-span-2">
@@ -550,10 +570,19 @@ function Editor({ leaseId, currencies, context }: { leaseId: string | null; curr
   const listing = listings.find((item) => item.id === values?.listingId) ?? null;
   const organisation = organisations.find((item) => item.id === values?.organisationId) ?? null;
   const market = lease?.template.market_code ?? listing?.country.code ?? organisation?.market_code ?? (organisations.length === 1 ? organisations[0].market_code : null);
+  // An organisation's templates are offered for its own leases only; samples for every lease.
+  const leaseOrganisation = lease?.organisation?.id ?? (values?.organisationId || (organisations.length === 1 ? organisations[0].id : null));
   const offered = useMemo(
-    () => (market ? templates.filter((template) => template.market_code.toUpperCase() === market.toUpperCase()) : templates),
-    [templates, market],
+    () =>
+      (market ? templates.filter((template) => template.market_code.toUpperCase() === market.toUpperCase()) : templates).filter(
+        (template) => !template.organisation_id || !leaseOrganisation || template.organisation_id === leaseOrganisation,
+      ),
+    [templates, market, leaseOrganisation],
   );
+  const isSample = (template: LeaseTemplate) => template.source === "SAMPLE" || !template.organisation_id;
+  const ownOffered = offered.filter((template) => !isSample(template));
+  const sampleOffered = offered.filter(isSample);
+  const templateOption = (item: LeaseTemplate) => ({ value: item.id, label: `${item.name} (version ${item.version})`, secondary: item.market_code });
   const needsOrganisation = !lease && organisations.length > 1;
   const contextFor = useMemo(() => ({ needsOrganisation, templates, market }), [needsOrganisation, templates, market]);
   const current = values ? problemsOf(values, contextFor) : {};
@@ -789,7 +818,8 @@ function Editor({ leaseId, currencies, context }: { leaseId: string | null; curr
               id="lease-template"
               options={[
                 { value: "", label: offered.length ? "Choose a template…" : "No template is offered for this country yet" },
-                ...offered.map((item) => ({ value: item.id, label: `${item.name} (version ${item.version})`, secondary: item.market_code })),
+                ...(ownOffered.length > 0 ? [{ label: "Your templates", options: ownOffered.map(templateOption) }] : []),
+                ...(sampleOffered.length > 0 ? [{ label: "Samples", options: sampleOffered.map(templateOption) }] : []),
               ]}
               value={values.templateId}
               disabled={!editable}
@@ -798,7 +828,15 @@ function Editor({ leaseId, currencies, context }: { leaseId: string | null; curr
               aria-describedby={describe("lease-template", "template", Boolean(market))}
             />
           </Field>
-          {template && <TemplateNote template={template} />}
+          {template && <TemplateNote template={template} organisations={organisations} />}
+          {editable && (
+            <p className="text-sm text-muted">
+              <Link href="/agent/lease-templates" className="font-medium text-primary-ink hover:underline">
+                Design your own templates
+              </Link>{" "}
+              to have them offered here once published.
+            </p>
+          )}
 
           <div className="grid gap-4 md:grid-cols-2">
             <Field id="lease-listing" label="One of your listings" optional error={err("listing")} hint={lease ? "It cannot change once the draft is saved." : "Fills in the address."}>
@@ -856,7 +894,22 @@ function Editor({ leaseId, currencies, context }: { leaseId: string | null; curr
           </div>
         </section>
 
-        <PartyRows side="landlords" word="Landlord" parties={values.landlords} problems={shown} disabled={!editable} onChange={(landlords, delay) => change({ ...values, landlords }, delay)} />
+        <div className="space-y-3">
+          <PartyRows side="landlords" word="Landlord" parties={values.landlords} problems={shown} disabled={!editable} onChange={(landlords, delay) => change({ ...values, landlords }, delay)} />
+          <label className="flex min-h-11 items-center gap-3 text-ink">
+            <input
+              type="checkbox"
+              checked={Boolean(values.landlordStamp)}
+              disabled={!editable}
+              onChange={(event) => change({ ...values, landlordStamp: event.currentTarget.checked }, 0)}
+              className="size-5 accent-primary"
+            />
+            <span>
+              <span className="font-medium">Add a stamp box for each landlord</span>
+              <span className="block text-sm text-muted">Next to their signature. Each landlord adopts a company stamp when they sign.</span>
+            </span>
+          </label>
+        </div>
         <PartyRows side="tenants" word="Tenant" parties={values.tenants} problems={shown} disabled={!editable} onChange={(tenants, delay) => change({ ...values, tenants }, delay)} />
 
         <section aria-labelledby="lease-terms" className="space-y-4">
