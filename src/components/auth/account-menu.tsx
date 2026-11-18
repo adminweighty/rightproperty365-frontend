@@ -161,6 +161,11 @@ export function AccountMenu({ professionals }: { professionals?: NavItem }) {
                   </Link>
                 </li>
                 <li>
+                  <Link href="/account/venue-bookings" className={itemClass} onClick={() => setOpen(false)}>
+                    Your hourly bookings
+                  </Link>
+                </li>
+                <li>
                   <Link href="/account/applications" className={itemClass} onClick={() => setOpen(false)}>
                     Your applications
                   </Link>
@@ -187,6 +192,11 @@ export function AccountMenu({ professionals }: { professionals?: NavItem }) {
                 <li>
                   <Link href="/agent/appointments" className={itemClass} onClick={() => setOpen(false)}>
                     Appointments received
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/agent/venue-bookings" className={itemClass} onClick={() => setOpen(false)}>
+                    Hourly bookings received
                   </Link>
                 </li>
                 <li>

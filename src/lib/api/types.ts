@@ -386,6 +386,11 @@ export type ReferenceItem = {
   parent_code: string | null;
   group: ReferenceGroup | null;
   requires_verification: boolean | null;
+  /**
+   * `property_types` only (API 0.33.0): a listing of this type can be let by
+   * the hour (a showroom, a venue, a hall). Absent from older API builds.
+   */
+  hourly_bookable?: boolean | null;
 };
 
 export type ReferenceSetCode =

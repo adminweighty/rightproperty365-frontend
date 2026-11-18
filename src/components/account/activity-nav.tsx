@@ -1,17 +1,19 @@
 import { ChipNav } from "@/components/portal/portal-ui";
 
-export type ActivityTab = "requests" | "appointments" | "applications" | "saved";
+export type ActivityTab = "requests" | "appointments" | "venue-bookings" | "applications" | "saved";
 
 const TABS: { key: ActivityTab; href: string; label: string }[] = [
   { key: "requests", href: "/account/requests", label: "Requests" },
   { key: "appointments", href: "/account/appointments", label: "Appointments" },
+  { key: "venue-bookings", href: "/account/venue-bookings", label: "Hourly bookings" },
   { key: "applications", href: "/account/applications", label: "Applications" },
   { key: "saved", href: "/account/saved", label: "Saved" },
 ];
 
 /**
  * The customer's activity pages, one row of links at the top of each: what
- * they asked about, the viewings they arranged, the applications they made
+ * they asked about, the viewings they arranged, the venues they asked to
+ * book by the hour, the applications they made
  * and the properties they saved.
  * Each page says which one it is, so nothing here reads the address.
  */

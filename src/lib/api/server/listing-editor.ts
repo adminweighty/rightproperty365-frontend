@@ -18,6 +18,8 @@ export type EditorOption = {
   country?: string;
   /** A feature's group heading. */
   group?: string;
+  /** A property type that can be let by the hour (API 0.33.0); undefined when the reference data does not say. */
+  hourly?: boolean;
 };
 
 export type ListingEditorLists = {
@@ -53,10 +55,11 @@ export async function getListingEditorLists(): Promise<ListingEditorLists> {
       .sort((a, b) => a.label.localeCompare(b.label, "en-GB")),
     deals: plain(sets.deal_types),
     categories: plain(sets.property_categories),
-    propertyTypes: sets.property_types.map(({ code, label, parent_code }) => ({
+    propertyTypes: sets.property_types.map(({ code, label, parent_code, hourly_bookable }) => ({
       value: code,
       label,
       parent: parent_code ?? undefined,
+      ...(typeof hourly_bookable === "boolean" && { hourly: hourly_bookable }),
     })),
     periods: plain(sets.price_periods),
     features: sets.listing_features.map(({ code, label, group }) => ({ value: code, label, group: group?.label })),

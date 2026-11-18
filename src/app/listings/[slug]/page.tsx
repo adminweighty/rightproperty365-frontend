@@ -11,6 +11,7 @@ import { SaveListingButton } from "@/components/listings/save-listing-button";
 import { ListingViewBeacon } from "@/components/analytics/analytics-root";
 import { YouTubeTour } from "@/components/listings/youtube-tour";
 import { ApplyButton } from "@/components/listings/apply-button";
+import { BookByTheHour } from "@/components/venues/book-by-the-hour";
 import { Reveal } from "@/components/motion/reveal";
 import { Stagger } from "@/components/motion/stagger";
 import { PropertyRequestForm } from "@/components/requests/property-request-form";
@@ -203,6 +204,11 @@ async function ListingContent({ params }: Pick<Props, "params">) {
   const place = fullPlace(listing);
   const periods = toLabels(catalogue.sets.price_periods);
   const calendar = availability ? toStayCalendarData(availability) : null;
+  // A venue let by the hour (API 0.33.0): the reference data says which types can be. Where it does
+  // not say (an older API), the widget asks and shows nothing when hourly booking is off.
+  const types = catalogue.sets.property_types;
+  const hourlyFlag = types.find((type) => type.code === listing.property_type.code)?.hourly_bookable;
+  const hourly = !calendar && (hourlyFlag === true || (hourlyFlag == null && !types.some((type) => typeof type.hourly_bookable === "boolean")));
 
   return (
     <>
@@ -330,6 +336,12 @@ async function ListingContent({ params }: Pick<Props, "params">) {
                 ))}
               </Stagger>
             </>
+          )}
+
+          {hourly && (
+            // A client island: the free times, the quote and the request are read in the browser,
+            // so the page stays cached and the same for everyone.
+            <BookByTheHour listingId={listing.id} slug={listing.slug} title={listing.title} />
           )}
 
           {calendar && (

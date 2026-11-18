@@ -4,6 +4,7 @@ import { AlertCircle, CheckCircle2, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FocusEvent, type ReactNode } from "react";
+import { HourlyBookingSection } from "@/components/agent/hourly-settings";
 import { ListingApplications } from "@/components/agent/listing-applications";
 import { PhotoManager } from "@/components/agent/photo-manager";
 import { ListingAnalyticsCard } from "@/components/analytics/agent-analytics";
@@ -629,6 +630,13 @@ function Editor({ listingId, lists }: Props) {
   const currencies = [...new Set(lists.countries.map((country) => country.currency).filter(Boolean))].sort();
   const ownCurrency = lists.countries.find((country) => country.value === values.country)?.currency;
   const showPeriod = isStay || values.deal === "rent" || Boolean(values.price_period);
+  // The reference data's `hourly_bookable` flag; null when this API build's reference data does not carry it.
+  const flagged = lists.propertyTypes.some((type) => type.hourly !== undefined);
+  const hourlyEligible = !values.property_type
+    ? false
+    : flagged
+      ? lists.propertyTypes.find((type) => type.value === values.property_type)?.hourly === true
+      : null;
   const banner = listingBanner(listing);
   const pendingBadge = pendingChangesBadge(listing.pending_changes);
   const buttons = listingActionButtons({
@@ -1302,6 +1310,15 @@ function Editor({ listingId, lists }: Props) {
               )}
             </Section>
           </fieldset>
+
+          <HourlyBookingSection
+            // A new type starts the section again: eligibility and settings are per type.
+            key={`hourly-${values.property_type}`}
+            listingId={listing.id}
+            eligibleByType={hourlyEligible}
+            fallbackCurrency={listing.content.price.currency || ownCurrency || "USD"}
+            editable={listing.can_edit}
+          />
 
           <ListingApplications listing={listing} editable={listing.can_edit} />
 
