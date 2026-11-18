@@ -12,7 +12,8 @@ const rooms = (count: number, noun: string) => `${count} ${noun}${count === 1 ? 
 /**
  * The filters of a search as removable chips, in the order of the form. Every
  * label comes from the API's reference data or from the value itself. Sort
- * order is not a filter, so it has no chip; removing a chip keeps it.
+ * order is not a filter, so it has no chip; removing a chip keeps it. The
+ * same goes for the Map view (`view=map`): removing a chip stays on the map.
  */
 export function activeFilterChips(
   filters: ListingFilters,
@@ -60,6 +61,8 @@ export function activeFilterChips(
     has_photos: () => "With photos",
     reference: (value) => `Reference ${value}`,
     q: (value) => `“${value}”`,
+    // The area chosen with "Search this area". The view (list or map) is not a filter and has no chip.
+    bbox: () => "In the map area",
   };
 
   const chips: FilterChip[] = [];

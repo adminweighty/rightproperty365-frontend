@@ -38,6 +38,14 @@ export type ListingContent = {
   youtube_video_id?: string | null;
   /** Whole seconds, from a `t=` or `start=` in the link. */
   youtube_start_seconds?: number | null;
+  /**
+   * The pin (API 0.29.0), exact as the lister placed it, at most 6 decimals.
+   * Both set or both null. Optional: API builds before 0.29 send none of the three.
+   */
+  latitude?: number | null;
+  longitude?: number | null;
+  /** APPROXIMATE: visitors see only the area (rounded to about 1 km). Default EXACT. */
+  location_precision?: "EXACT" | "APPROXIMATE";
 };
 
 /** Every key is optional; `null` clears a field. Unknown keys are refused (400). */
@@ -64,6 +72,10 @@ export type ListingContentPatch = Partial<{
   min_nights: number | null;
   /** A YouTube watch or share link; null or "" removes the video. 400 on `youtube_url` for anything else. */
   youtube_url: string | null;
+  /** Sent together: both numbers, or both null to remove the pin. One alone is 400 on the missing one; (0, 0) is refused. */
+  latitude: number | null;
+  longitude: number | null;
+  location_precision: "EXACT" | "APPROXIMATE";
 }>;
 
 export type PhotoSize = "large" | "medium" | "small";

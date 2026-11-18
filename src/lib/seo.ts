@@ -15,6 +15,7 @@ import type {
 import { env } from "@/lib/env";
 import { formatMoney, pricePeriodLabel } from "@/lib/format";
 import { logoUrl } from "@/lib/logos";
+import { formatBbox, parseBbox } from "@/lib/map";
 import { isNight } from "@/lib/nights";
 import { coverPhoto } from "@/lib/photos";
 import { joinPlaces, shortPlace } from "@/lib/places";
@@ -44,6 +45,8 @@ export type SearchContext = { sets: ReferenceSets; countries?: Pick<Country, "co
 
 /** Listings per result page. */
 export const LISTINGS_PAGE_SIZE = 12;
+/** Listings per page of the map view: the API's largest page, so most areas fit on one map. */
+export const MAP_PAGE_SIZE = 48;
 
 export const listingSorts: ListingSort[] = ["newest", "oldest", "price_asc", "price_desc", "area_desc", "relevance"];
 export const advertiserTypes: AdvertiserType[] = ["agency", "private"];
@@ -88,7 +91,15 @@ export type ListingFilters = {
   has_photos?: boolean;
   reference?: string;
   q?: string;
+  /** `west,south,east,north`: only listings on the map inside this box (API 0.29.0). */
+  bbox?: string;
   sort?: ListingSort;
+  /**
+   * The Map view (`view=map`). Not a filter of the API: it changes what the
+   * page shows (only listings with a location, 48 a page), so it is kept in
+   * every link of the page and is never part of a canonical address.
+   */
+  view?: "map";
 };
 
 export const filterParams = [
@@ -119,7 +130,9 @@ export const filterParams = [
   "has_photos",
   "reference",
   "q",
+  "bbox",
   "sort",
+  "view",
 ] as const;
 /**
  * `location` is the hero search's single select (`location=city:harare`) and
@@ -224,6 +237,8 @@ export type ListingsSearch = {
   curated: boolean;
   /** True when `advanced=1` asked for the advanced search panel to be open. */
   advanced: boolean;
+  /** "map" for the Map view; only when a map can be shown (`env.map`). */
+  view: "list" | "map";
   /** The page's own URL in canonical parameter order (page 2 and later keep `page`). */
   canonicalPath: string;
   heading: string;
@@ -274,6 +289,16 @@ export function parseListingsSearch(params: RawParams, context: SearchContext): 
     invalid = true;
     return undefined;
   };
+
+  // Written again in the one form the map writes, so the same box is the same address.
+  function bboxValue() {
+    const value = text("bbox");
+    if (value === undefined) return undefined;
+    const box = parseBbox(value);
+    if (box) return formatBbox(box) ?? undefined;
+    invalid = true;
+    return undefined;
+  }
 
   const night = (key: string) => {
     const value = text(key);
@@ -327,7 +352,11 @@ export function parseListingsSearch(params: RawParams, context: SearchContext): 
     has_photos: oneOf("has_photos", ["true"]) ? true : undefined,
     reference: text("reference")?.slice(0, 40),
     q: text("q")?.slice(0, 100),
+    bbox: bboxValue(),
+    // A site with no map tiles has no Map view: the address shows the list.
+    view: oneOf("view", ["map"]) && env.map ? "map" : undefined,
   };
+  if (text("view") === "map" && !env.map) invalid = true;
 
   // The hero search's single "Location" select: `location=region:harare`
   // stands for `region=harare`. A place given by its own parameter wins.
@@ -374,6 +403,8 @@ export function parseListingsSearch(params: RawParams, context: SearchContext): 
 
   const base = listingsHeading(filters, context);
   const heading = filters.q ? `${base} matching "${filters.q}"` : base;
+  const { view, ...apiFilters } = filters;
+  const map = view === "map";
 
   return {
     filters,
@@ -382,11 +413,15 @@ export function parseListingsSearch(params: RawParams, context: SearchContext): 
       // Price filters apply in `currency`, else in the currency of the chosen
       // country (the API works that out); nothing is converted and nothing is
       // assumed. With neither, the API refuses a price filter.
-      ...filters,
+      ...apiFilters,
+      // The map shows only listings with a location: those in its box, or before
+      // there is a box, every one that has a pin.
+      has_location: map && !filters.bbox ? true : undefined,
       page,
-      page_size: LISTINGS_PAGE_SIZE,
+      page_size: map ? MAP_PAGE_SIZE : LISTINGS_PAGE_SIZE,
     },
     advanced: text("advanced") === "1",
+    view: map ? "map" : "list",
     curated,
     canonicalPath: listingsPath(
       {
@@ -516,7 +551,13 @@ function propertyJsonLd(listing: Listing): JsonLd {
     ...(listing.region?.label && { addressRegion: listing.region.label }),
     addressCountry: listing.country?.code ?? listing.market_code,
   };
-  const base = { name: listing.title, description: listing.description, address };
+  // Coordinates only for an exact pin: an approximate one is an area, not where the property is.
+  const location = listing.location;
+  const geo =
+    location?.precision === "EXACT"
+      ? { geo: { "@type": "GeoCoordinates", latitude: location.latitude, longitude: location.longitude } }
+      : {};
+  const base = { name: listing.title, description: listing.description, address, ...geo };
 
   if (listing.bedrooms !== null) {
     return {

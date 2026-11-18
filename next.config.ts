@@ -47,6 +47,7 @@ const securityHeaders = [
   // `frame-src`, so scripts, styles, images and workers are not restricted by
   // it. A new embed (a map, a document viewer in a frame) must add its origin
   // here. PDFs open in a new tab from a blob: URL, which is not a frame.
+  // Map tiles (Leaflet, API 0.29.0) are plain images and need no frame.
   { key: "Content-Security-Policy", value: "frame-src https://www.youtube-nocookie.com https://www.youtube.com" },
 ];
 

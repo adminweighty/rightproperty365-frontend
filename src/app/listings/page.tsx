@@ -17,8 +17,16 @@ import { X } from "lucide-react";
 import { toLabels } from "@/lib/api/types";
 import { activeFilterChips } from "@/lib/filter-chips";
 import { buildSearchOptions } from "@/lib/search-options";
-import { listingsCollectionJsonLd, listingsPath, parseListingsSearch } from "@/lib/seo";
+import { LISTINGS_PAGE_SIZE, listingsCollectionJsonLd, listingsPath, parseListingsSearch } from "@/lib/seo";
 import { ApiBoundary } from "@/components/api-boundary";
+import { ViewToggle } from "@/components/listings/view-toggle";
+import { ResultsMap, type MapListing } from "@/components/map/maps";
+import { Alert } from "@/components/ui/alert";
+import type { Listing } from "@/lib/api/types";
+import { env } from "@/lib/env";
+import { formatMoney, pricePeriodLabel } from "@/lib/format";
+import { mappableText } from "@/lib/map";
+import { shortPlace } from "@/lib/places";
 
 type Props = PageProps<"/listings">;
 
@@ -37,7 +45,31 @@ async function readResults(params: RawParams) {
   const context = { sets: catalogue.sets, countries: everyCountry };
   const search = parseListingsSearch(params, context);
   const country = everyCountry.find(({ code }) => code === search.filters.country);
-  return { catalogue, context, search, country, result: await searchListings(search.query) };
+  const [result, overview] = await Promise.all([
+    searchListings(search.query),
+    // The Map view also says how much of the whole search can be mapped: the
+    // same search without the box, read as the list's first page (one cache entry).
+    search.view === "map"
+      ? searchListings({ ...search.query, bbox: undefined, has_location: undefined, page: 1, page_size: LISTINGS_PAGE_SIZE })
+      : undefined,
+  ]);
+  return { catalogue, context, search, country, result, overview };
+}
+
+/** A result with a location, as the map shows it. Plain text, so the map's client code needs no formatting. */
+function toMapListing(listing: Listing, periods: Record<string, string>): MapListing[] {
+  if (!listing.location) return [];
+  const price = formatMoney(listing.price);
+  return [
+    {
+      id: listing.id,
+      title: listing.title,
+      href: `/listings/${listing.slug}`,
+      price: listing.price_period ? `${price} ${pricePeriodLabel(listing.price_period, periods)}` : price,
+      place: shortPlace(listing),
+      location: listing.location,
+    },
+  ];
 }
 
 /** The address the visitor asked for, to offer again when loading fails. */
@@ -100,7 +132,13 @@ async function Results({ searchParams }: Pick<Props, "searchParams">) {
     );
   }
 
-  const { catalogue, context, search, country, result } = loaded.data;
+  const { catalogue, context, search, country, result, overview } = loaded.data;
+  const mapView = search.view === "map";
+  const periods = toLabels(catalogue.sets.price_periods);
+  const overviewPage = overview?.status === "ok" ? overview.page : undefined;
+  const mappable = overviewPage ? mappableText(overviewPage.mappable_total, overviewPage.total) : null;
+  // In the Map view, a search with results of which none has a location.
+  const noneMapped = mapView && !search.filters.bbox && (overviewPage?.total ?? 0) > 0;
   const page = result.status === "ok" ? result.page : undefined;
   const options = buildSearchOptions(catalogue.sets, page?.facets, search.filters, catalogue.countries, country);
   // The line under the heading names a currency only when every result is in
@@ -136,6 +174,7 @@ async function Results({ searchParams }: Pick<Props, "searchParams">) {
       {page && (
         <p className="mt-2 text-muted" role="status">
           {propertyCount(page.total)}
+          {mapView && (search.filters.bbox ? " in this map area" : " on the map")}
           {page.total_pages > 1 && ` · page ${page.page} of ${page.total_pages}`}
           {priceNote && ` · ${priceNote}`}
         </p>
@@ -176,7 +215,7 @@ async function Results({ searchParams }: Pick<Props, "searchParams">) {
             ))}
             <li>
               <Link
-                href={listingsPath({ sort: search.filters.sort })}
+                href={listingsPath({ sort: search.filters.sort, view: search.filters.view })}
                 className="flex min-h-11 items-center px-2 text-sm font-semibold text-primary-ink hover:underline"
               >
                 Clear all<span className="sr-only"> filters</span>
@@ -186,13 +225,40 @@ async function Results({ searchParams }: Pick<Props, "searchParams">) {
         </nav>
       )}
 
+      {env.map && result.status === "ok" && (
+        <ViewToggle
+          view={search.view}
+          listHref={listingsPath({ ...search.filters, view: undefined })}
+          mapHref={listingsPath({ ...search.filters, view: "map" })}
+          className="mt-6"
+        />
+      )}
+
+      {mapView && page && (
+        <section aria-labelledby="map-heading" className="mt-6">
+          <h2 id="map-heading" className="sr-only">
+            Map of the results
+          </h2>
+          {mappable && <p className="mb-3 text-sm text-muted">{mappable}</p>}
+          <ResultsMap
+            listings={page.items.flatMap((listing) => toMapListing(listing, periods))}
+            bbox={search.filters.bbox ?? null}
+            searchBase={listingsPath({ ...search.filters, bbox: undefined })}
+          />
+        </section>
+      )}
+
       {page && page.items.length > 0 && (
         <>
+          {/* The map is never the only way to a listing: everything on it is listed here too. */}
+          {mapView && (
+            <h2 className="mt-8 text-2xl">{search.filters.bbox ? "Properties in this area" : "Properties on the map"}</h2>
+          )}
           {/* A new key for a new search, so its cards come in again after a client-side navigation. */}
-          <div key={requestedPath(params)} className="mt-8">
+          <div key={requestedPath(params)} className={mapView ? "mt-4" : "mt-8"}>
             <ListingGrid
               listings={page.items}
-              periods={toLabels(catalogue.sets.price_periods)}
+              periods={periods}
               // The stay of the search travels to each short stay, to start its request form.
               stay={{ check_in: search.filters.check_in, check_out: search.filters.check_out, guests: search.filters.guests_min }}
             />
@@ -210,12 +276,22 @@ async function Results({ searchParams }: Pick<Props, "searchParams">) {
       {page && page.items.length === 0 && (
         <div className="mt-8 rounded-lg border border-dashed border-line-strong p-10 text-center">
           <h2 className="text-2xl">
-            {pastTheEnd ? `There is no page ${search.page} of these results` : "No properties match that search"}
+            {pastTheEnd
+              ? `There is no page ${search.page} of these results`
+              : mapView && search.filters.bbox
+                ? "No properties in this area"
+                : noneMapped
+                  ? "None of these properties is on the map yet"
+                  : "No properties match that search"}
           </h2>
           <p className="mx-auto mt-2 max-w-md text-muted">
             {pastTheEnd
               ? `This search has ${propertyCount(page.total)} on ${page.total_pages === 1 ? "1 page" : `${page.total_pages} pages`}.`
-              : "Try a nearby suburb, a different category, or clear the filters to see everything."}
+              : mapView && search.filters.bbox
+                ? "Move the map or zoom out and search this area again, or search the whole map."
+                : noneMapped
+                  ? `This search has ${propertyCount(overviewPage?.total ?? 0)}, but none has been placed on the map by its advertiser. The list shows them all.`
+                  : "Try a nearby suburb, a different category, or clear the filters to see everything."}
           </p>
           {suggestions.length > 0 && (
             <ul className="mx-auto mt-5 flex max-w-xl flex-wrap justify-center gap-2">
@@ -236,19 +312,34 @@ async function Results({ searchParams }: Pick<Props, "searchParams">) {
               ))}
             </ul>
           )}
-          <ButtonLink
-            href={pastTheEnd ? listingsPath(search.filters) : "/listings"}
-            variant="secondary"
-            className="mt-6"
-          >
-            {pastTheEnd ? "Go to page 1" : "Clear filters"}
-          </ButtonLink>
+          {pastTheEnd ? (
+            <ButtonLink href={listingsPath(search.filters)} variant="secondary" className="mt-6">
+              Go to page 1
+            </ButtonLink>
+          ) : mapView && search.filters.bbox ? (
+            <ButtonLink href={listingsPath({ ...search.filters, bbox: undefined })} variant="secondary" className="mt-6">
+              Search the whole map
+            </ButtonLink>
+          ) : noneMapped ? (
+            <ButtonLink href={listingsPath({ ...search.filters, view: undefined })} variant="secondary" className="mt-6">
+              Show them as a list
+            </ButtonLink>
+          ) : (
+            <ButtonLink href={mapView ? listingsPath({ view: "map" }) : "/listings"} variant="secondary" className="mt-6">
+              Clear filters
+            </ButtonLink>
+          )}
         </div>
       )}
 
       {result.status === "invalid" && (
         <div className="mt-8 rounded-lg border border-dashed border-line-strong p-10 text-center">
           <h2 className="text-2xl">That search could not be run</h2>
+          {errors.bbox && (
+            <Alert tone="warning" title="The map area could not be searched" className="mx-auto mt-4 max-w-md text-left">
+              {errors.bbox}
+            </Alert>
+          )}
           <p className="mx-auto mt-2 max-w-md text-muted">
             {Object.keys(errors).length > 0
               ? "Some of the filters need a change. Each one is marked in the form above with what to do."

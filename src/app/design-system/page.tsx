@@ -4,6 +4,7 @@ import cityArtwork from "@/assets/images/city-harare.jpg";
 import { PhotoTile, PhotoTileRow } from "@/components/landing/photo-tile";
 import { SectionHeading } from "@/components/landing/section-heading";
 import { ListingCard } from "@/components/listings/listing-card";
+import { ViewToggle } from "@/components/listings/view-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -342,6 +343,11 @@ export default function DesignSystemPage() {
 
         <Section title="Pagination">
           <Pagination page={3} totalPages={8} hrefFor={(page) => `/design-system?page=${page}`} label="Example" />
+        </Section>
+
+        <Section title="List or map">
+          {/* The maps themselves need tiles and Leaflet in the browser: see /listings?view=map and a listing page. */}
+          <ViewToggle view="list" listHref="/design-system" mapHref="/design-system" />
         </Section>
 
         <Section title="Error state">

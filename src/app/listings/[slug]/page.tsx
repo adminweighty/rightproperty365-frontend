@@ -34,6 +34,8 @@ import {
   SHORT_STAY,
 } from "@/lib/seo";
 import { ApiBoundary } from "@/components/api-boundary";
+import { ListingMap } from "@/components/map/maps";
+import { env } from "@/lib/env";
 
 type Props = PageProps<"/listings/[slug]">;
 
@@ -264,6 +266,21 @@ async function ListingContent({ params }: Pick<Props, "params">) {
               <MapPin className="size-4 shrink-0" aria-hidden="true" />
               {place}
             </p>
+          )}
+          {/* A client island that loads when it nears the screen; the page itself stays the same for everyone. */}
+          {env.map && listing.location && (
+            <section aria-labelledby="map-heading" className="mt-4 max-w-2xl">
+              <h2 id="map-heading" className="sr-only">
+                Location on the map
+              </h2>
+              <ListingMap location={listing.location} title={listing.title} />
+              {listing.location.precision === "APPROXIMATE" && (
+                <p className="mt-2 text-sm text-muted">
+                  <span className="font-semibold text-ink">Approximate location.</span> The circle shows the area; the
+                  advertiser has not published the exact position.
+                </p>
+              )}
+            </section>
           )}
           {/* On a phone the side panel is far below: say who advertises it here as well. */}
           <AdvertiserCompact advertiser={advertiser} className="mt-4 lg:hidden" />

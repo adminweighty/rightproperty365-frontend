@@ -311,10 +311,20 @@ export const listingFieldLabels: Record<string, string> = {
   youtube_url: "YouTube video tour",
   youtube_video_id: "YouTube video tour",
   youtube_start_seconds: "Video starts at",
+  latitude: "Latitude",
+  longitude: "Longitude",
+  location_precision: "Shown on the map as",
 };
 
 /** The review's change rows that are about the video tour (API 0.28.0). */
 export const isVideoField = (field: string) => field.startsWith("youtube_");
+
+/** True for the fields of the map pin (API 0.29.0), which a review shows together. */
+export const isLocationField = (field: string) => field === "latitude" || field === "longitude" || field === "location_precision";
+
+/** How the pin is shown to visitors, in words. */
+export const locationPrecisionText = (precision: unknown) =>
+  precision === "APPROXIMATE" ? "Approximate area (about 1 km)" : "Exact pin";
 
 /** The statuses a reviewer filters the queue by, the default first. */
 export const REVIEW_QUEUE_STATUSES = ["PENDING_REVIEW", "CHANGES_REQUESTED", "REJECTED", "PUBLISHED", "DRAFT", "ARCHIVED", "EXPIRED"] as const;
@@ -354,6 +364,9 @@ const FIELD_CONTROLS: Record<string, string> = {
   max_guests: "listing-max-guests",
   min_nights: "listing-min-nights",
   youtube_url: "listing-youtube-url",
+  latitude: "listing-latitude",
+  longitude: "listing-longitude",
+  location_precision: "listing-location-approximate",
   photos: "listing-photos",
 };
 

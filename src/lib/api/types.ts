@@ -152,6 +152,23 @@ export type Listing = {
   has_video?: boolean;
   /** The listing page only: its video tour, or null. Optional: API builds before 0.28 do not send it. */
   video?: ListingVideo | null;
+  /**
+   * Where it is on a map (API 0.29.0), on the listing page and every search
+   * card, or null when the lister placed no pin. Optional: API builds before
+   * 0.29 do not send it.
+   */
+  location?: ListingLocation | null;
+};
+
+/**
+ * A listing's public position. For an APPROXIMATE listing the API has already
+ * rounded it to 2 decimals (about 1 km): draw a circle, never a pin, and never
+ * claim it is the address.
+ */
+export type ListingLocation = {
+  latitude: number;
+  longitude: number;
+  precision: "EXACT" | "APPROXIMATE";
 };
 
 /**
@@ -228,6 +245,11 @@ export type ListingPage = {
   total: number;
   total_pages: number;
   facets: ListingFacets;
+  /**
+   * How many of the matching listings have a location (API 0.29.0), for "12
+   * of 20 results can be shown on the map". Optional: older builds do not send it.
+   */
+  mappable_total?: number;
 };
 
 export type ListingSort = "newest" | "oldest" | "price_asc" | "price_desc" | "area_desc" | "relevance";
@@ -278,6 +300,14 @@ export type ListingQuery = {
   sort?: ListingSort;
   page?: number;
   page_size?: number;
+  /**
+   * `west,south,east,north` in decimal degrees (API 0.29.0): only listings whose
+   * public position is inside. South below north and west left of east; a box
+   * across the antimeridian is refused (400 on `bbox`).
+   */
+  bbox?: string;
+  /** Only listings that have a location: the map view before it has a box. */
+  has_location?: boolean;
 };
 
 export type ListingSuggestion = {

@@ -1,4 +1,5 @@
 import { legal } from "@/lib/legal";
+import { mapTiles } from "@/lib/map";
 
 const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/+$/, "");
 
@@ -26,6 +27,20 @@ export const env = {
   siteUrl,
   /** Shows the test-site banner and keeps the site out of search engines. */
   testSite: isTestSite(),
+  /**
+   * The map tiles (API 0.29.0), or null when no map is offered: then the
+   * Map view, the listing page map and the editor map are left out and every
+   * list works as before. NEXT_PUBLIC_MAP_TILE_URL and
+   * NEXT_PUBLIC_MAP_ATTRIBUTION decide; without a tile URL, OpenStreetMap's
+   * public tiles are used everywhere except a production site (src/lib/map.ts).
+   */
+  map: mapTiles({
+    tileUrl: process.env.NEXT_PUBLIC_MAP_TILE_URL,
+    attribution: process.env.NEXT_PUBLIC_MAP_ATTRIBUTION,
+    nodeEnv: process.env.NODE_ENV,
+    testSite: isTestSite(),
+    siteUrl,
+  }),
 } as const;
 
 /**

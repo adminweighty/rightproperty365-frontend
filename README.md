@@ -36,6 +36,8 @@ Open http://localhost:3000. Start the backend API on http://localhost:8080 as we
 | `API_URL` | run time, server only | Address the web server uses to read listings, directory and reference data, for example a cluster-internal one. Optional; defaults to `NEXT_PUBLIC_API_URL`. Never sent to browsers. |
 | `NEXT_PUBLIC_SITE_URL` | build time | Public origin of the site, for canonical URLs, the sitemap and structured data. |
 | `BUILD_WITHOUT_API` | build time | Set to `1` to build without reading the API even when one is reachable. See "Builds and the API". |
+| `NEXT_PUBLIC_MAP_TILE_URL` | build time | Raster tile URL template for the maps (Leaflet), such as `https://tiles.example.com/{z}/{x}/{y}.png`; https only. Unset: OpenStreetMap's public tiles in development and on a test site, and **no map at all on production** (the Map view, the listing page map and the editor map are left out; every list works as before). OpenStreetMap's tiles must not carry production traffic, so production needs a paid or self-hosted tile source. See "Maps". |
+| `NEXT_PUBLIC_MAP_ATTRIBUTION` | build time | The credit the tile provider requires, shown on every map (HTML allowed, such as a link). Defaults to "© OpenStreetMap contributors" for OpenStreetMap's tiles. |
 | `REVALIDATE_SECRET` | run time, server only | Turns on `POST /api/revalidate` and is the bearer token it requires. Unset by default, which leaves the route off (404). See "Onboarding and verification". |
 
 ## Data from the API
@@ -94,6 +96,16 @@ curl -X POST https://<site>/api/revalidate -H "Authorization: Bearer $REVALIDATE
 ```
 
 The route accepts only the cache tags listed under "Data from the API", returns 404 when the secret is not set and 401 for a wrong one, and must only be called server to server: never put the secret in a browser. Nothing calls it yet; the API would need to after an approval.
+
+## Maps
+
+Listings can carry a pin (API 0.29.0): `location` on the listing page and every search card, `latitude`, `longitude` and `location_precision` in the listing editor. The maps are Leaflet 1.9.4 with raster tiles and no API key (`src/components/map`, `src/lib/map.ts`, specified in `design/components/README.md`, "Maps").
+
+- **Which tiles:** `env.map` in `src/lib/env.ts` (`mapTiles` in `src/lib/map.ts`, checked by `npm test`). A tile URL always wins. Without one, OpenStreetMap's public tiles are used unless this is a production site: a production build (`NODE_ENV=production`) that is not a test site (`NEXT_PUBLIC_TEST_SITE`, or a `staging.` host) and not served from `localhost`. A production site with no tile URL shows no map anywhere. The values are compiled in at build time, like every `NEXT_PUBLIC_*` value.
+- **Where:** a List / Map toggle on `/listings` (`view=map`, with "Search this area" writing `bbox`); a small map under the address of a listing; "Location on the map" in the listing editor; the proposed and public pin side by side in the admin listing review.
+- **Approximate locations:** the API rounds an APPROXIMATE listing's public position to 2 decimals (about 1 km) and the site draws a circle for it, never a pin.
+- **Headers:** Leaflet draws tiles as plain images and uses no frames, and the site's `Content-Security-Policy` sets only `frame-src`, so nothing needs allowing for the tile host. If an `img-src` policy is ever added, it must name the tile host.
+- **Not done:** the API does not check that a pin lies inside the listing's country (a follow-up there), and a map search cannot cross the antimeridian.
 
 ## Builds and the API
 
@@ -252,4 +264,4 @@ The build reads the API if it can reach it (`--build-arg API_URL=...`, else `NEX
 
 Built: design system, UI primitives, home page, listing search by country, region, city and suburb with advanced filters, facet counts and pages, listing detail, the directories and profiles (including Solicitors), short stays (search by dates and guests, the availability calendar, the request to stay), the property request and business enquiry forms, sitemap and structured data, and authentication: register, email confirmation, sign in and out, password reset, an account page showing roles, the request inbox, "Your listings" with the availability calendar and stay rules of a short stay, appointments (view, confirm, propose a new time, accept, cancel, complete), onboarding for professional, business and owner roles with document uploads, and the administrator review queue. All of it reads the Go API; the listings and profiles it shows are the backend's seed data.
 
-Not built yet: multi-factor authentication, organisation invitations and agent onboarding, account deletion, creating and editing listings ("Your listings" is read-only and says so), bookings and payments for stays (a stay is requested, never booked), assigning an appointment to a colleague, the rest of the agent and admin portals (listing moderation, markets, invoices, users, audit), maps, media uploads and object storage (photos are bundled files), YouTube embeds, analytics events, and automatic cache revalidation when the API changes (`POST /api/revalidate` exists; the API does not call it yet).
+Not built yet: multi-factor authentication, organisation invitations and agent onboarding, account deletion, creating and editing listings ("Your listings" is read-only and says so), bookings and payments for stays (a stay is requested, never booked), assigning an appointment to a colleague, the rest of the agent and admin portals (listing moderation, markets, invoices, users, audit), media uploads and object storage (photos are bundled files), YouTube embeds, analytics events, and automatic cache revalidation when the API changes (`POST /api/revalidate` exists; the API does not call it yet).

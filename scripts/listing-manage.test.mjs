@@ -8,6 +8,7 @@ import {
   editLinkLabel,
   fieldControlId,
   isListingStatus,
+  isLocationField,
   isVideoField,
   listingFieldLabels,
   listingActionButtons,
@@ -15,6 +16,7 @@ import {
   listingManagerHref,
   listingStatusLabel,
   listingStatusTone,
+  locationPrecisionText,
   parseAmount,
   parseWholeNumber,
   pendingChangesBadge,
@@ -177,4 +179,18 @@ test("the video tour fields have a control, a label and are grouped for the revi
   assert.ok(isVideoField("youtube_video_id"));
   assert.ok(isVideoField("youtube_start_seconds"));
   assert.ok(!isVideoField("title"));
+});
+
+test("the map pin is reviewed as one location, and its fields lead to their boxes", () => {
+  assert.equal(isLocationField("latitude"), true);
+  assert.equal(isLocationField("longitude"), true);
+  assert.equal(isLocationField("location_precision"), true);
+  assert.equal(isLocationField("city"), false);
+  assert.equal(fieldControlId("latitude"), "listing-latitude");
+  assert.equal(fieldControlId("longitude"), "listing-longitude");
+  assert.equal(fieldControlId("location_precision"), "listing-location-approximate");
+  assert.equal(listingFieldLabels.location_precision, "Shown on the map as");
+  assert.equal(locationPrecisionText("APPROXIMATE"), "Approximate area (about 1 km)");
+  assert.equal(locationPrecisionText("EXACT"), "Exact pin");
+  assert.equal(locationPrecisionText(undefined), "Exact pin");
 });

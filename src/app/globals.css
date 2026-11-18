@@ -236,6 +236,93 @@
   position: relative;
 }
 
+/*
+ * Maps (components/map, Leaflet). Leaflet's own stylesheet is loaded with the
+ * map; these rules give it the site's type and colours. Markers are drawn
+ * here, not with images: a pin for an exact position, a ring over a shaded
+ * circle for an approximate one.
+ */
+.rp-map.leaflet-container {
+  font-family: var(--rp-font-family-sans);
+  font-size: 0.875rem;
+  /* Above the page's sticky header only when the visitor has scrolled it there. */
+  z-index: 0;
+}
+.rp-map .leaflet-control-attribution {
+  font-size: 0.75rem;
+  color: var(--rp-color-text-muted);
+}
+.rp-map .leaflet-control-attribution a,
+.rp-map .rp-map-card a {
+  color: var(--rp-color-primary-ink);
+}
+.rp-map .leaflet-control-zoom a {
+  width: 44px;
+  height: 44px;
+  line-height: 44px;
+  color: var(--rp-color-text-ink);
+}
+.rp-map-pin,
+.rp-map-area-dot {
+  border-radius: 9999px;
+}
+.rp-map-pin:focus-visible,
+.rp-map-area-dot:focus-visible {
+  outline: 3px solid var(--rp-color-focus);
+  outline-offset: 2px;
+}
+.rp-map-pin-head {
+  position: absolute;
+  left: 3px;
+  top: 1px;
+  width: 22px;
+  height: 22px;
+  border: 3px solid var(--rp-color-bg-surface);
+  border-radius: 50% 50% 50% 0;
+  background: var(--rp-color-primary-base);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.35);
+  transform: rotate(-45deg);
+  transform-origin: center;
+  translate: 0 4px;
+}
+.rp-map-area-dot {
+  border: 3px solid var(--rp-color-primary-base);
+  background: var(--rp-color-bg-surface);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.35);
+}
+.rp-map-area {
+  stroke: var(--rp-color-primary-base);
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+  fill: var(--rp-color-primary-base);
+  fill-opacity: 0.12;
+}
+.rp-map-popup .leaflet-popup-content {
+  margin: 12px 16px;
+  line-height: 1.4;
+}
+.rp-map-popup .leaflet-popup-content p {
+  margin: 0.25rem 0 0;
+  color: var(--rp-color-text-muted);
+}
+.rp-map-popup .leaflet-popup-content .rp-map-card-title {
+  display: inline-block;
+  min-height: 24px;
+  font-weight: 600;
+  color: var(--rp-color-primary-ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.rp-map-popup .leaflet-popup-content p.rp-map-card-note {
+  font-weight: 600;
+  color: var(--rp-color-text-ink);
+}
+.rp-map-popup .leaflet-popup-close-button {
+  width: 32px;
+  height: 32px;
+  font-size: 22px;
+}
+
 @media print {
   /* A printed page is the content alone: no header, footer or test-site notice. */
   [data-site-header],

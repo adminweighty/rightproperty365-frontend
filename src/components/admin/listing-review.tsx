@@ -26,14 +26,17 @@ import type { EditorOption, ListingEditorLists } from "@/lib/api/server/listing-
 import { SHORT_STAY } from "@/lib/api/types";
 import { formatArea, formatMoney, pricePeriodLabel } from "@/lib/format";
 import {
+  isLocationField,
   isVideoField,
   listingFieldLabels,
+  locationPrecisionText,
   listingStatusLabel,
   listingStatusLabels,
   listingStatusTone,
   reviewReasonProblem,
   timelineText,
 } from "@/lib/listing-manage";
+import { formatCoordinates, openStreetMapHref } from "@/lib/map";
 import { joinPlaces } from "@/lib/places";
 import { formatStart, isPlaceholderThumbnail, isYouTubeId, startText, thumbnailFor, watchHref, watchUrlFor } from "@/lib/youtube";
 
@@ -75,6 +78,11 @@ function describeValue(field: string, value: unknown, lists: ListingEditorLists,
       return typeof value === "number" ? (formatStart(value) ?? "From the start") : String(value);
     case "min_nights":
       return typeof value === "number" ? `${value} ${value === 1 ? "night" : "nights"}` : String(value);
+    case "latitude":
+    case "longitude":
+      return typeof value === "number" ? value.toFixed(6) : String(value);
+    case "location_precision":
+      return locationPrecisionText(value);
     default:
       return typeof value === "object" ? JSON.stringify(value) : String(value);
   }
@@ -152,6 +160,38 @@ function ReviewVideo({ label, id, startSeconds }: { label: string; id: string | 
   );
 }
 
+/**
+ * A pin for the reviewer: its coordinates, how visitors see it, and a link to
+ * check the spot on OpenStreetMap in a new tab, or "Not on the map".
+ */
+function ReviewLocation({ label, content }: { label: string; content: ListingContent | null | undefined }) {
+  const latitude = content?.latitude;
+  const longitude = content?.longitude;
+  const placed = typeof latitude === "number" && typeof longitude === "number";
+  return (
+    <div className="min-w-0">
+      <p className="text-sm font-medium text-muted">{label}</p>
+      {placed ? (
+        <>
+          <p className="mt-1 font-mono text-sm text-ink">{formatCoordinates(latitude, longitude)}</p>
+          <p className="text-sm text-ink">{locationPrecisionText(content?.location_precision)}</p>
+          <a
+            href={openStreetMapHref(latitude, longitude)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-11 items-center text-sm font-medium text-primary-ink underline underline-offset-2 hover:no-underline"
+          >
+            Check it on OpenStreetMap
+            <span className="sr-only"> (opens in a new tab)</span>
+          </a>
+        </>
+      ) : (
+        <p className="mt-1 text-ink">Not on the map</p>
+      )}
+    </div>
+  );
+}
+
 /** The listing as visitors would see it once approved: the working copy and every photo. */
 function Preview({ listing, content, lists }: { listing: AdminListing; content: ListingContent; lists: ListingEditorLists }) {
   const [cover, ...more] = listing.photos;
@@ -193,6 +233,11 @@ function Preview({ listing, content, lists }: { listing: AdminListing; content: 
         {content.floor_area !== null && <Fact icon={<Ruler className="size-4" />}>{formatArea(content.floor_area)} floor</Fact>}
         {content.land_area !== null && <Fact icon={<Ruler className="size-4" />}>{formatArea(content.land_area)} land</Fact>}
         {isStay && content.min_nights !== null && <span>{describeValue("min_nights", content.min_nights, lists)} minimum</span>}
+      </p>
+      <p className="mt-2 text-sm text-muted">
+        {typeof content.latitude === "number" && typeof content.longitude === "number"
+          ? `On the map at ${formatCoordinates(content.latitude, content.longitude)}, shown as: ${locationPrecisionText(content.location_precision).toLowerCase()}.`
+          : "Not on the map."}
       </p>
       {content.summary && <p className="mt-4 font-medium text-ink">{content.summary}</p>}
       <p className="mt-3 max-w-prose whitespace-pre-line leading-relaxed text-ink">{content.description || "No description yet."}</p>
@@ -468,6 +513,15 @@ function Review({ listingId, lists }: Props) {
                     <div className="mt-2 grid gap-4 sm:grid-cols-2">
                       <ReviewVideo label="Public now" id={listing.live?.youtube_video_id} startSeconds={listing.live?.youtube_start_seconds} />
                       <ReviewVideo label="Proposed" id={listing.content.youtube_video_id} startSeconds={listing.content.youtube_start_seconds} />
+                    </div>
+                  </div>
+                )}
+                {listing.changes.some((change) => isLocationField(change.field)) && (
+                  <div className="mt-6">
+                    <h3 className="font-sans text-base font-semibold tracking-normal">Location on the map</h3>
+                    <div className="mt-2 grid gap-4 sm:grid-cols-2">
+                      <ReviewLocation label="Public now" content={listing.live} />
+                      <ReviewLocation label="Proposed" content={listing.content} />
                     </div>
                   </div>
                 )}

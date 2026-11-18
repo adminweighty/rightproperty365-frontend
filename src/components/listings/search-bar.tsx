@@ -25,7 +25,8 @@ type Props = {
  * results have a shareable URL (/listings?deal=rent&region=harare). First the
  * filters most people use (buy or rent, category, keyword), then Location
  * (country, region, city, suburb), then the advanced search panel.
- * Submitting always returns to page 1 of the new result.
+ * Submitting always returns to page 1 of the new result, in the same view
+ * (list or map).
  */
 export function SearchBar({ options, defaults = {}, advanced, errors = {}, className }: Props) {
   // A new key when the address changes, so the selects show the new search after a client navigation.
@@ -97,6 +98,8 @@ export function SearchBar({ options, defaults = {}, advanced, errors = {}, class
       </fieldset>
 
       <ListingFilterPanel options={options} defaults={defaults} open={advanced} errors={errors} />
+      {/* A new search stays in the Map view. Its map area is not kept: the new search may be somewhere else. */}
+      {defaults.view === "map" && <input type="hidden" name="view" value="map" />}
     </GetForm>
   );
 }

@@ -45,6 +45,9 @@ import {
   type ActionButton,
 } from "@/lib/listing-manage";
 import { isPlaceholderThumbnail, isYouTubeId, startText, thumbnailFor, watchHref, watchUrlFor } from "@/lib/youtube";
+import { LocationPicker } from "@/components/map/maps";
+import { env } from "@/lib/env";
+import { coordinateForInput, parseCoordinatePair } from "@/lib/map";
 
 // ---- The form's values --------------------------------------------------------
 
@@ -74,12 +77,33 @@ type Values = {
   min_nights: string;
   /** The link as typed; after a save, the canonical watch address the API sends back. */
   youtube_url: string;
+  /** The pin as typed or placed on the map. Saved together: both or neither. */
+  latitude: string;
+  longitude: string;
+  location_precision: "EXACT" | "APPROXIMATE";
 };
 
 type Key = keyof Values;
 
 /** Choices the API may change itself after a save (a short stay is to rent, per night; a new country clears places). */
-const FOLLOWS_SERVER: Key[] = ["deal", "category", "property_type", "currency", "price_period", "country", "city", "suburb", "features", "youtube_url"];
+const FOLLOWS_SERVER: Key[] = [
+  "deal",
+  "category",
+  "property_type",
+  "currency",
+  "price_period",
+  "country",
+  "city",
+  "suburb",
+  "features",
+  "youtube_url",
+  "latitude",
+  "longitude",
+  "location_precision",
+];
+
+/** The two coordinate boxes are one value: a change to either saves both. */
+const COORDINATES: Key[] = ["latitude", "longitude"];
 
 const numberText = (value: number | null) => (value === null ? "" : String(value));
 
@@ -109,6 +133,9 @@ function fromContent(content: ListingContent, lists: ListingEditorLists): Values
     max_guests: numberText(content.max_guests),
     min_nights: numberText(content.min_nights),
     youtube_url: content.youtube_url ?? "",
+    latitude: coordinateForInput(content.latitude),
+    longitude: coordinateForInput(content.longitude),
+    location_precision: content.location_precision === "APPROXIMATE" ? "APPROXIMATE" : "EXACT",
   };
 }
 
@@ -179,6 +206,25 @@ function buildPatch(values: Values, dirty: Set<Key>) {
         set("features", values.features);
         break;
       case "region":
+        break;
+      case "longitude":
+        // Sent with the latitude, which is always changed with it.
+        if (dirty.has("latitude")) continue;
+      // falls through
+      case "latitude": {
+        const pair = parseCoordinatePair(values.latitude, values.longitude);
+        if (!pair.ok) {
+          Object.assign(errors, pair.errors);
+          continue;
+        }
+        set("latitude", pair.value?.latitude ?? null);
+        set("longitude", pair.value?.longitude ?? null);
+        sent.latitude = values.latitude;
+        sent.longitude = values.longitude;
+        continue;
+      }
+      case "location_precision":
+        set("location_precision", values.location_precision);
         break;
       default: {
         const rule = NUMBER_FIELDS[key];
@@ -613,6 +659,13 @@ function Editor({ listingId, lists }: Props) {
               : `Changes save automatically. Last saved ${formatWhen(listing.updated_at)}.`;
 
   /* A text box: saved a moment after typing stops, and at once when leaving it. */
+  /* A coordinate box: both boxes are saved together, a moment after typing stops. */
+  const onCoordinateChange = (event: ChangeEvent<HTMLInputElement>) =>
+    change({ [event.currentTarget.name]: event.currentTarget.value } as Partial<Values>, COORDINATES, 900);
+  const pin = parseCoordinatePair(values.latitude, values.longitude);
+  const pinned = pin.ok ? pin.value : null;
+  const hasCoordinates = values.latitude.trim() !== "" || values.longitude.trim() !== "";
+
   const text = (key: Key, delay = 900) => ({
     name: key,
     value: values[key] as string,
@@ -1056,6 +1109,101 @@ function Editor({ listingId, lists }: Props) {
                     </p>
                   )}
                 </fieldset>
+              )}
+            </Section>
+
+            <Section
+              id="section-map"
+              title="Location on the map"
+              intro="Optional. With a pin, the listing can be found on the map search and its page shows a small map. Without one it is listed as usual, only not on the map."
+            >
+              {env.map ? (
+                <div>
+                  <p id="listing-map-hint" className="mb-3 text-sm leading-relaxed text-muted">
+                    Zoom in to the property, then click the map or drag the pin. Or move the map until the cross is on the
+                    property and press &ldquo;Use this position&rdquo;.
+                  </p>
+                  <LocationPicker
+                    latitude={pinned?.latitude ?? null}
+                    longitude={pinned?.longitude ?? null}
+                    approximate={values.location_precision === "APPROXIMATE"}
+                    disabled={!editable}
+                    onPick={(latitude, longitude) =>
+                      change({ latitude: coordinateForInput(latitude), longitude: coordinateForInput(longitude) }, COORDINATES)
+                    }
+                  />
+                </div>
+              ) : (
+                <p className="text-sm leading-relaxed text-muted">
+                  Type the position as latitude and longitude in decimal degrees, as a map app shows them.
+                </p>
+              )}
+              <div className="grid gap-5 sm:grid-cols-2">
+                <Field id="listing-latitude" label="Latitude" optional hint="From -90 to 90, such as -17.824858. Up to 6 decimals." error={err("latitude")}>
+                  <Input
+                    id="listing-latitude"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    spellCheck={false}
+                    maxLength={12}
+                    {...text("latitude")}
+                    onChange={onCoordinateChange}
+                    onBlur={onTextBlur}
+                    aria-describedby={describedBy("listing-latitude", "latitude", "x")}
+                  />
+                </Field>
+                <Field id="listing-longitude" label="Longitude" optional hint="From -180 to 180, such as 31.0498. Up to 6 decimals." error={err("longitude")}>
+                  <Input
+                    id="listing-longitude"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    spellCheck={false}
+                    maxLength={12}
+                    {...text("longitude")}
+                    onChange={onCoordinateChange}
+                    onBlur={onTextBlur}
+                    aria-describedby={describedBy("listing-longitude", "longitude", "x")}
+                  />
+                </Field>
+              </div>
+              <div>
+                <label className="flex min-h-11 cursor-pointer items-center gap-3 text-ink">
+                  <input
+                    id="listing-location-approximate"
+                    type="checkbox"
+                    className="size-5 accent-primary"
+                    checked={values.location_precision === "APPROXIMATE"}
+                    aria-describedby="listing-location-approximate-hint"
+                    onChange={(event) =>
+                      change({ location_precision: event.currentTarget.checked ? "APPROXIMATE" : "EXACT" }, ["location_precision"])
+                    }
+                  />
+                  Show only the approximate area publicly
+                </label>
+                <p id="listing-location-approximate-hint" className="text-sm text-muted">
+                  Visitors then see an area about 1 km across instead of the pin, and the exact position is never sent to
+                  them. You and our review team still see the pin.
+                </p>
+                {err("location_precision") && <p className="mt-1 text-sm text-danger">{err("location_precision")}</p>}
+              </div>
+              {listing.published_at !== null && (
+                <p className="text-sm leading-relaxed text-muted">
+                  Adding, changing or removing the pin of a public listing is reviewed before visitors see it, like any
+                  other change. Until then they see the approved version.
+                </p>
+              )}
+              {hasCoordinates && (
+                <Button
+                  variant="secondary"
+                  className="justify-self-start"
+                  disabled={!editable}
+                  onClick={() => {
+                    change({ latitude: "", longitude: "" }, COORDINATES);
+                    document.getElementById("listing-latitude")?.focus();
+                  }}
+                >
+                  Remove the pin
+                </Button>
               )}
             </Section>
 
