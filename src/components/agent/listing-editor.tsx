@@ -4,6 +4,7 @@ import { AlertCircle, CheckCircle2, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FocusEvent, type ReactNode } from "react";
+import { ListingApplications } from "@/components/agent/listing-applications";
 import { PhotoManager } from "@/components/agent/photo-manager";
 import { ListingAnalyticsCard } from "@/components/analytics/agent-analytics";
 import { RequireAuth } from "@/components/auth/require-auth";
@@ -1301,6 +1302,8 @@ function Editor({ listingId, lists }: Props) {
               )}
             </Section>
           </fieldset>
+
+          <ListingApplications listing={listing} editable={listing.can_edit} />
 
           {listing.timeline.length > 0 && (
             <section aria-labelledby="listing-history">

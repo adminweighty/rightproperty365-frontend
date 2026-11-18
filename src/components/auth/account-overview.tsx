@@ -220,6 +220,9 @@ function Details({ user, roleLabels, organisationKindLabels }: Props & { user: U
         <ButtonLink href="/account/appointments" variant="secondary">
           Your appointments
         </ButtonLink>
+        <ButtonLink href="/account/applications" variant="secondary">
+          Your applications
+        </ButtonLink>
         <ButtonLink href="/account/saved" variant="secondary">
           Saved properties
         </ButtonLink>

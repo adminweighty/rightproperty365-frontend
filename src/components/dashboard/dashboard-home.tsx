@@ -496,6 +496,8 @@ function Workspace({ data }: { data: Dashboard }) {
       count: counterValue(data, "agreements.waiting_for_others"),
       countLabel: "documents waiting for others",
     },
+    data.organisations.length > 0 && { href: "/agent/applications", label: "Applications received" },
+    data.organisations.some((organisation) => organisation.role === "OWNER" || organisation.role === "MANAGER") && { href: "/agent/forms", label: "Application forms" },
     { href: "/account/signing", label: "Documents to sign", count: toSign, countLabel: "waiting for your signature" },
     (data.capabilities.sees_team || data.organisations.some(managesTeam)) && { href: "/agent/team", label: "Your team" },
     { href: "/account/saved", label: "Saved properties" },

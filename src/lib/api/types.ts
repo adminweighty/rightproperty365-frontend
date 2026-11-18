@@ -158,6 +158,12 @@ export type Listing = {
    * 0.29 do not send it.
    */
   location?: ListingLocation | null;
+  /**
+   * Applications (API 0.32.0): set when the listing has an application form
+   * attached. `open` while intake is OPEN. Null or absent: no form. Optional:
+   * API builds before 0.32 do not send it.
+   */
+  applications?: { open: boolean; closes_at?: string | null; form_name?: string | null } | null;
 };
 
 /**

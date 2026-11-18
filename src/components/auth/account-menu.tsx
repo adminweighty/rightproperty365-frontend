@@ -161,6 +161,11 @@ export function AccountMenu({ professionals }: { professionals?: NavItem }) {
                   </Link>
                 </li>
                 <li>
+                  <Link href="/account/applications" className={itemClass} onClick={() => setOpen(false)}>
+                    Your applications
+                  </Link>
+                </li>
+                <li>
                   <Link href="/account/saved" className={itemClass} onClick={() => setOpen(false)}>
                     Saved properties
                   </Link>
@@ -189,6 +194,20 @@ export function AccountMenu({ professionals }: { professionals?: NavItem }) {
                     Your listings
                   </Link>
                 </li>
+                {isProfessional(user) && (
+                  <>
+                    <li>
+                      <Link href="/agent/applications" className={itemClass} onClick={() => setOpen(false)}>
+                        Applications received
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="/agent/forms" className={itemClass} onClick={() => setOpen(false)}>
+                        Application forms
+                      </Link>
+                    </li>
+                  </>
+                )}
                 {isProfessional(user) && (
                   <li>
                     <Link href="/agent/contacts" className={itemClass} onClick={() => setOpen(false)}>

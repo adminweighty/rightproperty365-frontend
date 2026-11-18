@@ -10,6 +10,7 @@ import { ListingMedia } from "@/components/listings/listing-media";
 import { SaveListingButton } from "@/components/listings/save-listing-button";
 import { ListingViewBeacon } from "@/components/analytics/analytics-root";
 import { YouTubeTour } from "@/components/listings/youtube-tour";
+import { ApplyButton } from "@/components/listings/apply-button";
 import { Reveal } from "@/components/motion/reveal";
 import { Stagger } from "@/components/motion/stagger";
 import { PropertyRequestForm } from "@/components/requests/property-request-form";
@@ -39,6 +40,14 @@ import { ListingMap } from "@/components/map/maps";
 import { env } from "@/lib/env";
 
 type Props = PageProps<"/listings/[slug]">;
+
+/** "1 December 2026 at 17:00 UTC": a cached page names the zone rather than guess the visitor's. */
+const formatDateTime = (iso: string) => {
+  const at = new Date(iso);
+  return Number.isNaN(at.getTime())
+    ? iso
+    : `on ${new Intl.DateTimeFormat("en-GB", { dateStyle: "long", timeStyle: "short", timeZone: "UTC" }).format(at)} UTC`;
+};
 
 // The content reads the address and the API with no <Suspense> around it
 // (ApiBoundary), so an address that was not prerendered has no static shell:
@@ -342,6 +351,26 @@ async function ListingContent({ params }: Pick<Props, "params">) {
             <section aria-labelledby="advertiser-heading" className="mb-6 border-b border-line pb-6">
               <AdvertiserBlock advertiser={advertiser} verification={listing.verification} headingId="advertiser-heading" />
             </section>
+            {listing.applications && (
+              <section aria-labelledby="apply-heading" className="mb-6 border-b border-line pb-6">
+                <h2 id="apply-heading" className="text-2xl">
+                  Apply
+                </h2>
+                {listing.applications.open ? (
+                  <>
+                    <p className="mt-2 text-sm text-muted">
+                      The advertiser takes applications{listing.applications.form_name ? ` with their ${listing.applications.form_name}` : ""}. You
+                      answer their questions and add any documents they ask for; only they see them.
+                      {listing.applications.closes_at && <> Applications close {formatDateTime(listing.applications.closes_at)}.</>}
+                    </p>
+                    {/* A client island: signed out, it leads to sign-in and back. The page stays the same for everyone. */}
+                    <ApplyButton slug={listing.slug} title={listing.title} className="mt-4 w-full" />
+                  </>
+                ) : (
+                  <p className="mt-2 text-sm text-muted">The advertiser is not taking applications for this property at the moment.</p>
+                )}
+              </section>
+            )}
             <h2 id="contact-heading" className="scroll-mt-24 text-2xl">
               {calendar ? "Ask the host" : `Contact the ${advertiser.type === "agency" ? "agent" : "seller"}`}
             </h2>
