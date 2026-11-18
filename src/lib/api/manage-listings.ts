@@ -30,6 +30,14 @@ export type ListingContent = {
   features: string[];
   max_guests: number | null;
   min_nights: number | null;
+  /**
+   * The video tour (API 0.28.0): the canonical `https://www.youtube.com/watch?v=ID`,
+   * never what was typed. Optional: API builds before 0.28 send none of the three.
+   */
+  youtube_url?: string | null;
+  youtube_video_id?: string | null;
+  /** Whole seconds, from a `t=` or `start=` in the link. */
+  youtube_start_seconds?: number | null;
 };
 
 /** Every key is optional; `null` clears a field. Unknown keys are refused (400). */
@@ -54,6 +62,8 @@ export type ListingContentPatch = Partial<{
   features: string[] | null;
   max_guests: number | null;
   min_nights: number | null;
+  /** A YouTube watch or share link; null or "" removes the video. 400 on `youtube_url` for anything else. */
+  youtube_url: string | null;
 }>;
 
 export type PhotoSize = "large" | "medium" | "small";

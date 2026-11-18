@@ -44,6 +44,7 @@ import {
   timelineText,
   type ActionButton,
 } from "@/lib/listing-manage";
+import { isPlaceholderThumbnail, isYouTubeId, startText, thumbnailFor, watchHref, watchUrlFor } from "@/lib/youtube";
 
 // ---- The form's values --------------------------------------------------------
 
@@ -71,12 +72,14 @@ type Values = {
   features: string[];
   max_guests: string;
   min_nights: string;
+  /** The link as typed; after a save, the canonical watch address the API sends back. */
+  youtube_url: string;
 };
 
 type Key = keyof Values;
 
 /** Choices the API may change itself after a save (a short stay is to rent, per night; a new country clears places). */
-const FOLLOWS_SERVER: Key[] = ["deal", "category", "property_type", "currency", "price_period", "country", "city", "suburb", "features"];
+const FOLLOWS_SERVER: Key[] = ["deal", "category", "property_type", "currency", "price_period", "country", "city", "suburb", "features", "youtube_url"];
 
 const numberText = (value: number | null) => (value === null ? "" : String(value));
 
@@ -105,6 +108,7 @@ function fromContent(content: ListingContent, lists: ListingEditorLists): Values
     features: [...(content.features ?? [])],
     max_guests: numberText(content.max_guests),
     min_nights: numberText(content.min_nights),
+    youtube_url: content.youtube_url ?? "",
   };
 }
 
@@ -154,6 +158,7 @@ function buildPatch(values: Values, dirty: Set<Key>) {
         break;
       case "city_name":
       case "region_name":
+      case "youtube_url":
         set(key, values[key].trim() || null);
         break;
       case "amount":
@@ -221,6 +226,61 @@ const withChoose = (options: EditorOption[], choose: string): SelectItem[] => [
   { value: "", label: choose },
   ...options.map(({ value, label, keywords }) => ({ value, label, keywords })),
 ];
+
+const YOUTUBE_HINT =
+  "A link to one public or unlisted YouTube video that allows embedding: youtube.com/watch?v=…, youtu.be/…, " +
+  "youtube.com/shorts/…, youtube.com/live/… or youtube.com/embed/…. A start time in the link (t=90) is kept. " +
+  "Playlists and channels are not accepted.";
+
+/** The saved video as visitors will first see it: its poster, where it starts, and a link to check it on YouTube. */
+function VideoPreview({ id, startSeconds }: { id: string; startSeconds: number | null }) {
+  const [failedFor, setFailedFor] = useState<string | null>(null);
+  const failed = failedFor === id;
+  const starts = startText(startSeconds);
+  const watch = watchHref(watchUrlFor(id), startSeconds);
+  return (
+    <div className="max-w-sm">
+      <p className="text-sm font-medium text-ink">Preview</p>
+      {failed ? (
+        <p className="mt-1.5 flex aspect-video items-center justify-center rounded-md border border-line bg-sunken p-4 text-center text-sm text-muted">
+          The poster could not be shown. The video may be private or removed: check it on YouTube.
+        </p>
+      ) : (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element -- YouTube's own thumbnail, as on the listing page */}
+          <img
+            key={id}
+            src={thumbnailFor(id)}
+            alt="Poster of the video tour"
+            width={480}
+            height={360}
+            loading="lazy"
+            decoding="async"
+            onLoad={(event) => {
+              if (isPlaceholderThumbnail(event.currentTarget.naturalWidth, event.currentTarget.naturalHeight)) setFailedFor(id);
+            }}
+            onError={() => setFailedFor(id)}
+            className="mt-1.5 aspect-video w-full rounded-md border border-line object-cover"
+          />
+        </>
+      )}
+      <p className="mt-1.5 text-sm text-muted">
+        {starts ? `${starts}. ` : ""}
+        {watch && (
+          <a
+            href={watch}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-11 items-center gap-1 font-medium text-primary-ink underline underline-offset-2 hover:no-underline"
+          >
+            Watch on YouTube
+            <span className="sr-only"> (opens in a new tab)</span>
+          </a>
+        )}
+      </p>
+    </div>
+  );
+}
 
 type SaveState =
   | { status: "idle" }
@@ -1043,6 +1103,52 @@ function Editor({ listingId, lists }: Props) {
               </div>
             </Card>
           </section>
+
+          <fieldset disabled={!editable} className="min-w-0">
+            <legend className="sr-only">Video tour</legend>
+            <Section
+              id="section-video"
+              title="Video tour"
+              intro="Visitors see a poster and choose to play it. It plays from YouTube, so the video stays on your YouTube channel."
+            >
+              <Field id="listing-youtube-url" label="YouTube video tour" optional hint={YOUTUBE_HINT} error={err("youtube_url")}>
+                <Input
+                  id="listing-youtube-url"
+                  type="url"
+                  inputMode="url"
+                  autoComplete="off"
+                  spellCheck={false}
+                  placeholder="https://www.youtube.com/watch?v=…"
+                  maxLength={500}
+                  {...text("youtube_url")} onChange={onTextChange} onBlur={onTextBlur}
+                  aria-describedby={describedBy("listing-youtube-url", "youtube_url", "x")}
+                />
+              </Field>
+              {listing.published_at !== null && (
+                <p className="text-sm leading-relaxed text-muted">
+                  Adding, changing or removing the video of a public listing is reviewed before visitors see it, like
+                  any other change. Until then they see the approved version.
+                </p>
+              )}
+              {/* The saved video, once the field shows what was saved (not while a new link is being typed). */}
+              {isYouTubeId(listing.content.youtube_video_id) && values.youtube_url === (listing.content.youtube_url ?? "") && (
+                <VideoPreview id={listing.content.youtube_video_id} startSeconds={listing.content.youtube_start_seconds ?? null} />
+              )}
+              {(values.youtube_url !== "" || isYouTubeId(listing.content.youtube_video_id)) && (
+                <Button
+                  variant="secondary"
+                  className="justify-self-start"
+                  disabled={!editable}
+                  onClick={() => {
+                    change({ youtube_url: "" }, ["youtube_url"]);
+                    document.getElementById("listing-youtube-url")?.focus();
+                  }}
+                >
+                  Remove the video
+                </Button>
+              )}
+            </Section>
+          </fieldset>
 
           {listing.timeline.length > 0 && (
             <section aria-labelledby="listing-history">

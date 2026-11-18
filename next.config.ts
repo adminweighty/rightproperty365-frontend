@@ -42,6 +42,12 @@ const securityHeaders = [
   { key: "X-Frame-Options", value: "DENY" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(self)" },
+  // Frames only (API 0.28.0): the YouTube player of a listing's video tour is
+  // the one thing the site frames. There is no site-wide CSP; this sets only
+  // `frame-src`, so scripts, styles, images and workers are not restricted by
+  // it. A new embed (a map, a document viewer in a frame) must add its origin
+  // here. PDFs open in a new tab from a blob: URL, which is not a frame.
+  { key: "Content-Security-Policy", value: "frame-src https://www.youtube-nocookie.com https://www.youtube.com" },
 ];
 
 const nextConfig = async (phase: string): Promise<NextConfig> => ({

@@ -1,4 +1,4 @@
-import { Bath, BedDouble, MapPin, Maximize2, Moon, Users } from "lucide-react";
+import { Bath, BedDouble, MapPin, Maximize2, Moon, Play, Users } from "lucide-react";
 import Link from "next/link";
 import { AdvertiserCompact } from "@/components/listings/advertiser";
 import { ListingMedia } from "@/components/listings/listing-media";
@@ -149,6 +149,12 @@ export function ListingCard({ listing, isNew, periods, stay, photoLoading }: Car
           <span className={`${tag} bg-primary text-on-primary`}>{listing.deal.label}</span>
           {isNew && <span className={`${tag} bg-surface text-ink`}>New</span>}
           {listing.featured && <span className={`${tag} sheen bg-brand-accent text-brand-deep`}>Featured</span>}
+          {listing.has_video && (
+            <span className={`${tag} inline-flex items-center gap-1 bg-surface text-ink`}>
+              <Play className="size-3 fill-current" aria-hidden="true" />
+              Video tour
+            </span>
+          )}
         </div>
         {/* Above the stretched link, and outside it: the card link and the heart are two separate controls. */}
         <SaveListingButton listingId={listing.id} title={listing.title} className="absolute right-3 top-3 z-20" />

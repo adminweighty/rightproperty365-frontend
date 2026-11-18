@@ -8,6 +8,8 @@ import {
   editLinkLabel,
   fieldControlId,
   isListingStatus,
+  isVideoField,
+  listingFieldLabels,
   listingActionButtons,
   listingBanner,
   listingManagerHref,
@@ -167,4 +169,12 @@ test("saved time, timeline words and the reviewer's reason", () => {
   assert.match(reviewReasonProblem("  "), /Write the reason/);
   assert.match(reviewReasonProblem("x".repeat(1001)), /1000 characters/);
   assert.equal(reviewReasonProblem("Please add a photo of the kitchen."), null);
+});
+
+test("the video tour fields have a control, a label and are grouped for the review", () => {
+  assert.equal(fieldControlId("youtube_url"), "listing-youtube-url");
+  assert.equal(listingFieldLabels.youtube_video_id, "YouTube video tour");
+  assert.ok(isVideoField("youtube_video_id"));
+  assert.ok(isVideoField("youtube_start_seconds"));
+  assert.ok(!isVideoField("title"));
 });

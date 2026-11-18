@@ -148,6 +148,27 @@ export type Listing = {
   availability?: ListingAvailability | null;
   /** Optional: API builds before 0.17 do not send it. */
   verification?: ListingVerification;
+  /** Search results and cards: whether the listing has a video tour. Optional: API builds before 0.28 do not send it. */
+  has_video?: boolean;
+  /** The listing page only: its video tour, or null. Optional: API builds before 0.28 do not send it. */
+  video?: ListingVideo | null;
+};
+
+/**
+ * A listing's video tour (API 0.28.0). Only a reference is stored: the
+ * addresses are built by the API, and nothing is fetched from YouTube on the
+ * server, so whether the video can play is known only in the browser.
+ */
+export type ListingVideo = {
+  provider: "YOUTUBE";
+  id: string;
+  start_seconds: number | null;
+  /** `https://www.youtube-nocookie.com/embed/ID?rel=0&modestbranding=1[&start=N]`. */
+  embed_url: string;
+  /** `https://www.youtube.com/watch?v=ID`. */
+  watch_url: string;
+  /** `https://i.ytimg.com/vi/ID/hqdefault.jpg`. */
+  thumbnail_url: string;
 };
 
 export type ListingAvailability = {

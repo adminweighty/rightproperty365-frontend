@@ -26,6 +26,7 @@ import type { EditorOption, ListingEditorLists } from "@/lib/api/server/listing-
 import { SHORT_STAY } from "@/lib/api/types";
 import { formatArea, formatMoney, pricePeriodLabel } from "@/lib/format";
 import {
+  isVideoField,
   listingFieldLabels,
   listingStatusLabel,
   listingStatusLabels,
@@ -34,6 +35,7 @@ import {
   timelineText,
 } from "@/lib/listing-manage";
 import { joinPlaces } from "@/lib/places";
+import { formatStart, isPlaceholderThumbnail, isYouTubeId, startText, thumbnailFor, watchHref, watchUrlFor } from "@/lib/youtube";
 
 type Props = { listingId: string; lists: ListingEditorLists };
 
@@ -69,6 +71,8 @@ function describeValue(field: string, value: unknown, lists: ListingEditorLists,
     case "floor_area":
     case "land_area":
       return typeof value === "number" ? formatArea(value) : String(value);
+    case "youtube_start_seconds":
+      return typeof value === "number" ? (formatStart(value) ?? "From the start") : String(value);
     case "min_nights":
       return typeof value === "number" ? `${value} ${value === 1 ? "night" : "nights"}` : String(value);
     default:
@@ -84,6 +88,67 @@ function Fact({ icon, children }: { icon: ReactNode; children: ReactNode }) {
       </span>
       {children}
     </span>
+  );
+}
+
+/**
+ * A video tour for the reviewer: its poster, id, start time and a link to
+ * watch it on YouTube, or "No video" when there is none. Nothing plays here.
+ */
+function ReviewVideo({ label, id, startSeconds }: { label: string; id: string | null | undefined; startSeconds: number | null | undefined }) {
+  const [failedFor, setFailedFor] = useState<string | null>(null);
+  if (!isYouTubeId(id)) {
+    return (
+      <div>
+        <p className="text-sm font-medium text-muted">{label}</p>
+        <p className="mt-1 text-ink">No video</p>
+      </div>
+    );
+  }
+  const watch = watchHref(watchUrlFor(id), startSeconds);
+  const starts = startText(startSeconds);
+  return (
+    <div className="min-w-0">
+      <p className="text-sm font-medium text-muted">{label}</p>
+      {failedFor === id ? (
+        <p className="mt-1 flex aspect-video items-center justify-center rounded-md border border-line bg-sunken p-4 text-center text-sm text-muted">
+          The poster could not be shown. The video may be private, removed or not embeddable.
+        </p>
+      ) : (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element -- YouTube's own thumbnail, as on the listing page */}
+          <img
+            key={id}
+            src={thumbnailFor(id)}
+            alt={`Poster of the video ${id}`}
+            width={480}
+            height={360}
+            loading="lazy"
+            decoding="async"
+            onLoad={(event) => {
+              if (isPlaceholderThumbnail(event.currentTarget.naturalWidth, event.currentTarget.naturalHeight)) setFailedFor(id);
+            }}
+            onError={() => setFailedFor(id)}
+            className="mt-1 aspect-video w-full rounded-md border border-line object-cover"
+          />
+        </>
+      )}
+      <p className="mt-1 text-sm text-ink">
+        Video <span className="font-mono">{id}</span>
+        {starts ? ` · ${starts}` : ""}
+      </p>
+      {watch && (
+        <a
+          href={watch}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex min-h-11 items-center text-sm font-medium text-primary-ink underline underline-offset-2 hover:no-underline"
+        >
+          Watch on YouTube
+          <span className="sr-only"> (opens in a new tab)</span>
+        </a>
+      )}
+    </div>
   );
 }
 
@@ -141,6 +206,14 @@ function Preview({ listing, content, lists }: { listing: AdminListing; content: 
               </li>
             ))}
           </ul>
+        </>
+      )}
+      {isYouTubeId(content.youtube_video_id) && (
+        <>
+          <h4 className="mt-5 font-sans text-base font-semibold tracking-normal">Video tour</h4>
+          <div className="mt-2 max-w-sm">
+            <ReviewVideo label="Shown as a poster; visitors press play" id={content.youtube_video_id} startSeconds={content.youtube_start_seconds} />
+          </div>
         </>
       )}
       {listing.photos.length > 0 && (
@@ -387,6 +460,15 @@ function Review({ listingId, lists }: Props) {
                         ))}
                       </tbody>
                     </table>
+                  </div>
+                )}
+                {listing.changes.some((change) => isVideoField(change.field)) && (
+                  <div className="mt-6">
+                    <h3 className="font-sans text-base font-semibold tracking-normal">Video tour</h3>
+                    <div className="mt-2 grid gap-4 sm:grid-cols-2">
+                      <ReviewVideo label="Public now" id={listing.live?.youtube_video_id} startSeconds={listing.live?.youtube_start_seconds} />
+                      <ReviewVideo label="Proposed" id={listing.content.youtube_video_id} startSeconds={listing.content.youtube_start_seconds} />
+                    </div>
                   </div>
                 )}
                 <p className="mt-4 text-sm text-ink">

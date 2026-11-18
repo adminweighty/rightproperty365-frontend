@@ -308,7 +308,13 @@ export const listingFieldLabels: Record<string, string> = {
   features: "Features",
   max_guests: "Guests, at most",
   min_nights: "Shortest stay",
+  youtube_url: "YouTube video tour",
+  youtube_video_id: "YouTube video tour",
+  youtube_start_seconds: "Video starts at",
 };
+
+/** The review's change rows that are about the video tour (API 0.28.0). */
+export const isVideoField = (field: string) => field.startsWith("youtube_");
 
 /** The statuses a reviewer filters the queue by, the default first. */
 export const REVIEW_QUEUE_STATUSES = ["PENDING_REVIEW", "CHANGES_REQUESTED", "REJECTED", "PUBLISHED", "DRAFT", "ARCHIVED", "EXPIRED"] as const;
@@ -347,6 +353,7 @@ const FIELD_CONTROLS: Record<string, string> = {
   features: "listing-features",
   max_guests: "listing-max-guests",
   min_nights: "listing-min-nights",
+  youtube_url: "listing-youtube-url",
   photos: "listing-photos",
 };
 

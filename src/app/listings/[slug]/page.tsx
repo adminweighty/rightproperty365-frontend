@@ -8,6 +8,7 @@ import { AdvertiserBlock, AdvertiserCompact } from "@/components/listings/advert
 import { ListingFacts, ListingGrid, ListingPrice } from "@/components/listings/listing-card";
 import { ListingMedia } from "@/components/listings/listing-media";
 import { SaveListingButton } from "@/components/listings/save-listing-button";
+import { YouTubeTour } from "@/components/listings/youtube-tour";
 import { Reveal } from "@/components/motion/reveal";
 import { Stagger } from "@/components/motion/stagger";
 import { PropertyRequestForm } from "@/components/requests/property-request-form";
@@ -270,6 +271,16 @@ async function ListingContent({ params }: Pick<Props, "params">) {
           <Reveal className="mt-6 border-y border-line py-4">
             <ListingFacts listing={listing} />
           </Reveal>
+
+          {listing.video && (
+            // A client island that renders the same poster for everyone: the page stays cached.
+            <Reveal as="section" aria-labelledby="video-heading">
+              <h2 id="video-heading" className="mt-10 text-2xl">
+                Video tour
+              </h2>
+              <YouTubeTour video={listing.video} title={listing.title} className="mt-4" />
+            </Reveal>
+          )}
 
           <Reveal>
             <h2 className="mt-10 text-2xl">About this property</h2>
