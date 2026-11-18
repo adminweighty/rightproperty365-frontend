@@ -7,6 +7,7 @@ import { StayCalendar, StayProvider } from "@/components/availability/stay-calen
 import { AdvertiserBlock, AdvertiserCompact } from "@/components/listings/advertiser";
 import { ListingFacts, ListingGrid, ListingPrice } from "@/components/listings/listing-card";
 import { ListingMedia } from "@/components/listings/listing-media";
+import { SaveListingButton } from "@/components/listings/save-listing-button";
 import { Reveal } from "@/components/motion/reveal";
 import { Stagger } from "@/components/motion/stagger";
 import { PropertyRequestForm } from "@/components/requests/property-request-form";
@@ -251,7 +252,11 @@ async function ListingContent({ params }: Pick<Props, "params">) {
             <Badge>{listing.category.label}</Badge>
             <Badge>{listing.property_type.label}</Badge>
           </div>
-          <h1 className="mt-4 text-3xl md:text-4xl">{listing.title}</h1>
+          <div className="mt-4 flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+            <h1 className="min-w-0 text-3xl md:text-4xl">{listing.title}</h1>
+            {/* Filled in by the browser for the signed-in person; the page itself stays the same for everyone. */}
+            <SaveListingButton listingId={listing.id} title={listing.title} variant="inline" />
+          </div>
           {/* Suburb, city, region (unless it has the city's name) and country: whichever the listing names. */}
           {place && (
             <p className="mt-3 flex items-center gap-1.5 text-muted">

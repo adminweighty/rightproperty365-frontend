@@ -147,6 +147,17 @@ export function safeNextPath(value: string | null | undefined): string | null {
 }
 
 /**
+ * The sign-in page, returning to `next` afterwards when it is a path on this
+ * site (`safeNextPath`); the plain sign-in page otherwise. For a control a
+ * signed-out visitor used, such as the heart on a listing: pass the page's own
+ * path and query.
+ */
+export function signInHref(next: string | null | undefined): string {
+  const safe = safeNextPath(next);
+  return safe ? `/sign-in?next=${encodeURIComponent(safe)}` : "/sign-in";
+}
+
+/**
  * Where to go after a successful sign-in: `next` when it is safe, else the
  * person's own home. An administrator session only goes to an /admin page.
  */

@@ -27,7 +27,7 @@ Sources: Google Search Central, schema.org and the Next.js 16 documentation bund
 | `/faq` | index | itself | yes |
 | `/legal`, `/legal/privacy-policy`, `/legal/terms-and-conditions`, `/legal/refund-policy`, `/legal/eula` | index | itself | yes, with the date the document last changed |
 | Any public page while the API cannot be reached (error state) | noindex, follow | none | the sitemap answers 500 |
-| Sign-in, register, password reset, account, appointments, agent inbox, "Your listings" and the availability editor, design system | noindex | none | no |
+| Sign-in, register, password reset, account, appointments, saved properties (`/account/saved`), agent inbox, "Your listings" and the availability editor, design system | noindex | none | no |
 
 Rules behind the table:
 
@@ -37,6 +37,7 @@ Rules behind the table:
 - **A code that is not in the reference data is an invalid value.** The page is `noindex`, the filter is ignored, and the API is never sent a code it would refuse.
 - **Paginated pages are self-canonical.** `/listings?deal=rent&page=2` is its own canonical; it is never pointed at page 1, because it lists different properties. `page=1` is the same page as no `page`, so the canonical drops it. Pages 2 and later are indexable when their base page is, but stay out of the sitemap. Submitting the search form always starts again at page 1.
 - **Private pages use a `noindex` meta tag and are not blocked in `robots.txt`.** A crawler that is blocked from a page never sees its `noindex`.
+- **Public pages are never personalised on the server.** Listing pages and search results are cached and identical for every visitor, signed in or not. What one person saved is read in their browser (`GET /v1/me/saved-listings/ids`) and only changes the hearts after the page has loaded, so crawlers and the cache see the same HTML.
 - **Empty parameters do not create duplicates.** With JavaScript the search forms leave empty fields out of the address. Without it they submit them (`?deal=rent&category=&q=`); the page ignores them, and the canonical drops them and fixes the parameter order.
 - **Expired listings leave the index.** `unavailable_after` (the API's `expires_at`) tells Google when to drop the page, and the sitemap lists only published listings. A listing that was public and no longer is shows "This listing is no longer available" with `noindex`; a slug that never existed is not found. Neither is redirected to a category page.
 - **An error state is never indexed and never cached.** When the API cannot be reached a page shows an error state with `noindex` and no canonical, and the next request tries again. The sitemap answers 500 rather than listing fewer pages.

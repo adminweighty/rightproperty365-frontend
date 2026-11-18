@@ -422,6 +422,11 @@ function FindAProperty() {
           Browse every property
         </Link>
       </p>
+      <p className="mt-1 text-sm">
+        <Link href="/account/saved" className={listLink}>
+          Your saved properties
+        </Link>
+      </p>
     </Card>
   );
 }
@@ -491,6 +496,7 @@ function Workspace({ data }: { data: Dashboard }) {
     },
     { href: "/account/signing", label: "Documents to sign", count: toSign, countLabel: "waiting for your signature" },
     (data.capabilities.sees_team || data.organisations.some(managesTeam)) && { href: "/agent/team", label: "Your team" },
+    { href: "/account/saved", label: "Saved properties" },
     { href: "/account/subscription", label: "Subscription" },
     { href: "/account", label: "Your account and roles" },
   ] as (WorkspaceLink | false)[]).filter((link): link is WorkspaceLink => Boolean(link));

@@ -2,6 +2,7 @@ import { Bath, BedDouble, MapPin, Maximize2, Moon, Users } from "lucide-react";
 import Link from "next/link";
 import { AdvertiserCompact } from "@/components/listings/advertiser";
 import { ListingMedia } from "@/components/listings/listing-media";
+import { SaveListingButton } from "@/components/listings/save-listing-button";
 import { Stagger } from "@/components/motion/stagger";
 import type { Listing } from "@/lib/api/types";
 import { formatArea, formatMoney, pricePeriodLabel } from "@/lib/format";
@@ -125,7 +126,9 @@ type CardProps = {
  * price, title and place, and a bottom row with the facts on the left and, at
  * the far right, who advertises it: logo, name and the Verified mark. Where
  * the two do not fit side by side the advertiser drops below, still on the
- * right. The advertiser is text and an image, not a link: the card is one link. The place is whatever the listing
+ * right. The advertiser is text and an image, not a link: the card is one link,
+ * with the save heart at the top right of the photo as the one other control
+ * (a sibling of the link, drawn above it). The place is whatever the listing
  * names (suburb and city, or city and country); a listing that names none has
  * no place line.
  */
@@ -142,11 +145,13 @@ export function ListingCard({ listing, isNew, periods, stay, photoLoading }: Car
           zoomOnHover
           className="aspect-[4/3]"
         />
-        <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
+        <div className="absolute left-3 right-16 top-3 flex flex-wrap gap-1.5">
           <span className={`${tag} bg-primary text-on-primary`}>{listing.deal.label}</span>
           {isNew && <span className={`${tag} bg-surface text-ink`}>New</span>}
           {listing.featured && <span className={`${tag} sheen bg-brand-accent text-brand-deep`}>Featured</span>}
         </div>
+        {/* Above the stretched link, and outside it: the card link and the heart are two separate controls. */}
+        <SaveListingButton listingId={listing.id} title={listing.title} className="absolute right-3 top-3 z-20" />
       </div>
 
       <div className="flex flex-1 flex-col gap-2 p-5">

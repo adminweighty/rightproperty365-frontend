@@ -114,7 +114,7 @@ The unit of search results.
 - The facts line (`ListingFacts`) is bedrooms, bathrooms and area on one line: an indigo icon, the value in `ink` weight 600, the unit in `muted`. Missing values are left out rather than shown as a dash.
 - **A short stay** leads the facts line with how many it sleeps ("Sleeps 8") and ends it with its shortest stay ("2 nights minimum") in place of the area. Its price says "per night".
 - Tags on the photo, top left: the status tag (the deal type, "For sale" or "To rent") in `primary` with white text, then "New" on white, then "Featured" in `brand-accent` with `brand-deep` text. Tags are text on a solid fill, never text on the photo itself. Sponsored placements must be labelled.
-- The whole card is one link, made by stretching the title link. There are no nested interactive elements inside it. On hover and keyboard focus it gains the `frame-brand` outline and a deeper shadow.
+- The whole card is one link, made by stretching the title link. The one other control is the save heart (`SaveListingButton`) at the top right of the photo: a sibling of the link drawn above it, never inside it, so there are no nested interactive elements. The tags stop short of it. On hover and keyboard focus the card gains the `frame-brand` outline and a deeper shadow.
 - `ListingPrice` always shows the listing's own ISO currency code ("GBP 185", "MUR 8,500"), because countries and currencies are mixed across the platform.
 
 - A listing without a photo shows a neutral frame that says "No photo yet", never a placeholder picture.
@@ -469,6 +469,7 @@ Every signed-in customer-scope account lands here. Everything comes from `GET /v
 
 - `StatTile`: a number and its label, a link when it has a page. `ChipNav`: filter links with counts, the current one filled and `aria-current`. `EmptyState`, `LoadingBlock`, `LoadError` (403 is the "no access" state), `BackLink`.
 - **`/account/requests`** and **`/account/requests/<id>`**: the person's own requests, status chips with counts, one line on what each status means, paging; the detail shows the message, stay and preferred time, and the status history. Never the lead stage, notes or who handles it.
+- **`/account/saved`**: see `SavedListings`.
 - **`/agent/requests`**: stage chips with counts (`stage_counts`), a filter form (search, type, received from and until; a GET form that works without JavaScript), a count in a status region, request cards that link to the detail, `Pagination`. Business enquiries follow at `#business-enquiries`.
 - **`/agent/requests/<id>`**: the customer's message, stay and preferred time; contact links; "Stage" with only the API's `allowed_stages` as radio buttons and "Move the request"; "History"; "Notes", marked "Only your team can see notes. The customer never does." A 409 explains that someone else moved it, and the request is read again.
 - **`/agent/team`**: read-only members of each organisation the person owns or manages: name, role, market and status. No invite or remove controls until the API has them.
@@ -495,7 +496,7 @@ The session control at the right of the header.
 - Loading: an empty block the size of the button, so the header does not shift.
 - Signed out: "Sign in" as a ghost button at every width and, from `sm`, the primary "Sign up" button to its right, which goes to `/register`. Both are 44px tall. On phones the bar has no room for "Sign up"; it is in the menu panel with "Sign in".
 - From `xl` the "For professionals" link sits before them; it leads to the landing page's section for professionals, whose button goes to registration. Below `lg` that link is in the menu panel. Between `lg` and `xl` the bar has no room for it beside the navigation and the two buttons.
-- Signed in: a secondary button, 44px tall, that opens a menu with the person's email, "Dashboard" (always first), "Your account", "Complete your profile" (while an onboarding application is not submitted or has changes requested), "Your requests", "Your appointments", "Request inbox", "Appointments received" and "Your listings" (professional accounts and owners only) and "Sign out". From `sm` the button shows the person's first name; on phones it is the account icon alone, with the name kept for screen readers ("Account menu for Tendai"), so the header fits a 320px screen.
+- Signed in: a secondary button, 44px tall, that opens a menu with the person's email, "Dashboard" (always first), "Your account", "Complete your profile" (while an onboarding application is not submitted or has changes requested), "Your requests", "Your appointments", "Saved properties", "Request inbox", "Appointments received" and "Your listings" (professional accounts and owners only) and "Sign out". From `sm` the button shows the person's first name; on phones it is the account icon alone, with the name kept for screen readers ("Account menu for Tendai"), so the header fits a 320px screen.
 - The button has `aria-expanded` and `aria-controls`. The menu closes on Escape, on an outside click, and when an item is chosen. Items are 44px tall.
 
 ## RequireAuth (`auth/require-auth.tsx`)
@@ -770,6 +771,51 @@ Cards (`ListingCard`, `ProfileCard`) rise 4px under the pointer. The hover is re
 
 **Adding motion to something new.** Wrap it in `Reveal` or `Stagger` from a server component; do not make the page a client component and do not import GSAP anywhere else. If it is on screen when its page opens, use `enter-rise` instead. If it holds a photo that loads with priority, do not fade it. When the same component shows a new set of items after a client-side navigation (search results), give its wrapper a `key` that changes with them, so the entrance runs again.
 
+## SaveListingButton (`listings/save-listing-button.tsx`)
+
+The heart that saves a listing (API 0.27.0). On every `ListingCard` and on the listing page beside the title.
+
+- A native `button` with `aria-pressed`. Its name is the state word and the listing title: "Save 3-bedroom house in Borrowdale", "Saved 3-bedroom house in Borrowdale". On the listing page the word is visible (a secondary `md` button, "Save" / "Saved"); on a card it is a 44px round white button over the photo with the word for screen readers only.
+- Not saved: the lucide `Heart` outline in `ink`. Saved: the heart filled in `primary`. The state is never shown by colour alone: the fill changes, and `aria-pressed` and the name say it.
+- **Every render from the server is "Save".** Listing pages and search results are cached and the same for everyone; the hearts fill in once the browser has read the saved ids (`SavedListingsProvider`). Never read the saved state on the server.
+- Signed out: pressing it goes to `/sign-in?next=<this page and its query>` (`signInHref` in `lib/portal.ts`, which only keeps a path on this site), and sign-in returns there.
+- Signed in: the heart changes at once. If the API refuses, it goes back and a `Toast` says what happened in plain words (`saveFailureMessage` in `lib/saved-listings.ts`): "<title> is no longer available, so it cannot be saved.", "We could not save <title>. Please try again." A second press while the first is on its way is ignored.
+- Not shown to an administrator session, which cannot save (the API answers 403).
+
+## SavedListingsProvider (`listings/saved-listings-provider.tsx`)
+
+The client context behind the hearts, inside `AuthProvider` in the root layout.
+
+- Reads `GET /v1/me/saved-listings/ids` once per page load, in the browser, when a customer-scope session is known; again only when the account changes. Nothing when signed out.
+- `isSaved(id)`, `toggle({ id, title })` (optimistic, rolled back on failure), `forget(id)` (the Saved list's own Remove), `status` ("off", "loading", "ready") and `canSave`.
+- When the ids cannot be read the hearts stay empty and still work: saving is idempotent.
+- It renders the page's one `Toast`.
+
+## Toast (`ui/toast.tsx`)
+
+A message about an action taken from somewhere on the page that has no room for an inline `Alert` (the heart on a card). Today it is used only for failures.
+
+- At the bottom of the screen, centred on phones with a 16px gutter, at the bottom right from `sm`; at most 384px wide, so it never makes the page scroll sideways at 320px.
+- A white `surface` panel, `line-strong` border with a 4px `danger` bar on the left, a danger icon, the message in `ink`, and a 44px "Dismiss message" button.
+- It stays until it is dismissed or replaced by the next message. It never times out, so it can be read at any pace.
+- The `role="alert"` region is always in the page, so the message is announced when it appears. Focus does not move to it.
+
+## ActivityNav (`account/activity-nav.tsx`)
+
+The customer activity hub: "Requests", "Appointments" and "Saved" as one row of links at the top of `/account/requests`, `/account/appointments` and `/account/saved`. Drawn with `ChipNav` (named "Your activity"); the current page is filled and has `aria-current="page"`. Each page names itself, so the row reads nothing from the address and is part of the static shell.
+
+## SavedListings (`account/saved-listings.tsx`, `/account/saved`)
+
+The properties the signed-in person saved, newest saved first, 24 a page (`GET /v1/me/saved-listings`). Read in the browser with the session cookie; `noindex, nofollow`.
+
+- Order: `ActivityNav`, `h1` "Saved properties", one sentence on what is kept, a status line ("3 saved properties, page 1 of 2, newest saved first"), the list, `Pagination` (`?page=2`).
+- **Available**: a card with the photo, category, title as a link to the listing (the photo repeats the link, out of the tab order), price with its period, city and country, when it was saved and the reference.
+- **No longer available**: a dashed `sunken` card with the photo greyed, a warning `Badge` with the API's `unavailable_label` ("Listing expired", "Let", "Sold", "No longer listed"), the title as plain text and "This listing is no longer available. It is kept here for your reference, as it was when you last saw it." It is never a link, to the listing or to search. Its text keeps full contrast; only the photo is faded.
+- **Remove** on every item (a secondary button, "Remove" plus the title for screen readers, "Removing…" while it runs). An available item is removed at once, since it can be saved again; an unavailable one asks first in a `ConfirmDialog` ("Remove this saved property?", "Keep it" / "Yes, remove it"), because it cannot be saved again. Afterwards the status line says "Removed <title> from your saved properties.", focus moves to the `h1`, the list reloads, and the hearts elsewhere are told (`forget`). A failure is an `Alert` under the item, or in the dialog.
+- States: loading skeleton (also the page's Suspense fallback), signed out (`RequireAuth`), error with "Try again" (403 is the "no access" state), empty ("You have not saved any properties yet" with "Find a property"), and a page past the end ("There is no page 3 of your saved properties" with "Go to page 1").
+- At 320px the card stacks: photo on top, then the text, then the date and Remove.
+- Links: "Saved" in `ActivityNav`, "Saved properties" in the account menu, on the account page and in the dashboard ("Find a property" for seekers, "Your workspace" for professionals).
+
 ## Not built yet
 
-Dialog, toast, tabs, data table, a time-slot picker (nights are chosen in `NightCalendar`), file upload, map, YouTube embed. Specify each here before building it.
+Dialog, tabs, data table, a time-slot picker (nights are chosen in `NightCalendar`), file upload, map, YouTube embed. Specify each here before building it.

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Inter } from "next/font/google";
 import { AuthProvider } from "@/components/auth/auth-provider";
+import { SavedListingsProvider } from "@/components/listings/saved-listings-provider";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { TestSiteBanner } from "@/components/layout/test-site-banner";
@@ -50,13 +51,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="flex min-h-full flex-col">
         <AuthProvider>
-          <TestSiteBanner />
-          <SiteHeader />
-          <main id="main" className="flex-1">
-            {children}
-          </main>
-          <SiteFooter />
-          <SiteMotion />
+          {/* The saved hearts are read in the browser, so cached pages stay the same for everyone. */}
+          <SavedListingsProvider>
+            <TestSiteBanner />
+            <SiteHeader />
+            <main id="main" className="flex-1">
+              {children}
+            </main>
+            <SiteFooter />
+            <SiteMotion />
+          </SavedListingsProvider>
         </AuthProvider>
       </body>
     </html>

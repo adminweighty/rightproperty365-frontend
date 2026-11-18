@@ -160,6 +160,11 @@ export function AccountMenu({ professionals }: { professionals?: NavItem }) {
                   </Link>
                 </li>
                 <li>
+                  <Link href="/account/saved" className={itemClass} onClick={() => setOpen(false)}>
+                    Saved properties
+                  </Link>
+                </li>
+                <li>
                   <Link href="/account/signing" className={itemClass} onClick={() => setOpen(false)}>
                     Documents to sign
                   </Link>
