@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { failureNotice, NoticeArea, PdfActions, type Notice } from "@/components/agreements/shared";
 import { RequireAuth } from "@/components/auth/require-auth";
 import { BackLink, formatWhen, LoadError, LoadingBlock } from "@/components/portal/portal-ui";
+import { countryName } from "@/lib/format";
 import { useApi } from "@/components/portal/use-api";
 import { openPdf, pdfName } from "@/components/signing/pdf-file";
 import { Alert } from "@/components/ui/alert";
@@ -240,7 +241,8 @@ async function loadContext(): Promise<ApiResult<Context>> {
     status: 200,
     data: {
       templates: templates.data.items,
-      listings: listings.ok ? listings.data.items : [],
+      // Only the listings the caller may edit: a lease for a colleague's listing is refused.
+      listings: listings.ok ? listings.data.items.filter((item) => item.can_edit !== false) : [],
       organisations: dashboard.ok ? dashboard.data.organisations.filter((item) => item.can_create_leases ?? item.can_manage_listings) : [],
     },
   };
@@ -813,7 +815,7 @@ function Editor({ leaseId, currencies, context }: { leaseId: string | null; curr
           <h2 id="lease-property" className="text-2xl">
             Template and property
           </h2>
-          <Field id="lease-template" label="Lease template" error={err("template")} hint={market ? `Templates for ${market}.` : undefined}>
+          <Field id="lease-template" label="Lease template" error={err("template")} hint={market ? `Templates for ${countryName(market)}.` : undefined}>
             <SearchableSelect
               id="lease-template"
               options={[

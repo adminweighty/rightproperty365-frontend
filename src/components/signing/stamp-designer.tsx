@@ -121,6 +121,14 @@ export function StampDesigner({
   const set = (change: Partial<Stamp>) => onChange({ ...value, ...change });
   const ids = { shape: `${id}-shape`, colour: `${id}-colour`, top: `${id}-top`, bottom: `${id}-bottom`, date: `${id}-date` };
   const rectangle = value.shape === "RECTANGLE";
+  // The centre line just added gets the focus once it is on the page.
+  const focusLine = useRef<number | null>(null);
+  const lineCount = value.centre_lines.length;
+  useEffect(() => {
+    if (focusLine.current === null) return;
+    document.getElementById(`${id}-line-${focusLine.current}`)?.focus();
+    focusLine.current = null;
+  }, [id, lineCount]);
 
   return (
     <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_13rem]">
@@ -198,9 +206,8 @@ export function StampDesigner({
             className="mt-2"
             disabled={value.centre_lines.length >= STAMP_LINES_MAX}
             onClick={() => {
-              const index = value.centre_lines.length;
+              focusLine.current = value.centre_lines.length;
               set({ centre_lines: [...value.centre_lines, ""] });
-              requestAnimationFrame(() => document.getElementById(`${id}-line-${index}`)?.focus());
             }}
           >
             <Plus className="size-4" aria-hidden="true" />

@@ -36,6 +36,8 @@ export type MyListing = {
   /** Short stays only; null when the calendar was never changed. */
   availability_updated_at: string | null;
   photo: Photo | null;
+  /** API 0.26.1: the caller may edit it (and draft a lease for it). An agent sees colleagues' listings read-only. */
+  can_edit?: boolean;
 };
 
 export type MyListingPage = {

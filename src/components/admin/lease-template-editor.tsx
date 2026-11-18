@@ -703,7 +703,7 @@ export function TemplateEditor({ templateId, countries, mode }: { templateId: st
         {confirm === "retire" ? (
           <p>It is no longer offered for new leases. Leases already made from it keep its wording.</p>
         ) : confirm === "publish" ? (
-          <p>Your organisation can then draft leases from it in {template?.market_code}. Any earlier published version of this template is retired at the same time; leases made from it keep their wording.</p>
+          <p>Your organisation can then draft leases from it in {countryName}. Any earlier published version of this template is retired at the same time; leases made from it keep their wording.</p>
         ) : (
           <p>Your changes become a new draft version. It is offered once it is {inUse}; until then this version stays in use.</p>
         )}

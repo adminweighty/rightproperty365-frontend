@@ -35,3 +35,15 @@ export function formatArea(squareMetres: number, locale = "en-GB"): string {
 export function pricePeriodLabel(period: string, labels: Record<string, string> = {}): string {
   return labels[period] ?? `per ${period}`;
 }
+
+/**
+ * The English name of a country from its ISO code ("ZW" → "Zimbabwe"), for
+ * wording where the page has no country list; the code itself when unknown.
+ */
+export function countryName(code: string, locale = "en-GB"): string {
+  try {
+    return new Intl.DisplayNames([locale], { type: "region" }).of(code.toUpperCase()) ?? code;
+  } catch {
+    return code;
+  }
+}
