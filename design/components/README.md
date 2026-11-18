@@ -1069,6 +1069,73 @@ A client island in the main column after the features: the page stays cached and
 - States: loading skeleton, signed out (`RequireAuth`), error with "Try again", empty (with "Find a venue" for a customer with nothing waiting).
 - Links: "Your hourly bookings" and "Hourly bookings received" in the account menu; "Hourly bookings received" on the account page.
 
+## Books (`agent/books/*`, `lib/ledger.ts`, API 0.34.0)
+
+An organisation's own books (FR-026 to FR-029, BR-012): a cashbook, not double-entry, private to the organisation and separate from its RightProperty365 subscription invoices. OWNER and MANAGER read, record, correct, reconcile, export and manage categories; an AGENT records and may reverse or correct only their own entries that are not reconciled; Agency Staff read. Every page is `noindex, nofollow`, read in the browser with the session, and reflows at 320px (tables scroll inside their own focusable `region`). The pure rules (type, method and status words, the amount check per currency, exact formatting, per-currency grouping and sums, filters in the address and the API query, chips, permissions, entry links, the form body, the tolerant readers of every answer) are in `lib/ledger.ts`, checked by `npm test` (`scripts/ledger.test.mjs`).
+
+Two wording rules are absolute:
+
+- **Status.** Exactly two badges: "Recorded by you, not verified" (`warning`) and "Marked reconciled by your team" (`success`). Any other status, the reserved `GATEWAY_CONFIRMED` included, shows the first. Never "verified", "confirmed", "paid" or anything bank- or gateway-like; reconciliation is explained as "someone in your team checked this entry against your own statement. RightProperty365 does not see your bank and verifies nothing."
+- **Currencies.** Every amount carries its currency code ("USD 1,234.50", "JPY 1,500", "KWD 1,000.000"): the API's exact decimal, padded or trimmed to the currency's minor units, only grouped, never rounded. Amounts in different currencies are never added together: one table per currency, and every list and report says "Currencies are never added together".
+
+Money in and out is never shown by colour alone: separate "Money in" and "Money out" columns, a "+" or "−" sign, "Money in: " / "Money out: " for screen readers, and `DirectionTag` (an arrow icon and the words).
+
+### BooksShell and BooksBanner (`books/shared.tsx`)
+
+As `ContactsShell`: `BackLink`, `h1`, then the info banner (a 4px `info` bar on `info-soft`, with a book icon): "Your organisation's own books. Separate from your RightProperty365 subscription invoices. Entries you record are marked 'Recorded by you, not verified'." Then the organisation from `?org=` (an "Organisation" `SearchableSelect` when there are several), the name and role line ("you can read the books but not record entries" for Agency Staff), and "Entries", "Reports" and (OWNER, MANAGER) "Categories" as a `ChipNav` named "Books sections". States: loading, error with "Try again", "The books belong to an organisation", signed out, no access. Content keyed by organisation.
+
+### StatusBadge, DirectionTag, SignedAmount (`books/shared.tsx`)
+
+`StatusBadge` takes the API's status and shows only the two wordings above. `SignedAmount` is "+USD 100.00" / "−USD 100.00" with the direction for screen readers. `DirectionTag` is the arrow and "Money in" / "Money out".
+
+### ContactPicker (`books/shared.tsx`)
+
+A `fieldset` named "Contact (optional)": "Chosen: Rudo Moyo" or "No contact chosen.", "Find in your contact book" (search field, Enter searches without sending the form) with "Search" (secondary), a polite line with the result count, then a "Contact" `SearchableSelect` of the matches with "No contact" first. Works inside a GET form (`name`). Used by the entry form, the entry filters and the statement report.
+
+### TableRegion (`books/shared.tsx`)
+
+The data-table pattern of the contact import, made reusable for the books: a focusable `role="region"` named "… scrolls sideways" that scrolls on its own; inside, a `table` with a caption (visible or `sr-only`), `scope="col"` headers, the entry as the row header, numbers right-aligned in `tabular-nums`. The page never scrolls sideways.
+
+### Entry list (`books/entry-list.tsx`, `/agent/books`)
+
+"Record an entry" (primary), "Record a transfer" and "Opening balance" for writers; "Export entries as CSV" for the OWNER and MANAGER (the current filters; a success `Alert` says it is recorded in the activity log). A GET filter form that works without JavaScript: Search, Currency, Type, Category, Method, Status (the two wordings), From and To (effective date), Listing, each a `SearchableSelect` or date field, the `ContactPicker`, and "Hide reversed entries and their reversals". "Filters in use" chips and "Clear all". A status line and "Amounts are shown in their own currency. Currencies are never added together." The table: Date, Entry (the description as the link, reference, contact, and the markers "Reversed", "Reversal", "Correction" with links "Reversed by the entry", "Reverses the entry", "Correction of the entry", "Corrected by the entry", "Other half of this transfer"), Type and category, Method (and branch), Money in, Money out, Status. A reversed entry's row is on `sunken`. `Pagination`. Empty: "No entries yet" (with "Record an opening balance"), "No entries match these filters", "There is no page 5 of these entries".
+
+### EntryEditor (`books/entry-form.tsx`, `/agent/books/new`)
+
+"Money in or out", "Transfer" and "Opening balance" as a `ChipNav` (`?kind=`). One form: Type (`SearchableSelect`; each type says its direction), Money in or out (text when the type fixes it; radio rows otherwise, "Money held (in credit)" / "Overdrawn (owed)" for an opening balance), Category (active categories, plus the current one marked "(no longer used)"), Method (From, for a transfer; To and To branch), Amount (`inputMode="decimal"`; the hint names the currency's decimals: "In JPY: a whole number, no decimal places."), Currency, Date, Reference, Description, Contact (`ContactPicker`), Listing, Branch, Notes. An info `Alert` explains transfers ("recorded as two linked entries") and opening balances ("one per currency, method and branch… reverse it and record it again"). Checked before sending with the words under each control; the API's field errors land in the same places; a danger summary with a 4px bar (`role="alert"`, focused) links to each control.
+
+### Entry page (`books/entry-detail.tsx`, `/agent/books/<id>`)
+
+- Head: type and status badges, markers, the description as `h1`, the signed amount with `DirectionTag`, the date, who recorded it and when. An info `Alert` on a reversed entry; the linked entries as a `nav` of 44px links.
+- Main column: "Details" (`dl`), the correction form when open, "Attachments" (PDF, JPEG, PNG or WebP, 10 MB, checked before upload; a progress bar; each file with "Download <name>", downloaded through the API and audited), "Notes" (append-only, "Only your team can see notes."), "History" (made from the entry and its related entries: recorded, reconciled, reversed and corrected with the reason, payments against it, notes and attachments, each with who and when and a link to the linked entry; a line says the team's activity log holds the full audit). "Linked entries" lists each related entry ("Its reversal", "The entry it corrects", "Other half of this transfer", "A payment against it") with its date and signed amount.
+- Side column: "Reconciliation" (the badge, what it means, who marked it and their note; for the OWNER and MANAGER a note and "Mark as reconciled" / "Mark as not reconciled"); "Correct" ("Correct the entry" opens the form pre-filled, with an info `Alert`: "The original entry stays in your books. Saving creates a reversal of the original entry and this corrected entry, linked to both."; a required "Why is it being corrected?"; afterwards the corrected entry opens); "Reverse" (a required "Why", then a `ConfirmDialog` "Keep it" / "Yes, reverse it"; afterwards the reversal opens). Opening balances and transfers are reversed, not corrected. When the person may do neither, one line says who can.
+- Each change answers in a polite live region and reads the entry again, keeping it on screen meanwhile. A 404 is "We could not find that entry".
+
+### Reports (`books/reports.tsx`, `/agent/books/reports`)
+
+"Cashbook", "Categories", "Contact statement" and "Receivables ageing" as a `ChipNav` (`?report=`), the note "Each currency has its own table. Currencies are never added together, so there is no combined total.", and a period form (From, To; Currency and "Also show each method" for the cashbook; the `ContactPicker` for a statement), "Show the report". Export buttons (cashbook, categories, statement) only for the OWNER and MANAGER.
+
+- **Cashbook:** per currency an `h3` and a table: Opening balance, the period's entries (Money in and Money out columns named with the currency), Totals for the period and Closing balance in its footer; with "each method" a second table per currency (Opening, Money in, Money out, Closing per method).
+- **Categories:** per currency, each category's money in and out, and the total in that currency.
+- **Contact statement:** per currency, brought forward, the entries, totals and balance.
+- **Receivables ageing:** "Show" owed to you (receivables) or owed by you (payables). Per currency, 0 to 30, 31 to 60, 61 to 90 and Over 90 days and the total open, then a table of each open amount (due, entry, amount, paid so far, still open, age). A line says tenancies are not included yet.
+
+Cashbook and statement rows show the API's column figures and running balance: a reversal is a negative figure in the column of the entry it reverses, so the columns add up to the totals.
+
+### Amounts owed and payments
+
+"Owed to you (receivable)" and "Owed by you (payable)" are types of the entry form that record an amount owed: no method, and they never move a cashbook balance. On such an entry's page, "Record a payment against it" opens the form (`/agent/books/new?settles=<id>`) as money in or out against it, in its currency, with its category, contact and listing; an info `Alert` names what it settles.
+
+### Options and the personal book
+
+The form reads `GET …/ledger/options`: the types with their fixed direction and default category (choosing a type brings its category), the currencies' minor units for the amount check, and the categories by kind (IN, OUT or ANY: only those matching the direction are offered). When it cannot be read, the form falls back to the rules in `lib/ledger.ts`. Someone with no organisation who is an approved direct owner gets "Your own books" (the book id is their user id), offered only when the API answers for it. A 409 `LEDGER_OPENING_BALANCE_EXISTS` links to the opening balance already recorded.
+
+### Categories (`books/categories.tsx`, `/agent/books/categories`)
+
+OWNER and MANAGER: "Add a category" (Name, "Used for" `SearchableSelect`: money in and out, in, or out) and per category "Rename <name>" with "Save the name" and "Deactivate <name>" / "Use <name> again" (ghost). Each row has "In use" or "Deactivated", its direction and "Default" badges. Everyone else reads the list with an info `Alert`. A used category is never deleted; deactivating keeps it on the entries already recorded.
+
+Links: "Books" in the account menu (professionals) and in "Your workspace" on the dashboard (organisation members).
+
 ## Not built yet
 
-Dialog, tabs, a reusable data table (the contact import preview is the one table pattern so far), a reusable file upload control (beyond `DocumentUploader`, `FileQuestion` and the contact import field), a map search across the antimeridian. Specify each here before building it.
+Dialog, tabs, a reusable data table component (the contact import preview and the books' `TableRegion` are the table patterns so far), a reusable file upload control (beyond `DocumentUploader`, `FileQuestion` and the contact import field), a map search across the antimeridian. Specify each here before building it.

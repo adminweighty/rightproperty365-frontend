@@ -483,6 +483,7 @@ function Workspace({ data }: { data: Dashboard }) {
     data.capabilities.manages_appointments && { href: "/agent/appointments", label: "Appointments received" },
     data.capabilities.manages_listings && { href: "/agent/listings", label: "Your listings" },
     data.organisations.length > 0 && { href: "/agent/contacts", label: "Contacts" },
+    data.organisations.length > 0 && { href: "/agent/books", label: "Books" },
     leases && {
       href: "/agent/leases",
       label: "Leases",
