@@ -261,6 +261,9 @@ async function Results({ searchParams }: Pick<Props, "searchParams">) {
               periods={periods}
               // The stay of the search travels to each short stay, to start its request form.
               stay={{ check_in: search.filters.check_in, check_out: search.filters.check_out, guests: search.filters.guests_min }}
+              // Impressions are counted with their place in the whole result list, not just this page.
+              placement="search"
+              rankOffset={(page.page - 1) * page.page_size}
             />
           </div>
           <Pagination

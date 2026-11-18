@@ -30,6 +30,7 @@ import {
   type StayProblems,
 } from "@/lib/nights";
 import { LegalLink } from "@/components/legal/legal-link";
+import { trackContactClick } from "@/lib/analytics/tracker";
 import { PRIVACY_NOTICE_VERSION } from "@/lib/env";
 
 type Props = {
@@ -115,6 +116,8 @@ export function PropertyRequestForm({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    // The contact action on a listing page: once per listing per page view, whether or not the request is then sent.
+    trackContactClick(listingId);
     const data = new FormData(event.currentTarget);
     const text = (name: string) => String(data.get(name) ?? "").trim();
     const slot = text("preferred_slot");

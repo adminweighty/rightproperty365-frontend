@@ -26,9 +26,10 @@ Sources: Google Search Central, schema.org and the Next.js 16 documentation bund
 | `/directory/[kind]?country=…` or `?region=…` (a filtered list of professionals) | noindex, follow | none | no |
 | `/directory/[kind]/[slug]` profile | index | itself | yes |
 | `/faq` | index | itself | yes |
+| `/analytics-definitions` (how listing figures are counted) | index | itself | yes |
 | `/legal`, `/legal/privacy-policy`, `/legal/terms-and-conditions`, `/legal/refund-policy`, `/legal/eula` | index | itself | yes, with the date the document last changed |
 | Any public page while the API cannot be reached (error state) | noindex, follow | none | the sitemap answers 500 |
-| Sign-in, register, password reset, account, appointments, saved properties (`/account/saved`), agent inbox, "Your listings" and the availability editor, design system | noindex | none | no |
+| Sign-in, register, password reset, account, appointments, saved properties (`/account/saved`), agent inbox, analytics (`/agent/analytics`, `/agent/analytics/listings/[id]`, `/admin/analytics`), "Your listings" and the availability editor, design system | noindex | none | no |
 
 Rules behind the table:
 
@@ -39,6 +40,7 @@ Rules behind the table:
 - **The Map view and map areas are never indexed.** `view=map` shows only the results that have a location, 48 a page, and its listings are reached by crawling the list anyway; a `bbox` is a different box for every visitor. Both are refinements: `noindex, follow`, no canonical, not in the sitemap. The list stays the default view, and every listing on the map is also a plain link in the list under it. A `bbox` the API would refuse (out of range, south not below north, across the antimeridian) is an invalid value. On a site with no map tiles `view=map` shows the list and is an invalid value too.
 - **Paginated pages are self-canonical.** `/listings?deal=rent&page=2` is its own canonical; it is never pointed at page 1, because it lists different properties. `page=1` is the same page as no `page`, so the canonical drops it. Pages 2 and later are indexable when their base page is, but stay out of the sitemap. Submitting the search form always starts again at page 1.
 - **Private pages use a `noindex` meta tag and are not blocked in `robots.txt`.** A crawler that is blocked from a page never sees its `noindex`.
+- **Measurement never changes a page.** The first-party tracker (`src/lib/analytics`) is a client island that adds nothing to the HTML but data attributes on cards; events are sent from the browser after the page has loaded. Crawlers and the cache see the same page, and the API filters bots out of the figures.
 - **Public pages are never personalised on the server.** Listing pages and search results are cached and identical for every visitor, signed in or not. What one person saved is read in their browser (`GET /v1/me/saved-listings/ids`) and only changes the hearts after the page has loaded, so crawlers and the cache see the same HTML.
 - **Empty parameters do not create duplicates.** With JavaScript the search forms leave empty fields out of the address. Without it they submit them (`?deal=rent&category=&q=`); the page ignores them, and the canonical drops them and fixes the parameter order.
 - **Expired listings leave the index.** `unavailable_after` (the API's `expires_at`) tells Google when to drop the page, and the sitemap lists only published listings. A listing that was public and no longer is shows "This listing is no longer available" with `noindex`; a slug that never existed is not found. Neither is redirected to a category page.

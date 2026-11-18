@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRef } from "react";
 import { cardLift, ListingCard, type PeriodLabels } from "@/components/listings/listing-card";
 import { useReveal } from "@/components/motion/gsap";
+import type { Placement } from "@/lib/analytics/core";
 import type { Listing } from "@/lib/api/types";
 
 type Props = {
@@ -14,6 +15,8 @@ type Props = {
   newIds?: string[];
   /** The labels of the API’s `price_periods` set, for the cards. */
   periods?: PeriodLabels;
+  /** Where the impressions of these cards are counted (src/lib/analytics). */
+  placement?: Placement;
   className?: string;
 };
 
@@ -22,7 +25,7 @@ type Props = {
  * container with scroll snapping, so touch, trackpad and keyboard scrolling
  * work without JavaScript; the arrow buttons are a convenience on top.
  */
-export function ListingRail({ label, listings, newIds = [], periods, className }: Props) {
+export function ListingRail({ label, listings, newIds = [], periods, placement = "rail", className }: Props) {
   const track = useRef<HTMLUListElement>(null);
   // The cards slide in from the right, the way the row scrolls. The row clips them, so the page never widens.
   useReveal(track, { targets: "children", from: "right" });
@@ -49,9 +52,14 @@ export function ListingRail({ label, listings, newIds = [], periods, className }
         aria-label={`${label}, scrollable`}
         className="-mx-4 flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-px-4 px-4 pb-4 pt-2 [scrollbar-width:thin] md:-mx-8 md:scroll-px-8 md:px-8"
       >
-        {listings.map((listing) => (
+        {listings.map((listing, index) => (
           <li key={listing.id} className={`flex w-[17.5rem] shrink-0 snap-start [&>article]:w-full sm:w-[22rem] ${cardLift}`}>
-            <ListingCard listing={listing} isNew={newIds.includes(listing.id)} periods={periods} />
+            <ListingCard
+              listing={listing}
+              isNew={newIds.includes(listing.id)}
+              periods={periods}
+              impression={{ placement, rank: index + 1 }}
+            />
           </li>
         ))}
       </ul>

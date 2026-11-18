@@ -8,6 +8,7 @@ import { AdvertiserBlock, AdvertiserCompact } from "@/components/listings/advert
 import { ListingFacts, ListingGrid, ListingPrice } from "@/components/listings/listing-card";
 import { ListingMedia } from "@/components/listings/listing-media";
 import { SaveListingButton } from "@/components/listings/save-listing-button";
+import { ListingViewBeacon } from "@/components/analytics/analytics-root";
 import { YouTubeTour } from "@/components/listings/youtube-tour";
 import { Reveal } from "@/components/motion/reveal";
 import { Stagger } from "@/components/motion/stagger";
@@ -197,6 +198,8 @@ async function ListingContent({ params }: Pick<Props, "params">) {
   return (
     <>
       <JsonLd data={listingJsonLd(listing)} />
+      {/* Counts one view per page view in the browser; renders nothing, so the page stays cached. */}
+      <ListingViewBeacon listingId={listing.id} />
       <nav aria-label="Breadcrumb">
         <ol className="flex flex-wrap items-center gap-1.5 text-sm text-muted">
           <li>
@@ -295,7 +298,7 @@ async function ListingContent({ params }: Pick<Props, "params">) {
               <h2 id="video-heading" className="mt-10 text-2xl">
                 Video tour
               </h2>
-              <YouTubeTour video={listing.video} title={listing.title} className="mt-4" />
+              <YouTubeTour video={listing.video} title={listing.title} listingId={listing.id} className="mt-4" />
             </Reveal>
           )}
 
@@ -365,7 +368,7 @@ async function ListingContent({ params }: Pick<Props, "params">) {
             </h2>
           </Reveal>
           <div className="mt-8">
-            <ListingGrid listings={similar} periods={periods} />
+            <ListingGrid listings={similar} periods={periods} placement="similar" />
           </div>
         </section>
       )}

@@ -39,6 +39,8 @@ type ItemProps = {
   busy: boolean;
   failure: ApiFailure | null;
   onRemove: (item: SavedListing) => void;
+  /** 1-based position in the whole saved list, for the impression count. */
+  rank: number;
 };
 
 /**
@@ -46,7 +48,7 @@ type ItemProps = {
  * No longer available: greyed, with the API's label, and not a link
  * anywhere; it is kept so the person can still see what they saved.
  */
-function SavedItem({ item, periods, busy, failure, onRemove }: ItemProps) {
+function SavedItem({ item, periods, busy, failure, onRemove, rank }: ItemProps) {
   const { listing } = item;
   const href = item.available && listing.slug ? `/listings/${listing.slug}` : null;
   const place = placeOf(item);
@@ -55,6 +57,10 @@ function SavedItem({ item, periods, busy, failure, onRemove }: ItemProps) {
   return (
     <article
       aria-labelledby={titleId}
+      // Counted as a "saved" impression while it is public (src/lib/analytics); an unavailable listing is not.
+      data-rp-impression={href ? "saved" : undefined}
+      data-rp-listing={href ? item.listing_id : undefined}
+      data-rp-rank={href ? rank : undefined}
       className={cn(
         "flex flex-col overflow-hidden rounded-lg border sm:flex-row",
         href ? "border-line bg-surface shadow-xs" : "border-dashed border-line-strong bg-sunken",
@@ -206,7 +212,7 @@ function List({ periods }: { periods: Labels }) {
         {state.status === "ready" && state.data.items.length > 0 && (
           <>
             <ul className="space-y-4">
-              {state.data.items.map((item) => (
+              {state.data.items.map((item, index) => (
                 <li key={item.listing_id}>
                   <SavedItem
                     item={item}
@@ -214,6 +220,7 @@ function List({ periods }: { periods: Labels }) {
                     busy={removing === item.listing_id}
                     failure={failed?.id === item.listing_id && confirming?.listing_id !== item.listing_id ? failed.failure : null}
                     onRemove={askOrRemove}
+                    rank={(state.data.page - 1) * state.data.page_size + index + 1}
                   />
                 </li>
               ))}

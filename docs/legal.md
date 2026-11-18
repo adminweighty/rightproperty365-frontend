@@ -49,6 +49,7 @@ Check each of these against how the business will really operate:
 - **Marketing emails.** The policy says none are sent today.
 - **Mobile app permissions.** The EULA says the app asks before using a device feature such as notifications or the photo library. Match it to what the released apps request, and to the privacy labels in each store.
 - **Verification.** "Verified" is described as a review of the onboarding documents and not a warranty. Keep the product's wording consistent with that.
+- **Measurement (draft, needs legal review).** The Privacy Policy's "Measurement" section, the `rp_as` paragraph under "Cookies" and the summary line about cookies were drafted for listing analytics (API 0.30.0) and are marked `DRAFT — NEEDS LEGAL REVIEW` in `src/content/legal/privacy-policy.tsx`. They describe a first-party pseudonymous cookie set without a consent banner, the browser honouring Do Not Track and Global Privacy Control, truncated IP addresses and 90-day retention of raw events. Whether that cookie may be set without consent (it is not strictly necessary in the PECR/ePrivacy sense) needs advice for each market. The document's `version` was not changed; set it when the text is approved.
 - **Liability cap and indemnity** in the Terms and Conditions are drafted to be reasonable, not tested against any country's consumer law.
 
 ## Needs sign-off before launch

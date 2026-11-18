@@ -191,6 +191,8 @@ export const SUBSCRIPTION_MANAGE_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN"
 export const REFERENCE_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "PLATFORM_ADMIN", "CONTENT_ADMIN", "MARKET_ADMIN"];
 /** The report summary. */
 export const REPORT_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "PLATFORM_ADMIN", "FINANCE_ADMIN"];
+/** Listing analytics across the site (API 0.30.0); a MARKET_ADMIN sees only their market. */
+export const ANALYTICS_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "PLATFORM_ADMIN", "MARKET_ADMIN"];
 /** The users and listings CSV exports (personal data). */
 export const PEOPLE_EXPORT_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "PLATFORM_ADMIN"];
 /** The subscriptions CSV export. */

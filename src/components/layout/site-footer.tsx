@@ -144,11 +144,21 @@ export function SiteFooter() {
                 </Link>
               </li>
               {legalDocuments.map((document) => (
-                <li key={document.key}>
-                  <Link href={document.path} className={linkClass}>
-                    {document.title}
-                  </Link>
-                </li>
+                <Fragment key={document.key}>
+                  <li>
+                    <Link href={document.path} className={linkClass}>
+                      {document.title}
+                    </Link>
+                  </li>
+                  {/* What the listing figures mean sits beside the Privacy Policy, which describes what is collected for them. */}
+                  {document.key === "privacyPolicy" && (
+                    <li>
+                      <Link href="/analytics-definitions" className={linkClass}>
+                        How we count views
+                      </Link>
+                    </li>
+                  )}
+                </Fragment>
               ))}
             </ul>
           </nav>

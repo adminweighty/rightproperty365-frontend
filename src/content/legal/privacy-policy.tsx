@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { DocLink, Email, type LegalContent } from "@/components/legal/legal-document";
 import { legal, operatorSentence } from "@/lib/legal";
 
@@ -11,7 +12,12 @@ export const privacyPolicy: LegalContent = {
       Your contact details are shown only to the person or business you send an enquiry to. We never publish them, and
       we do not sell personal information.
     </>,
-    <>We use one cookie, to keep you signed in. There are no advertising, tracking or analytics cookies.</>,
+    // DRAFT — NEEDS LEGAL REVIEW (API 0.30.0 listing analytics): this line changed from "one cookie" when the
+    // first-party measurement cookie rp_as was added. Not yet approved; confirm before release.
+    <>
+      We use one cookie to keep you signed in and one to count listing views without identifying you. There are no
+      advertising or third-party tracking cookies.
+    </>,
     <>
       You can ask to see, correct or delete your information at any time by writing to <Email to="privacy" />.
     </>,
@@ -206,9 +212,72 @@ export const privacyPolicy: LegalContent = {
             cannot be read by scripts in the page. It is strictly necessary for accounts to work, so we do not ask for
             consent to it, and it is removed when you sign out or when it expires.
           </p>
+          {/* DRAFT — NEEDS LEGAL REVIEW (API 0.30.0): the rp_as paragraph and the changed sentence after it. */}
           <p>
-            We do not use advertising cookies, third-party tracking cookies or analytics cookies. If that changes, we
-            will update this policy and ask for your consent where the law requires it before any such cookie is set.
+            The website also sets a first-party cookie named <code>rp_as</code> while you browse, unless your browser
+            sends a Do Not Track or Global Privacy Control signal. It holds a random code used only to count listing
+            views (see &ldquo;Measurement&rdquo; below), changes at midnight and at least every 24 hours, and is
+            read by no one but us.
+          </p>
+          <p>
+            We do not use advertising cookies, third-party tracking cookies or third-party analytics. If that changes,
+            we will update this policy and ask for your consent where the law requires it before any such cookie is
+            set.
+          </p>
+        </>
+      ),
+    },
+    // ===================================================================================================
+    // DRAFT — NEEDS LEGAL REVIEW. The "Measurement" section below was written for API 0.30.0 (listing
+    // analytics) and has not been approved by the business or its lawyer. In particular confirm: the
+    // lawful basis (legitimate interests, no consent banner), that rp_as may be set without consent in
+    // each market served (UK/EU PECR/ePrivacy "strictly necessary" is doubtful for analytics), the
+    // 90-day retention (ANALYTICS_RAW_RETENTION_DAYS) and the IP truncation wording. Bump the privacy
+    // policy version in src/lib/legal.ts once it is approved.
+    // ===================================================================================================
+    {
+      id: "measurement",
+      title: "Measurement",
+      body: (
+        <>
+          <p>
+            We count how often listings are seen, opened and enquired about, so advertisers can see how their listings
+            are doing and we can improve the Platform. This is our own measurement: we do not use Google Analytics or
+            any other third-party measurement service, and nothing is shared with advertising networks.
+          </p>
+          <p>When you browse listings, your browser sends us, for each event:</p>
+          <ul>
+            <li>
+              what happened: a listing card was on screen for at least a second, a listing page was opened, you pressed
+              &ldquo;Send request&rdquo;, or you pressed play on a video tour, and when it happened;
+            </li>
+            <li>which listing it was about and, for a card, where on the page it was shown and in which position;</li>
+            <li>
+              the kind of site you came from (a search engine, social media, email, another website, our own site, or
+              none), worked out in your browser. We never receive the address of the page you came from;
+            </li>
+            <li>whether your screen is the size of a phone, a tablet or a computer;</li>
+            <li>
+              a random visit code (a pseudonym) made in your browser and kept in the <code>rp_as</code> cookie and in
+              the browser tab. It changes at local midnight and at least every 24 hours, is not linked to your account
+              or to your name, and is not used on any other website.
+            </li>
+          </ul>
+          <p>
+            To filter out bots and abuse, our servers also look at the browser&rsquo;s user agent and keep a shortened
+            form of your network (IP) address: the first three parts of an IPv4 address or the first 48 bits of an IPv6
+            address. Your full IP address is not stored with these events. When you save a listing, send an enquiry or
+            ask for a viewing, our servers record that the action happened, without the visit code.
+          </p>
+          <p>
+            Individual events are deleted after 90 days. Daily totals made from them are kept. Advertisers and our
+            administrators see only totals, never individual events or visitors.
+          </p>
+          <p>
+            If your browser sends a Do Not Track or Global Privacy Control signal, it sends us none of these events and
+            the <code>rp_as</code> cookie is not set. You can also delete the cookie at any time in your browser
+            settings. What each figure means is explained on{" "}
+            <Link href="/analytics-definitions">How we count listing views and enquiries</Link>.
           </p>
         </>
       ),

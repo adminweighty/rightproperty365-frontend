@@ -4,6 +4,7 @@ import { AdvertiserCompact } from "@/components/listings/advertiser";
 import { ListingMedia } from "@/components/listings/listing-media";
 import { SaveListingButton } from "@/components/listings/save-listing-button";
 import { Stagger } from "@/components/motion/stagger";
+import type { Placement } from "@/lib/analytics/core";
 import type { Listing } from "@/lib/api/types";
 import { formatArea, formatMoney, pricePeriodLabel } from "@/lib/format";
 import { shortPlace } from "@/lib/places";
@@ -119,6 +120,12 @@ type CardProps = {
    * Unset: when the card nears the screen.
    */
   photoLoading?: "high" | "eager";
+  /**
+   * Where the card is shown and its 1-based position there, for the
+   * first-party impression count (src/lib/analytics). Only data attributes:
+   * the card stays a server component and the page stays cached.
+   */
+  impression?: { placement: Placement; rank: number };
 };
 
 /**
@@ -132,10 +139,14 @@ type CardProps = {
  * names (suburb and city, or city and country); a listing that names none has
  * no place line.
  */
-export function ListingCard({ listing, isNew, periods, stay, photoLoading }: CardProps) {
+export function ListingCard({ listing, isNew, periods, stay, photoLoading, impression }: CardProps) {
   const place = shortPlace(listing);
   return (
-    <article className="group frame-brand flex flex-col overflow-hidden rounded-lg border border-line bg-surface shadow-xs transition-[box-shadow,translate] duration-200 ease-standard hover:shadow-md focus-within:shadow-md">
+    <article
+      data-rp-impression={impression?.placement}
+      data-rp-listing={impression ? listing.id : undefined}
+      data-rp-rank={impression?.rank}
+      className="group frame-brand flex flex-col overflow-hidden rounded-lg border border-line bg-surface shadow-xs transition-[box-shadow,translate] duration-200 ease-standard hover:shadow-md focus-within:shadow-md">
       <div className="relative">
         <ListingMedia
           photo={listing.photos[0]}
@@ -186,7 +197,15 @@ export function ListingCard({ listing, isNew, periods, stay, photoLoading }: Car
   );
 }
 
-type GridProps = { listings: Listing[]; periods?: PeriodLabels; stay?: StayQuery };
+type GridProps = {
+  listings: Listing[];
+  periods?: PeriodLabels;
+  stay?: StayQuery;
+  /** Counts each card as an impression in this placement. Unset: not counted (no placement fits). */
+  placement?: Placement;
+  /** Cards before this grid in the same placement (earlier result pages), so ranks run on. */
+  rankOffset?: number;
+};
 
 /** A card rises a little under the pointer. The `li` is what is hovered, so the card does not move out from under it. */
 export const cardLift = "motion-safe:[&:hover>article]:-translate-y-1";
@@ -196,7 +215,7 @@ export const cardLift = "motion-safe:[&:hover>article]:-translate-y-1";
  * moves and never fades: its photos load first and are the largest thing on
  * the screen of a results page.
  */
-export function ListingGrid({ listings, periods, stay }: GridProps) {
+export function ListingGrid({ listings, periods, stay, placement, rankOffset = 0 }: GridProps) {
   return (
     <Stagger as="ul" solid={3} className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {listings.map((listing, index) => (
@@ -207,6 +226,7 @@ export function ListingGrid({ listings, periods, stay }: GridProps) {
             stay={stay}
             // The first row is on screen when the page opens: do not wait for it.
             photoLoading={index === 0 ? "high" : index < 3 ? "eager" : undefined}
+            impression={placement ? { placement, rank: rankOffset + index + 1 } : undefined}
           />
         </li>
       ))}

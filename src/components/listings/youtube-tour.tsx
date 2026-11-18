@@ -2,6 +2,7 @@
 
 import { ExternalLink, Play, VideoOff } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { trackYouTubePlay } from "@/lib/analytics/tracker";
 import type { ListingVideo } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
 import {
@@ -58,6 +59,8 @@ type Props = {
   video: ListingVideo;
   /** The listing's title, for the poster's alt text and the player's title. */
   title: string;
+  /** Counts a press of play as `youtube_play_intent` for this listing (first-party, src/lib/analytics). */
+  listingId?: string;
   className?: string;
 };
 
@@ -73,7 +76,7 @@ const frame = "relative aspect-video w-full overflow-hidden rounded-lg";
  * neutral frame and a link to watch it on YouTube instead. The server renders
  * the poster, the same for everyone, so the listing page stays cached.
  */
-export function YouTubeTour({ video, title, className }: Props) {
+export function YouTubeTour({ video, title, listingId, className }: Props) {
   const [state, setState] = useState<State>("poster");
   const [src, setSrc] = useState<string | null>(null);
   const image = useRef<HTMLImageElement>(null);
@@ -126,6 +129,8 @@ export function YouTubeTour({ video, title, className }: Props) {
   }, [state]);
 
   function play() {
+    // The intent to watch counts even when the video then cannot be played.
+    if (listingId) trackYouTubePlay(listingId);
     const next = playerSrc(video.embed_url, window.location.origin);
     if (!next) {
       setState("unavailable");

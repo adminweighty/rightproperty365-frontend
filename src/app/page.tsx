@@ -404,7 +404,7 @@ async function HomeContent() {
               note="Properties our agencies have chosen to put forward this week."
             />
             <div className="mt-8">
-              <ListingGrid listings={featured.slice(0, 6)} periods={periods} />
+              <ListingGrid listings={featured.slice(0, 6)} periods={periods} placement="home" />
             </div>
           </Container>
         </section>

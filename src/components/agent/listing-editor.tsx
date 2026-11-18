@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FocusEvent, type ReactNode } from "react";
 import { PhotoManager } from "@/components/agent/photo-manager";
+import { ListingAnalyticsCard } from "@/components/analytics/agent-analytics";
 import { RequireAuth } from "@/components/auth/require-auth";
 import { BackLink, formatWhen, LoadError, LoadingBlock } from "@/components/portal/portal-ui";
 import { Alert } from "@/components/ui/alert";
@@ -802,6 +803,9 @@ function Editor({ listingId, lists }: Props) {
                 </div>
               </Card>
             )}
+
+            {/* Views, unique views, saves and enquiries over 30 days, linking to the listing analytics page (API 0.30.0). */}
+            <ListingAnalyticsCard listingId={listing.id} title={title} />
           </div>
         </aside>
 

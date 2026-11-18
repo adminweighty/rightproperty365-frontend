@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Inter } from "next/font/google";
+import { AnalyticsRoot } from "@/components/analytics/analytics-root";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { SavedListingsProvider } from "@/components/listings/saved-listings-provider";
 import { SiteFooter } from "@/components/layout/site-footer";
@@ -60,6 +61,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             </main>
             <SiteFooter />
             <SiteMotion />
+            {/* First-party listing measurement: a client island that renders nothing (src/lib/analytics). */}
+            <AnalyticsRoot />
           </SavedListingsProvider>
         </AuthProvider>
       </body>

@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, Plus } from "lucide-react";
+import { BarChart3, CalendarDays, Plus } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -41,6 +41,7 @@ import {
   type ActionButton,
 } from "@/lib/listing-manage";
 import { photoCounter } from "@/lib/listing-photos";
+import { listingAnalyticsPath } from "@/components/analytics/agent-analytics";
 import { profilePlace } from "@/lib/places";
 
 /** The most pages read: 48 listings each. */
@@ -218,6 +219,13 @@ function Row({
               <span className="sr-only"> {title}</span>
             </ButtonLink>
           )}
+          {status !== "DRAFT" && (
+            <ButtonLink href={listingAnalyticsPath(summary.id)} variant="ghost">
+              <BarChart3 className="size-4" aria-hidden="true" />
+              Analytics
+              <span className="sr-only"> of {title}</span>
+            </ButtonLink>
+          )}
           {isStay && (
             <ButtonLink href={`/agent/listings/${summary.id}/availability`} variant="ghost">
               <CalendarDays className="size-4" aria-hidden="true" />
@@ -301,6 +309,10 @@ function Manager({ periods }: { periods: Record<string, string> }) {
             The listings you or your organisation manage, newest first.{" "}
             <Link href="/agent/requests" className="font-medium text-primary-ink hover:underline">
               Request inbox
+            </Link>
+            {" · "}
+            <Link href="/agent/analytics" className="font-medium text-primary-ink hover:underline">
+              Analytics
             </Link>
           </p>
         </div>
