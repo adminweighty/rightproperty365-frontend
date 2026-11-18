@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { CreateContactButton } from "@/components/agent/contacts/create-contact-button";
 import { AppointmentCard, type AppointmentAction } from "@/components/appointments/appointment-card";
 import { RequireAuth } from "@/components/auth/require-auth";
 import { Alert } from "@/components/ui/alert";
@@ -375,6 +376,7 @@ function Received() {
                       <dd className="text-ink">{item.assigned_to?.name ?? "Nobody yet"}</dd>
                     </div>
                   </dl>
+                  <CreateContactButton requestId={item.id} name={item.contact.name} className="mt-3 border-t border-line pt-3" />
                 </AppointmentCard>
               </li>
             ))

@@ -4,6 +4,7 @@ import { ArrowRight, Search } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { RemindersDueCard } from "@/components/agent/contacts/reminders-due-card";
 import { useAuth } from "@/components/auth/auth-provider";
 import { RequireAuth } from "@/components/auth/require-auth";
 import { CountUp } from "@/components/motion/count-up";
@@ -481,6 +482,7 @@ function Workspace({ data }: { data: Dashboard }) {
     data.capabilities.receives_requests && { href: "/agent/requests", label: "Request inbox" },
     data.capabilities.manages_appointments && { href: "/agent/appointments", label: "Appointments received" },
     data.capabilities.manages_listings && { href: "/agent/listings", label: "Your listings" },
+    data.organisations.length > 0 && { href: "/agent/contacts", label: "Contacts" },
     leases && {
       href: "/agent/leases",
       label: "Leases",
@@ -630,6 +632,7 @@ function Body({ data }: { data: Dashboard }) {
       {data.capabilities.receives_requests && <ReceivedRequests data={data} />}
       <MyRequests data={data} />
       {(data.kind !== "PROFESSIONAL_PENDING" || data.recent.appointments.length > 0) && <Appointments data={data} />}
+      {data.kind === "PROFESSIONAL" && data.organisations.length > 0 && <RemindersDueCard organisations={data.organisations} />}
 
       {professional && <Workspace data={data} />}
 

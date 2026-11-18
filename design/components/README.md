@@ -497,7 +497,7 @@ The session control at the right of the header.
 - Loading: an empty block the size of the button, so the header does not shift.
 - Signed out: "Sign in" as a ghost button at every width and, from `sm`, the primary "Sign up" button to its right, which goes to `/register`. Both are 44px tall. On phones the bar has no room for "Sign up"; it is in the menu panel with "Sign in".
 - From `xl` the "For professionals" link sits before them; it leads to the landing page's section for professionals, whose button goes to registration. Below `lg` that link is in the menu panel. Between `lg` and `xl` the bar has no room for it beside the navigation and the two buttons.
-- Signed in: a secondary button, 44px tall, that opens a menu with the person's email, "Dashboard" (always first), "Your account", "Complete your profile" (while an onboarding application is not submitted or has changes requested), "Your requests", "Your appointments", "Saved properties", "Request inbox", "Appointments received" and "Your listings" (professional accounts and owners only) and "Sign out". From `sm` the button shows the person's first name; on phones it is the account icon alone, with the name kept for screen readers ("Account menu for Tendai"), so the header fits a 320px screen.
+- Signed in: a secondary button, 44px tall, that opens a menu with the person's email, "Dashboard" (always first), "Your account", "Complete your profile" (while an onboarding application is not submitted or has changes requested), "Your requests", "Your appointments", "Saved properties", "Request inbox", "Appointments received" and "Your listings" (professional accounts and owners only), "Contacts" (organisation members) and "Sign out". From `sm` the button shows the person's first name; on phones it is the account icon alone, with the name kept for screen readers ("Account menu for Tendai"), so the header fits a 320px screen.
 - The button has `aria-expanded` and `aria-controls`. The menu closes on Escape, on an outside click, and when an item is chosen. Items are 44px tall.
 
 ## RequireAuth (`auth/require-auth.tsx`)
@@ -889,6 +889,69 @@ The site's data-visualisation rules. They apply to any chart added later.
 
 Public, static, indexable. Every figure is defined in a `dl` with an anchor each (`#unique-views`), then days and time zones, bots and automated traffic, late events, what we collect, Do Not Track and Global Privacy Control, and how long events are kept. It opens with "These are not Google Analytics figures" in a `soft` panel. Linked from every analytics page, the footer (beside the Privacy Policy) and the Privacy Policy's "Measurement" section.
 
+## Contact book (`agent/contacts/*`, `lib/contacts.ts`, API 0.31.0)
+
+An organisation's private, shared book of contacts. Every member reads every contact (the relationship owner is a field, not a visibility rule); OWNER, MANAGER and AGENT change them; Agency Staff only read; import and export are for the OWNER and MANAGER. The customer never sees any of it. Every page is `noindex, nofollow`, read in the browser with the session, and reflows at 320px. Rules that are not the API's (stage words and tones, filters in the address and the API query, chips, the merge preview, the CSV check, where timeline entries link) are pure functions in `lib/contacts.ts`, checked by `npm test` (`scripts/contacts.test.mjs`). Types and sources come from the `contact_types` and `contact_sources` reference sets; the stages are a fixed enum (New, Contacted, Viewing requested, Viewing confirmed, Negotiating, Closed, Unsuccessful) whose words come from the API's `stage_label`, then a `contact_stages` set if the API has one, then the fallback in `lib/contacts.ts`.
+
+### ContactsShell (`contacts/shared.tsx`)
+
+- `BackLink`, the page's `h1` (a contact's page uses the contact's name instead), one line of intro, then the organisation: from `?org=`, else the first of the dashboard's `organisations`. With several, an "Organisation" `SearchableSelect` (as on the team and analytics pages); the line under it names the organisation and the person's role, and says when they can only read. Every link in the book keeps `?org=`.
+- "List", "Pipeline" and (OWNER, MANAGER) "Import" as a `ChipNav` named "Contact book sections".
+- States: loading, error with "Try again", "The contact book belongs to an organisation" for someone with none (a direct owner), signed out, no access. The content is keyed by organisation, so nothing of one stays on screen for another.
+
+### Contact list (`contacts/contact-list.tsx`, `/agent/contacts`)
+
+The primary accessible view. "Add a contact" (primary) and "Merge contacts" for writers; "Export as CSV" for the OWNER and MANAGER (a download named by the API's `Content-Disposition`; a success `Alert` says it is recorded in the activity log).
+
+- Stage links as a `ChipNav` ("All" and each stage, with counts when the API sends `stage_counts`), then a GET filter form that works without JavaScript: Search (name, email or phone), Type, Stage, Tag, Relationship owner and Order, each a `SearchableSelect`, and "Only contacts with a reminder due". The tag list is the tags of the contacts read (the contract has no list of tags); the owner list is the team (OWNER and MANAGER can read it), otherwise "Anyone" and the person themselves.
+- "Filters in use": one chip per filter, each a link to the list without it ("Remove filter: Tag: cash"), and "Clear all", as the listing search's chips.
+- A status line ("12 contacts match, page 2 of 3"), cards (type and stage badges, "Reminder due" with an icon and the word, the name as the link, the first email and phone with "+1" for more, tags, owner, last contact or when added), `Pagination`.
+- Empty: "No contacts yet" (with "Add a contact" for writers), "No contacts match these filters", "There is no page 5 of these contacts".
+
+### ContactForm (`contacts/contact-form.tsx`)
+
+The details, on the new-contact page and in a contact's "Details" card. Name, Type (`SearchableSelect`), Email addresses and Phone numbers (a list of fields, each with a 44px "Remove email address 2" button, and "Add another email address"), Tags (a field with "Add tag"; Enter adds instead of sending; each tag a 44px chip with "Remove tag cash"), Where they came from (`SearchableSelect`), and "Marketing permission": what is stored (a badge, when it was recorded, by whom and how), a checkbox and "How they agreed". Checked before sending in the words shown under each control (a phone starts with + and the country code); the API's field errors go under their controls; an error summary takes focus. Agency Staff see it disabled with one line that says why.
+
+### New contact and the duplicate banner (`contacts/contact-new.tsx`, `/agent/contacts/new`)
+
+The form plus Stage, Relationship owner and First note. A 409 `CONTACT_DUPLICATE` shows a `warning-soft` banner with a 4px `warning` bar (`role="alert"`, focus moves to it): what was found, "Open the existing contact: <name>" for each duplicate with its stage, and "Create anyway" (secondary), which sends again with `allow_duplicate=true`. Success opens the new contact.
+
+### Contact page (`contacts/contact-detail.tsx`, `/agent/contacts/<id>`)
+
+- Head: type and stage badges, source, the name as `h1`, email and phone links (44px), when added and last contact; "Merge with another contact" and "Delete the contact" (a `ConfirmDialog`: "Keep it" / "Yes, delete it") for writers.
+- Main column: "Details" (`ContactForm`), "Notes" (marked "Only your team can see notes. The contact never does."; append-only: the hint says a correction is a new note; newest first, author and time), "Timeline" (newest first; each entry in the API's words or made from its kind, who and when; a linked request, enquiry, appointment, listing or contact is a link to its page, anything else plain text; read again after every change).
+- Side column: "Stage" (the badge now, "Move it to" `SearchableSelect` of the other stages, optional "Why", "Change the stage"), "Relationship owner" (the owner; for an OWNER, MANAGER or the current owner, "Give it to" from the team, or only themselves when the team cannot be read, and "Save the owner"), "Reminders" (Due, Coming up or Done badges with the word, the time, "Mark as done" / "Mark as not done" named with the text; "Add a reminder": When as `datetime-local` in the person's time zone, What to do), "Linked listings" (each a link with "Unlink"; "Link a listing" `SearchableSelect` of the person's listings).
+- Each change says how it went in a polite live region under its control and reads the contact again. A 404 is "We could not find that contact"; a merged contact says where it went with "Open the contact it was merged into".
+
+### Pipeline board (`contacts/contact-pipeline.tsx`, `/agent/contacts/pipeline`)
+
+- One column per stage, in order, as an `ol` that wraps (one column on phones, two from `md`, four from `xl`), never scrolling sideways. Each column: its stage badge and count as its `h2`, up to 50 cards, "See all 73 in the list" when there are more, "Nobody at this stage" when empty.
+- Each card: the name (a link), type, owner and, for writers, **"Move to…"**, a `SearchableSelect` of the other stages named with the contact's name. Choosing a stage moves the card at once and says "Rudo Moyo moved to Negotiating." in a polite live region; failures say why. This is the keyboard and screen-reader way to move a card.
+- Pointer users may also drag a card (a grip icon, `cursor-grab`) to another column, which is outlined `primary` on `tint` while a card is over it. Dragging is a convenience only; the list remains the primary accessible view.
+
+### Merge flow (`contacts/contact-merge.tsx`, `/agent/contacts/merge`)
+
+Three steps on one page. "1. Find the contacts": a search with checkboxes on each result (at most 10). "2. Choose the one to keep": radio buttons with "Remove" for each chosen contact (`?keep=<id>` from a contact's page preselects it). "Preview the merge" reads each contact in full. "3. Check what moves": who stays, who becomes a pointer, and the email addresses, phone numbers and tags new to the contact kept plus the counts of notes, reminders, listings and linked items that move; the kept contact's name, type, stage and owner stay. "Merge the contacts" asks in a `ConfirmDialog` (it cannot be undone) and opens the contact kept.
+
+### Import (`contacts/contact-import.tsx`, `/agent/contacts/import`)
+
+OWNER and MANAGER only (others are told who can and offered "Add a contact").
+
+- **File upload:** a labelled native `<input type="file" accept=".csv">` whose button is styled as a secondary button (44px). The page says which columns are read. Before anything is sent the file is checked in the browser (`checkContactCsv`): a CSV, at most 5 MB, a header row with `name`, 1 to 5,000 rows; the problem appears under the control. Then the API's dry run is the preview.
+- **Preview:** "Nothing has been imported yet", counts as badges (new, already in the book, rows with errors), one sentence that only new rows are added and nothing is overwritten, and the table.
+- **Data table:** a `table` with a caption, column headers and the row number as the row header, inside a focusable `region` that scrolls sideways on its own at 320px (the page never does). Each row's result is a badge with its word ("Will be created", "Already in the book" with a link to that contact, "Not imported" with each problem in `danger` text).
+- "Import 12 contacts" asks in a `ConfirmDialog`, then "Import finished" with how many were added and left out, the rows, "See the contacts" and "Import another file".
+
+### CreateContactButton (`contacts/create-contact-button.tsx`)
+
+"Create contact" (secondary, with an icon) on a property request's page (in its "Contact" card), on each business enquiry card in the inbox and on each received appointment's card (there are no separate pages for those two). It calls `POST …/contacts/from-request/{id}` and opens the contact; a line under it says it links to an existing contact instead when there is one. With several organisations a "Contact book" `SearchableSelect` comes first. Not shown to anyone without a book they can write to. In a list its accessible name includes the customer's name; the buttons on one page share one read of the dashboard.
+
+### RemindersDueCard (`contacts/reminders-due-card.tsx`)
+
+"Reminders due" on the professional dashboard, after "Next appointments": the overdue reminders and those due today in every book the person belongs to (`…/contacts/reminders?due=overdue` and `today`), soonest first, five shown, each with the contact as a link, the text, an "Overdue" or "Today" badge and the time; "Contacts with a reminder due" opens the list filtered. A quiet line when none; one plain sentence when they cannot be read.
+
+Links: "Contacts" in the account menu (organisation members), in "Your workspace" on the dashboard and at the top of the request inbox.
+
 ## Not built yet
 
-Dialog, tabs, data table, a time-slot picker (nights are chosen in `NightCalendar`), file upload, a map search across the antimeridian. Specify each here before building it.
+Dialog, tabs, a reusable data table (the contact import preview is the one table pattern so far), a time-slot picker (nights are chosen in `NightCalendar`), a reusable file upload control (beyond `DocumentUploader` and the contact import field), a map search across the antimeridian. Specify each here before building it.

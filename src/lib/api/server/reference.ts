@@ -41,7 +41,14 @@ async function getReferenceSets(): Promise<ReferenceSets> {
   // every country that has them, each row with its `market_code`.
   const { data } = await apiGet<{ sets: ReferenceSets }>("/v1/reference");
   // Sets added later (`price_periods`) are missing from older API builds.
-  return { ...data.sets, price_periods: data.sets.price_periods ?? [], regions: data.sets.regions ?? [] };
+  return {
+    ...data.sets,
+    price_periods: data.sets.price_periods ?? [],
+    regions: data.sets.regions ?? [],
+    contact_types: data.sets.contact_types ?? [],
+    contact_sources: data.sets.contact_sources ?? [],
+    contact_stages: data.sets.contact_stages ?? [],
+  };
 }
 
 /** Everything behind the drop-downs, filters and labels. There is no default country. */

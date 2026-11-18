@@ -29,7 +29,7 @@ Sources: Google Search Central, schema.org and the Next.js 16 documentation bund
 | `/analytics-definitions` (how listing figures are counted) | index | itself | yes |
 | `/legal`, `/legal/privacy-policy`, `/legal/terms-and-conditions`, `/legal/refund-policy`, `/legal/eula` | index | itself | yes, with the date the document last changed |
 | Any public page while the API cannot be reached (error state) | noindex, follow | none | the sitemap answers 500 |
-| Sign-in, register, password reset, account, appointments, saved properties (`/account/saved`), agent inbox, analytics (`/agent/analytics`, `/agent/analytics/listings/[id]`, `/admin/analytics`), "Your listings" and the availability editor, design system | noindex | none | no |
+| Sign-in, register, password reset, account, appointments, saved properties (`/account/saved`), agent inbox, analytics (`/agent/analytics`, `/agent/analytics/listings/[id]`, `/admin/analytics`), "Your listings" and the availability editor, the contact book (`/agent/contacts`, `/agent/contacts/new`, `/agent/contacts/[id]`, `/agent/contacts/pipeline`, `/agent/contacts/merge`, `/agent/contacts/import`), design system | noindex | none | no |
 
 Rules behind the table:
 

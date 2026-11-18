@@ -396,7 +396,12 @@ export type ReferenceSetCode =
   | "cities"
   | "suburbs"
   | "listing_features"
-  | "price_periods";
+  | "price_periods"
+  /** API 0.31.0, the contact book. Missing from older API builds (read as empty). */
+  | "contact_types"
+  | "contact_sources"
+  /** Labels for the fixed lead stages of a contact, only if the API has such a set. */
+  | "contact_stages";
 
 export type ReferenceSets = Record<ReferenceSetCode, ReferenceItem[]>;
 

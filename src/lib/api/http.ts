@@ -15,6 +15,8 @@ export type ApiFailure = {
   traceId?: string;
   /** Seconds to wait before trying again, from a 429 answer's Retry-After header. */
   retryAfter?: number;
+  /** The whole answer, for errors that carry more than the envelope (a 409 `CONTACT_DUPLICATE` lists its duplicates). */
+  body?: unknown;
 };
 
 export type ApiResult<T> = { ok: true; data: T; status: number } | { ok: false; failure: ApiFailure };
@@ -97,6 +99,7 @@ function failureFrom(response: Response, payload: unknown): ApiFailure {
     fields: envelope?.error?.fields,
     traceId: envelope?.trace_id,
     retryAfter: retryAfterSeconds(response.headers.get("Retry-After")),
+    body: payload ?? undefined,
   };
 }
 

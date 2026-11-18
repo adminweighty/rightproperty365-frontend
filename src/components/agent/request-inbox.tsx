@@ -4,6 +4,7 @@ import { CalendarDays, Mail, Phone, UserRound } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { CreateContactButton } from "@/components/agent/contacts/create-contact-button";
 import { RequireAuth } from "@/components/auth/require-auth";
 import { ChipNav, EmptyState, formatWhen, LoadError, LoadingBlock } from "@/components/portal/portal-ui";
 import { useApi } from "@/components/portal/use-api";
@@ -333,6 +334,7 @@ function BusinessEnquiries({ contactMethodLabels }: { contactMethodLabels: Label
                       </span>
                       <span className="font-mono text-xs text-subtle sm:ml-auto">{item.reference}</span>
                     </div>
+                    <CreateContactButton requestId={item.enquiry_id} name={item.contact.name} className="mt-4 border-t border-line pt-4" />
                   </Card>
                 </li>
               ))}
@@ -373,6 +375,14 @@ export function RequestInbox({ requestTypeLabels, contactMethodLabels }: Props) 
             <Link href="/agent/listings" className="font-medium text-primary-ink hover:underline">
               Your listings
             </Link>
+            {isProfessional(user) && (
+              <>
+                {" · "}
+                <Link href="/agent/contacts" className="font-medium text-primary-ink hover:underline">
+                  Contacts
+                </Link>
+              </>
+            )}
             {canManageTeam(user) && (
               <>
                 {" · "}

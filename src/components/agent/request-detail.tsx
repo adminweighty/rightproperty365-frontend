@@ -3,6 +3,7 @@
 import { CalendarDays, Lock, Mail, Phone } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { CreateContactButton } from "@/components/agent/contacts/create-contact-button";
 import { stageTones } from "@/components/agent/request-inbox";
 import { RequireAuth } from "@/components/auth/require-auth";
 import { BackLink, formatWhen, LoadError, LoadingBlock } from "@/components/portal/portal-ui";
@@ -482,6 +483,7 @@ function Detail({ id, typeLabels, contactMethodLabels }: { id: string; typeLabel
                 </li>
               )}
             </ul>
+            <CreateContactButton requestId={request.request_id} className="mt-4 border-t border-line pt-4" />
           </Card>
 
           <Card>
