@@ -237,6 +237,12 @@ function Details({ user, roleLabels, organisationKindLabels }: Props & { user: U
         <ButtonLink href="/account/signature" variant="secondary">
           Your signature
         </ButtonLink>
+        <ButtonLink href="/account/notifications" variant="secondary">
+          Notifications
+        </ButtonLink>
+        <ButtonLink href="/account/notification-preferences" variant="secondary">
+          Notification preferences
+        </ButtonLink>
         <ButtonLink href="/dashboard" variant="secondary">
           Dashboard
         </ButtonLink>

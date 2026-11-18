@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // The pitch deck's own build scripts (Node CommonJS, kept out of git).
+    "docs/pitch-deck/**",
   ]),
 ]);
 

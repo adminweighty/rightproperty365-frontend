@@ -28,6 +28,8 @@ type Options = {
   headers?: Record<string, string>;
   /** "no-store" for an answer that must never be reused, such as a captcha question. */
   cache?: RequestCache;
+  /** Lets the request finish when the page is left straight away (marking a notification read as its link is followed). */
+  keepalive?: boolean;
 };
 
 const fallbackMessages: Record<number, string> = {
@@ -49,7 +51,7 @@ function retryAfterSeconds(value: string | null): number | undefined {
 }
 
 export async function apiFetch<T>(path: string, options: Options = {}): Promise<ApiResult<T>> {
-  const { method = "GET", body, headers = {}, cache } = options;
+  const { method = "GET", body, headers = {}, cache, keepalive } = options;
 
   let response: Response;
   try {
@@ -57,6 +59,7 @@ export async function apiFetch<T>(path: string, options: Options = {}): Promise<
       method,
       credentials: "include",
       cache,
+      keepalive,
       // For FormData the browser sets the multipart Content-Type and its boundary.
       headers:
         body === undefined || body instanceof FormData

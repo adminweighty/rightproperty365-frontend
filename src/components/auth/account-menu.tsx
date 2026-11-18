@@ -151,6 +151,16 @@ export function AccountMenu({ professionals }: { professionals?: NavItem }) {
             {!isAdmin && (
               <>
                 <li>
+                  <Link href="/account/notifications" className={itemClass} onClick={() => setOpen(false)}>
+                    Notifications
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/account/notification-preferences" className={itemClass} onClick={() => setOpen(false)}>
+                    Notification preferences
+                  </Link>
+                </li>
+                <li>
                   <Link href="/account/requests" className={itemClass} onClick={() => setOpen(false)}>
                     Your requests
                   </Link>

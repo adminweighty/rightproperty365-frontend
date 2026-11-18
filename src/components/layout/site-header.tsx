@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { NotificationBell } from "@/components/account/notification-bell";
 import { AccountMenu } from "@/components/auth/account-menu";
 import { Logo } from "@/components/layout/logo";
 import { navItems, professionalsLink } from "@/components/layout/nav-items";
@@ -44,6 +45,8 @@ export function SiteHeader() {
         </nav>
 
         <div className="ml-auto flex shrink-0 items-center gap-2">
+          {/* Signed-in only, drawn in the browser: the bar the server renders is the same for everyone. */}
+          <NotificationBell />
           <AccountMenu professionals={professionalsLink} />
           {/* The session control needs JavaScript; without it, sign-in and sign-up are still one tap away. */}
           <noscript>

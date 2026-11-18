@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Inter } from "next/font/google";
 import { AnalyticsRoot } from "@/components/analytics/analytics-root";
+import { NotificationsProvider } from "@/components/account/notifications-provider";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { SavedListingsProvider } from "@/components/listings/saved-listings-provider";
 import { SiteFooter } from "@/components/layout/site-footer";
@@ -54,15 +55,18 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <AuthProvider>
           {/* The saved hearts are read in the browser, so cached pages stay the same for everyone. */}
           <SavedListingsProvider>
-            <TestSiteBanner />
-            <SiteHeader />
-            <main id="main" className="flex-1">
-              {children}
-            </main>
-            <SiteFooter />
-            <SiteMotion />
-            {/* First-party listing measurement: a client island that renders nothing (src/lib/analytics). */}
-            <AnalyticsRoot />
+            {/* The unread count behind the header bell, read in the browser for the same reason. */}
+            <NotificationsProvider>
+              <TestSiteBanner />
+              <SiteHeader />
+              <main id="main" className="flex-1">
+                {children}
+              </main>
+              <SiteFooter />
+              <SiteMotion />
+              {/* First-party listing measurement: a client island that renders nothing (src/lib/analytics). */}
+              <AnalyticsRoot />
+            </NotificationsProvider>
           </SavedListingsProvider>
         </AuthProvider>
       </body>

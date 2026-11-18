@@ -350,7 +350,7 @@ A month calendar of nights. One component for the visitor's availability calenda
 - Left to right: the logo on white (`Logo` default tone), the main navigation, then at the right the session control (`AccountMenu`: "Sign in" and "Sign up" for a signed-out visitor) and, below `lg`, the menu button (`SiteMenu`).
 - The main navigation (`layout/nav-items.ts`) shows inline from `lg`. Links are `ink`, weight 600, and take a turquoise underline that grows from the left on hover and keyboard focus (`link-sweep`).
 - Once the page has been scrolled the bar gains `shadow-md` and the logo is drawn at 90%. The bar stays 64px tall, so nothing under it moves.
-- **The bar is one row at every width and never wraps or scrolls sideways.** The logo is the one part that may shrink: 24px tall on phones, 32px from `sm`. Do not add items to the bar; add them to the navigation list, which moves into the menu on small screens.
+- **The bar is one row at every width and never wraps or scrolls sideways.** The logo is the one part that may shrink: 24px tall on phones, 32px from `sm`. Do not add items to the bar; add them to the navigation list, which moves into the menu on small screens. The one exception is the signed-in `NotificationBell`, a 44px icon link just before the session control.
 - The header shows no market or currency. Prices carry their currency code, and the footer lists the markets.
 - Without JavaScript the session control cannot load, so plain "Sign in" and "Sign up" links are rendered in a `noscript`.
 
@@ -497,7 +497,7 @@ The session control at the right of the header.
 - Loading: an empty block the size of the button, so the header does not shift.
 - Signed out: "Sign in" as a ghost button at every width and, from `sm`, the primary "Sign up" button to its right, which goes to `/register`. Both are 44px tall. On phones the bar has no room for "Sign up"; it is in the menu panel with "Sign in".
 - From `xl` the "For professionals" link sits before them; it leads to the landing page's section for professionals, whose button goes to registration. Below `lg` that link is in the menu panel. Between `lg` and `xl` the bar has no room for it beside the navigation and the two buttons.
-- Signed in: a secondary button, 44px tall, that opens a menu with the person's email, "Dashboard" (always first), "Your account", "Complete your profile" (while an onboarding application is not submitted or has changes requested), "Your requests", "Your appointments", "Your applications", "Saved properties", "Request inbox", "Appointments received" and "Your listings" (professional accounts and owners only), "Applications received", "Application forms" and "Contacts" (organisation members) and "Sign out". From `sm` the button shows the person's first name; on phones it is the account icon alone, with the name kept for screen readers ("Account menu for Tendai"), so the header fits a 320px screen.
+- Signed in: a secondary button, 44px tall, that opens a menu with the person's email, "Dashboard" (always first), "Your account", "Complete your profile" (while an onboarding application is not submitted or has changes requested), "Notifications", "Notification preferences", "Your requests", "Your appointments", "Your applications", "Saved properties", "Request inbox", "Appointments received" and "Your listings" (professional accounts and owners only), "Applications received", "Application forms" and "Contacts" (organisation members) and "Sign out". From `sm` the button shows the person's first name; on phones it is the account icon alone, with the name kept for screen readers ("Account menu for Tendai"), so the header fits a 320px screen.
 - The button has `aria-expanded` and `aria-controls`. The menu closes on Escape, on an outside click, and when an item is chosen. Items are 44px tall.
 
 ## RequireAuth (`auth/require-auth.tsx`)
@@ -1135,6 +1135,53 @@ The form reads `GET …/ledger/options`: the types with their fixed direction an
 OWNER and MANAGER: "Add a category" (Name, "Used for" `SearchableSelect`: money in and out, in, or out) and per category "Rename <name>" with "Save the name" and "Deactivate <name>" / "Use <name> again" (ghost). Each row has "In use" or "Deactivated", its direction and "Default" badges. Everyone else reads the list with an info `Alert`. A used category is never deleted; deactivating keeps it on the entries already recorded.
 
 Links: "Books" in the account menu (professionals) and in "Your workspace" on the dashboard (organisation members).
+
+## Notifications (`account/notification-*.tsx`, `account/notifications-provider.tsx`, `lib/notifications.ts`, API 0.35.0)
+
+The in-app record of what happened on a person's requests, appointments, applications, listings, team and account. The website registers no device and sends no web push; push goes to the mobile app. Every rule that can be a pure function is in `lib/notifications.ts` and tested in `scripts/notifications.test.mjs`.
+
+### NotificationsProvider (`account/notifications-provider.tsx`)
+
+The client context behind the bell, inside `AuthProvider` in the root layout, like `SavedListingsProvider`.
+
+- Reads `GET /v1/me/notifications/unread-count` in the browser once a customer-scope session is known (Property Seekers and professionals; never an administrator session), then every 60 s **while the tab is visible**. A hidden tab does not ask; showing it again asks at once when a read is due.
+- After failures in a row it waits 2, 4, 8, then at most 15 minutes, or longer when a 429 sends `Retry-After` (`pollDelay`). A 401 or 403 stops it until the session changes (`stopsPolling`).
+- `unread`, `status` ("off", "loading", "ready"), `setUnread(n)` (the list knows better after marking read; not announced) and `refresh()`.
+- It renders one visually hidden `role="status"` (`aria-live="polite"`) region, always in the page. It speaks only when the count **goes up** from a count already known ("You have 4 unread notifications"); the first count of a page and a count going down say nothing (`unreadAnnouncement`).
+- Nothing is read on the server: public pages stay cached and identical for everyone.
+
+### NotificationBell (`account/notification-bell.tsx`)
+
+In `SiteHeader`, just before `AccountMenu`.
+
+- A link to `/account/notifications`, 44 by 44px, the lucide `Bell` at 20px in `ink`, `sunken` on hover. Not a popover: the list is one tap away and works the same with a keyboard and a screen reader.
+- Its accessible name carries the count: "Notifications, 3 unread", "Notifications, 0 unread", or "Notifications" before the first answer (`bellLabel`). The badge is `aria-hidden` so the number is not read twice.
+- The badge: a `primary` pill with `on-primary` text, 20px tall, with a 2px white ring, at the top right of the icon. "1" to "99", then "99+"; none at 0 (`unreadBadgeText`). The number says it, not the colour.
+- Not rendered while the session loads, when signed out, or for an administrator session. It reads nothing from the address, so the layout stays prerendered.
+- At 320px the bar holds the logo (shrunk), the bell, the account icon and the menu button, each 44px, with no sideways scroll.
+
+### NotificationList (`account/notification-list.tsx`, `/account/notifications`)
+
+`noindex, nofollow`; read in the browser with the session cookie; inside Suspense because it reads `?page` and `?unread=1`.
+
+- Order: `h1` "Notifications" with a "Notification preferences" link beside it, one sentence on what is kept, a `ChipNav` named "Show" ("All", and "Unread" with its count), "Mark all as read" (secondary, only while something is unread), a status line ("12 notifications, 3 unread, page 1 of 2, newest first"), the list, `Pagination`.
+- **Unread**: a `primary` "New" badge, a 4px `primary` bar on the left, a `tint` panel, a semibold title with "(unread)" for screen readers, and a ghost "Mark as read" button (with the title for screen readers; "Marking as read…" while it runs). **Read**: a neutral "Read" badge, a white panel, a regular title. The state is in words and weight, never colour alone.
+- The time: relative words, then the absolute date and time ("2 hours ago · 19 Nov 2026, 14:05"), in a `time` element; the date alone after about a month (`relativeTime`).
+- **Links**: the title is a link only when the API's `link` is a path on this site (`safeNotificationLink`: it starts with one `/`, with no `//`, scheme, backslash or control character). Anything else, an absolute URL included, is plain text and never followed. An API path with no page of its own here yet opens its list (`notificationHref`: `/account/appointments/{id}` opens "Your appointments", `/agent/enquiries/{id}` the inbox's business enquiries, `/account/hourly-bookings/{id}` "Your hourly bookings", `/account/subscriptions/{id}` "Subscription"). Following a link marks the notification read (sent with `keepalive`, so it finishes as the page changes).
+- After "Mark as read" or "Mark all as read" the status line says what happened and the bell is updated. In the "Unread" view the item leaves the list, the page is read again and focus moves to the `h1`. A failure is an `Alert` under the item, or under the buttons.
+- States: loading skeleton (also the Suspense fallback), signed out (`RequireAuth`), error with "Try again", empty ("You have no notifications yet"), nothing unread ("You have no unread notifications" with "See all notifications"), and a page past the end ("There is no page 3 of your notifications" with "Go to page 1").
+
+### NotificationPreferences (`account/notification-preferences.tsx`, `/account/notification-preferences`)
+
+`noindex, nofollow`.
+
+- Order: `BackLink` "Notifications", `h1` "Notification preferences", one sentence, the note that in-app is always on, "Push notifications need the mobile app" (a `sunken` panel with `AppLinks`, rendered on the server), "You choose", "Always sent", then "Save preferences".
+- Each type is a `fieldset` whose `legend` is the API's `label`, with three native checkboxes, each in a 44px label: "In-app (always on)" checked and disabled, "Email" and "Push".
+- **Essential types** (account, security, contracts, invoices) sit under "Always sent": Email and Push are checked and disabled, with a lock icon and the reason (`essentialReason`: the API's own when it sends one; otherwise "Always on. Needed for your account's security." for `ACCOUNT` and `SECURITY`, "Always on. Invoices for your subscription are always sent." for `SUBSCRIPTION_INVOICE`, and "Always on. Needed for your account's security and contracts." for any other). The reason is linked to the controls with `aria-describedby`. They are never sent in a save.
+- One "Save preferences" (primary, `lg`) sends only the types that changed (`changedPreferences`). Beside it a polite line counts unsaved changes. Success: "Your preferences are saved. They apply from the next notification we send." Nothing changed: an info `Alert`. A 400 applies nothing: a danger `Alert` says so and, when its `fields` (keyed by position, `items[0].push`) name a sent type, the API's words, without their code, sit under that type, whose panel gets a `danger` border (`preferenceErrorsByType`). The save sends `X-Client: web`, which the API records as the change's source.
+- At 320px the checkboxes wrap under the type's name.
+
+Links: "Notifications" and "Notification preferences" in the account menu and on the account page; the bell in the header.
 
 ## Not built yet
 
