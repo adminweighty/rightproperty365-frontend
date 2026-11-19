@@ -497,7 +497,7 @@ The session control at the right of the header.
 - Loading: an empty block the size of the button, so the header does not shift.
 - Signed out: "Sign in" as a ghost button at every width and, from `sm`, the primary "Sign up" button to its right, which goes to `/register`. Both are 44px tall. On phones the bar has no room for "Sign up"; it is in the menu panel with "Sign in".
 - From `xl` the "For professionals" link sits before them; it leads to the landing page's section for professionals, whose button goes to registration. Below `lg` that link is in the menu panel. Between `lg` and `xl` the bar has no room for it beside the navigation and the two buttons.
-- Signed in: a secondary button, 44px tall, that opens a menu with the person's email, "Dashboard" (always first), "Your account", "Complete your profile" (while an onboarding application is not submitted or has changes requested), "Notifications", "Notification preferences", "Your requests", "Your appointments", "Your applications", "Saved properties", "Request inbox", "Appointments received" and "Your listings" (professional accounts and owners only), "Applications received", "Application forms" and "Contacts" (organisation members) and "Sign out". From `sm` the button shows the person's first name; on phones it is the account icon alone, with the name kept for screen readers ("Account menu for Tendai"), so the header fits a 320px screen.
+- Signed in: a secondary button, 44px tall, that opens a menu with the person's email, "Dashboard" (always first), "Your account", "Complete your profile" (while an onboarding application is not submitted or has changes requested), "Notifications", "Communication preferences", "Your requests", "Your appointments", "Your applications", "Saved properties", "Request inbox", "Appointments received" and "Your listings" (professional accounts and owners only), "Applications received", "Application forms" and "Contacts" (organisation members) and "Sign out". From `sm` the button shows the person's first name; on phones it is the account icon alone, with the name kept for screen readers ("Account menu for Tendai"), so the header fits a 320px screen.
 - The button has `aria-expanded` and `aria-controls`. The menu closes on Escape, on an outside click, and when an item is chosen. Items are 44px tall.
 
 ## RequireAuth (`auth/require-auth.tsx`)
@@ -1210,15 +1210,28 @@ In `SiteHeader`, just before `AccountMenu`.
 
 ### NotificationPreferences (`account/notification-preferences.tsx`, `/account/notification-preferences`)
 
-`noindex, nofollow`.
+`noindex, nofollow`. The page is "Communication preferences": the Marketing section (below) first, then the notification settings under an `h2` "Notifications". The address stays `/account/notification-preferences`.
 
-- Order: `BackLink` "Notifications", `h1` "Notification preferences", one sentence, the note that in-app is always on, "Push notifications need the mobile app" (a `sunken` panel with `AppLinks`, rendered on the server), "You choose", "Always sent", then "Save preferences".
+- Order: `BackLink` "Notifications", `h1` "Communication preferences", one sentence, `h2` "Marketing" (`MarketingPreferencesSection`), `h2` "Notifications" with one sentence, the note that in-app is always on, "Push notifications need the mobile app" (an `h3` in a `sunken` panel with `AppLinks`, rendered on the server), `h3` "You choose", `h3` "Always sent", then "Save preferences".
 - Each type is a `fieldset` whose `legend` is the API's `label`, with three native checkboxes, each in a 44px label: "In-app (always on)" checked and disabled, "Email" and "Push".
 - **Essential types** (account, security, contracts, invoices) sit under "Always sent": Email and Push are checked and disabled, with a lock icon and the reason (`essentialReason`: the API's own when it sends one; otherwise "Always on. Needed for your account's security." for `ACCOUNT` and `SECURITY`, "Always on. Invoices for your subscription are always sent." for `SUBSCRIPTION_INVOICE`, and "Always on. Needed for your account's security and contracts." for any other). The reason is linked to the controls with `aria-describedby`. They are never sent in a save.
 - One "Save preferences" (primary, `lg`) sends only the types that changed (`changedPreferences`). Beside it a polite line counts unsaved changes. Success: "Your preferences are saved. They apply from the next notification we send." Nothing changed: an info `Alert`. A 400 applies nothing: a danger `Alert` says so and, when its `fields` (keyed by position, `items[0].push`) name a sent type, the API's words, without their code, sit under that type, whose panel gets a `danger` border (`preferenceErrorsByType`). The save sends `X-Client: web`, which the API records as the change's source.
 - At 320px the checkboxes wrap under the type's name.
 
-Links: "Notifications" and "Notification preferences" in the account menu and on the account page; the bell in the header.
+### MarketingPreferencesSection (`account/marketing-preferences.tsx`, `lib/marketing-preferences.ts`, API 0.37.1)
+
+BR-017, FR-003. One panel, read in the browser (`GET /v1/me/marketing-preferences`, `X-Client: web`) on its own, so a failure here leaves the notification settings working. The pure rules are tested in `scripts/marketing-preferences.test.mjs`.
+
+- **The switch** is a `button role="switch"` with `aria-checked`, 44px tall: a 48px track (`primary` when on, `sunken` with a `control` border when off) and the word "On" or "Off" beside it, so the state is never colour alone. **Its label is the API's `consent_text.text`, shown beside it; no wording is written in the app.** `consent_text.status` (DRAFT or APPROVED) is not shown. Without usable wording the switch can still turn marketing off, but not on, and says so with "Try again".
+- Under it, "Last changed 19 Nov 2026, 06:10 from the mobile app." (`lastChangedText`: "the website", "the mobile app", "RightProperty365's own systems"; a choice carried over from before says so; never chosen: "You have not made a choice yet, so marketing is off.").
+- "Recent changes": a native `<details>` (44px summary) with the last 5 changes, newest first: "Switched on" or "Switched off", the time in a `time` element, and how ("From the website, when you registered"; `historyLines`). None: "There are no changes yet."
+- A note, linked to the switch with `aria-describedby`: service and account messages (security alerts, bookings, replies to requests) are not marketing and cannot be turned off here.
+- **Saving** happens on the switch, with no Save button: it moves at once (optimistic) and a polite live region says "Saving your choice…". Success: a success `Alert` ("Saved. Marketing is on."). Failure: the switch goes back and a danger `Alert` gives the API's message. The PUT sends the shown wording's version only when switching on (`marketingPutBody`). **A 400 on `consent_text_version`** (the wording changed while it was on screen; `isStaleWording`): nothing is saved, an info `Alert` asks the person to read it again, the wording is read again and focus returns to the switch.
+- States: loading block, error with "Try again", never chosen and no history (above). At 320px the wording wraps beside the switch.
+
+The web registration form offers no marketing opt-in, so it shows no consent wording.
+
+Links: "Notifications" and "Communication preferences" in the account menu and on the account page; the bell in the header.
 
 ## Properties and tenancies (`agent/property/*`, `account/my-tenancies.tsx`, `lib/tenancies.ts`, API 0.36.0)
 

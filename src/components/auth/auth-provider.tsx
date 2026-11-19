@@ -4,9 +4,15 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { getMe, logout, type SessionResponse, type SessionScope, type User } from "@/lib/api/auth";
 
 type AuthState =
-  | { status: "loading"; user: null; scope: null }
-  | { status: "anonymous"; user: null; scope: null }
-  | { status: "authenticated"; user: User; scope: SessionScope };
+  | { status: "loading"; user: null; scope: null; mfaEnrolmentRequired: false }
+  | { status: "anonymous"; user: null; scope: null; mfaEnrolmentRequired: false }
+  | {
+      status: "authenticated";
+      user: User;
+      scope: SessionScope;
+      /** An administrator session that may only set up two-step verification (API 0.40.0). */
+      mfaEnrolmentRequired: boolean;
+    };
 
 type AuthContextValue = AuthState & {
   /** True only for a session started at the administrator sign-in. */
@@ -18,12 +24,13 @@ type AuthContextValue = AuthState & {
   signOut: () => Promise<void>;
 };
 
-const anonymous: AuthState = { status: "anonymous", user: null, scope: null };
+const anonymous: AuthState = { status: "anonymous", user: null, scope: null, mfaEnrolmentRequired: false };
 
 const fromResponse = ({ user, session }: SessionResponse): AuthState => ({
   status: "authenticated",
   user,
   scope: session?.scope ?? "customer",
+  mfaEnrolmentRequired: session?.mfa_enrolment_required === true,
 });
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -33,7 +40,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
  * rendered; only the parts that depend on the session wait for this.
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AuthState>({ status: "loading", user: null, scope: null });
+  const [state, setState] = useState<AuthState>({ status: "loading", user: null, scope: null, mfaEnrolmentRequired: false });
 
   useEffect(() => {
     let cancelled = false;

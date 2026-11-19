@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useRef, useState, type ReactNode } from "react";
 import { RoleGate } from "@/components/admin/admin-gate";
 import { AuditEntry } from "@/components/admin/audit-log";
+import { UserMfaReset } from "@/components/admin/user-mfa-reset";
 import { BackLink, formatWhen, LoadError, LoadingBlock } from "@/components/portal/portal-ui";
 import { useApi } from "@/components/portal/use-api";
 import { Alert } from "@/components/ui/alert";
@@ -296,6 +297,11 @@ function Detail({ me, userId, roleLabels, organisationKindLabels }: Props & { me
               </>
             )}
           </Section>
+        )}
+
+        {/* Super Administrators reset another administrator's two-step sign-in (API 0.40.0). */}
+        {hasPlatformRole(me, ["SUPER_ADMIN"]) && !isSelf && account.platform_roles.length > 0 && account.status !== "DELETED" && (
+          <UserMfaReset userId={account.id} name={account.name} />
         )}
 
         <div className="grid gap-6 lg:grid-cols-2">

@@ -1,5 +1,6 @@
 import { apiFetch } from "@/lib/api/http";
 import { PRIVACY_NOTICE_VERSION } from "@/lib/env";
+import type { MfaChallenge } from "@/lib/admin-mfa";
 import type { SignInChallenge } from "@/lib/sign-in-code";
 
 /**
@@ -83,7 +84,19 @@ export type User = {
  */
 export type SessionScope = "customer" | "admin";
 
-export type SessionResponse = { user: User; session: { scope: SessionScope; expires_at: string } };
+export type SessionResponse = {
+  user: User;
+  session: {
+    scope: SessionScope;
+    expires_at: string;
+    /**
+     * True for an administrator session that may only set up two-step
+     * verification (API 0.40.0); every other admin request is refused with
+     * 403 `MFA_ENROLMENT_REQUIRED`. Omitted when false.
+     */
+    mfa_enrolment_required?: boolean;
+  };
+};
 
 // Role names are titles (design/guidelines/content-voice.md, "Role names")
 // and come from the API wherever it supplies them.
@@ -239,10 +252,12 @@ export const adminLogin = (email: string, password: string) =>
 /**
  * The code from the email. Success starts the session and answers as sign-in
  * did before the code step. A wrong code is 400 with `fields.code`; an expired
- * one is 400 `CODE_EXPIRED` and sign-in starts again.
+ * one is 400 `CODE_EXPIRED` and sign-in starts again. For an administrator
+ * with an authenticator (API 0.40.0) it answers an `MFA_REQUIRED` challenge
+ * instead, with no session yet: see `submitSignInMfa`.
  */
 export const verifySignInCode = (scope: SignInScope, challengeId: string, code: string) =>
-  apiFetch<SessionResponse>(`${signInBase[scope]}/verify`, {
+  apiFetch<SessionResponse | MfaChallenge>(`${signInBase[scope]}/verify`, {
     method: "POST",
     body: { challenge_id: challengeId, code },
   });

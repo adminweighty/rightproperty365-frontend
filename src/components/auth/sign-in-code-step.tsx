@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { resendSignInCode, verifySignInCode, type SessionResponse, type SignInScope } from "@/lib/api/auth";
 import type { ApiFailure } from "@/lib/api/http";
+import { isMfaChallenge, type MfaChallenge } from "@/lib/admin-mfa";
 import { env } from "@/lib/env";
 import {
   CODE_MAX,
@@ -24,6 +25,8 @@ type Props = {
   challenge: SignInChallenge;
   /** The code was right: the API has started the session. */
   onSignedIn: (session: SessionResponse) => void;
+  /** Administrators with an authenticator: the code was right and the second factor is next (no session yet). */
+  onMfaRequired?: (challenge: MfaChallenge) => void;
   /** Back to the email and password, with a message to show there (an expired code). */
   onStartAgain: (message?: string) => void;
 };
@@ -38,7 +41,7 @@ const timeOf = (iso: string) => {
  * and the administrator sign-in alike. Focus moves to the code field when the
  * step opens, and to the message when something goes wrong.
  */
-export function SignInCodeStep({ scope, challenge: first, onSignedIn, onStartAgain }: Props) {
+export function SignInCodeStep({ scope, challenge: first, onSignedIn, onMfaRequired, onStartAgain }: Props) {
   const id = scope === "admin" ? "admin-sign-in-code" : "sign-in-code";
   const input = useRef<HTMLInputElement>(null);
   const [challenge, setChallenge] = useState(first);
@@ -87,6 +90,11 @@ export function SignInCodeStep({ scope, challenge: first, onSignedIn, onStartAga
     const result = await verifySignInCode(scope, challenge.challenge_id, cleanCode(raw));
     setPending(false);
     if (result.ok) {
+      if (isMfaChallenge(result.data)) {
+        if (onMfaRequired) onMfaRequired(result.data);
+        else setFailure({ code: "MFA_REQUIRED", status: 200, message: "Sign in from the administrator sign-in page." });
+        return;
+      }
       onSignedIn(result.data);
       return;
     }

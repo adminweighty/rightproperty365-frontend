@@ -85,12 +85,23 @@ const networkFailure: ApiFailure = {
   message: "We could not reach RightProperty365. Check your connection and try again.",
 };
 
+/**
+ * Fired on `window` when the API answers 403 `MFA_ENROLMENT_REQUIRED`: the
+ * administrator's session may only set up two-step verification. The admin
+ * area listens for it and sends them to /admin/security.
+ */
+export const MFA_ENROLMENT_REQUIRED_EVENT = "rp:mfa-enrolment-required";
+
 /** The failure an unsuccessful answer describes: its error envelope, or a plain message for its status. */
 function failureFrom(response: Response, payload: unknown): ApiFailure {
   const envelope = payload as {
     error?: { code?: string; message?: string; fields?: Record<string, string> };
     trace_id?: string;
   } | null;
+
+  if (response.status === 403 && envelope?.error?.code === "MFA_ENROLMENT_REQUIRED" && typeof window !== "undefined") {
+    window.dispatchEvent(new Event(MFA_ENROLMENT_REQUIRED_EVENT));
+  }
 
   return {
     code: envelope?.error?.code ?? `HTTP_${response.status}`,

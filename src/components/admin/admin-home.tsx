@@ -422,6 +422,9 @@ function Home({ user }: { user: User }) {
               Administrator sessions end after 30 minutes without activity. Every change you make to accounts,
               subscriptions, plans and reference data is kept in the audit log.
             </p>
+            <ButtonLink href="/admin/security" variant="secondary" className="mt-4">
+              Two-step sign-in
+            </ButtonLink>
           </Card>
         </div>
       </div>

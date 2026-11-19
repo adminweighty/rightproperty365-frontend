@@ -40,7 +40,14 @@ export type AuditAction =
   | "REFERENCE_ITEM_CREATED"
   | "REFERENCE_ITEM_UPDATED"
   | "REFERENCE_ITEM_DEACTIVATED"
-  | "REFERENCE_ITEM_REACTIVATED";
+  | "REFERENCE_ITEM_REACTIVATED"
+  // Administrator two-step sign-in (API 0.40.0); the target is the administrator's account.
+  | "ADMIN_MFA_ENROLLED"
+  | "ADMIN_MFA_RECOVERY_CODE_USED"
+  | "ADMIN_MFA_RECOVERY_CODES_REGENERATED"
+  | "ADMIN_MFA_REMOVED"
+  | "ADMIN_MFA_RESET"
+  | "ADMIN_MFA_CHALLENGE_LOCKED";
 
 export type AuditTargetType = "USER" | "SUBSCRIPTION_PLAN" | "SUBSCRIPTION" | "REFERENCE_ITEM";
 
@@ -169,6 +176,12 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   REFERENCE_ITEM_UPDATED: "Reference row changed",
   REFERENCE_ITEM_DEACTIVATED: "Reference row deactivated",
   REFERENCE_ITEM_REACTIVATED: "Reference row reactivated",
+  ADMIN_MFA_ENROLLED: "Two-step sign-in set up",
+  ADMIN_MFA_RECOVERY_CODE_USED: "Signed in with a recovery code",
+  ADMIN_MFA_RECOVERY_CODES_REGENERATED: "New recovery codes made",
+  ADMIN_MFA_REMOVED: "Two-step sign-in turned off",
+  ADMIN_MFA_RESET: "Two-step sign-in reset by a Super Administrator",
+  ADMIN_MFA_CHALLENGE_LOCKED: "Sign-in stopped after too many wrong codes",
 };
 
 export const AUDIT_TARGET_LABELS: Record<AuditTargetType, string> = {

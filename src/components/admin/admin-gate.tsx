@@ -4,16 +4,19 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ButtonLink } from "@/components/ui/button";
+import { ENROLMENT_REQUIRED_PATH } from "@/lib/admin-mfa";
 import { hasPlatformRole, type PlatformRole, type User } from "@/lib/api/auth";
 
 /**
  * Shows its children only to an administrator session. Signed-out visitors are
  * sent to the administrator sign-in; any other session gets the "no access"
- * state. This chooses what to display; the API only accepts administrator
- * sessions for platform-role actions.
+ * state. A session that may only set up two-step verification is sent to
+ * /admin/security, unless `enrolment` says this page is where it is set up.
+ * This chooses what to display; the API only accepts administrator sessions
+ * for platform-role actions.
  */
-export function AdminGate({ children }: { children: (user: User) => ReactNode }) {
-  const { status, user, isAdmin } = useAuth();
+export function AdminGate({ children, enrolment = false }: { children: (user: User) => ReactNode; enrolment?: boolean }) {
+  const { status, user, isAdmin, mfaEnrolmentRequired } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -24,7 +27,12 @@ export function AdminGate({ children }: { children: (user: User) => ReactNode })
     }
   }, [status, router, pathname]);
 
-  if (status !== "authenticated") {
+  const mustEnrol = status === "authenticated" && isAdmin && mfaEnrolmentRequired && !enrolment;
+  useEffect(() => {
+    if (mustEnrol) router.replace(ENROLMENT_REQUIRED_PATH);
+  }, [mustEnrol, router]);
+
+  if (status !== "authenticated" || mustEnrol) {
     return (
       <div aria-busy="true" aria-label="Loading" className="space-y-4">
         <div className="h-10 max-w-xs rounded-md bg-sunken" />
