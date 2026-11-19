@@ -173,6 +173,7 @@ function MyAppointments() {
                 <AppointmentCard
                   appointment={item}
                   viewer="CUSTOMER"
+                  calendar={{ kind: "my-appointment", id: item.id }}
                   actions={actionsFor(item)}
                   onChanged={reload}
                   loadTimeline={async (id) => {
@@ -340,6 +341,7 @@ function Received() {
                 <AppointmentCard
                   appointment={item}
                   viewer="PROFESSIONAL"
+                  calendar={{ kind: "inbox-appointment", id: item.id }}
                   actions={actionsFor(item)}
                   onChanged={reload}
                   loadTimeline={async (id) => {

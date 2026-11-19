@@ -4,11 +4,13 @@ import { Clock, Users } from "lucide-react";
 import Link from "next/link";
 import { useRef, useState, type ReactNode } from "react";
 import { emptyChoice, chosenSpan, QuoteTable, SlotPicker, SpanLines, useVenueAvailability, type SlotChoice } from "@/components/venues/slot-picker";
+import { AddToCalendar } from "@/components/calendar/add-to-calendar";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Field, fieldDescribedBy, Textarea } from "@/components/ui/field";
 import type { ApiFailure, ApiResult } from "@/lib/api/http";
+import type { CalendarSource } from "@/lib/calendar";
 import { createVenueQuote } from "@/lib/api/venues";
 import {
   refusalReason,
@@ -49,6 +51,8 @@ type Props = {
   /** After an action, or a refusal because the booking changed. */
   onChanged: (booking?: VenueBooking) => void;
   children?: ReactNode;
+  /** Where "Add to calendar" downloads from; shown only while confirmed and to come. */
+  calendar?: CalendarSource;
 };
 
 const actorWords: Record<string, string> = { CUSTOMER: "the customer", HOST: "the host", SYSTEM: "RightProperty365" };
@@ -160,7 +164,7 @@ function ProposeStep({
  * the cancellation policy, any proposed time, the actions allowed now, and
  * a "History" expander with the audit events.
  */
-export function VenueBookingCard({ booking, viewer, actions, visitorZone, loadEvents, onChanged, children }: Props) {
+export function VenueBookingCard({ booking, viewer, actions, visitorZone, loadEvents, onChanged, children, calendar }: Props) {
   const [open, setOpen] = useState<BookingAction | null>(null);
   const [pending, setPending] = useState(false);
   const [failure, setFailure] = useState<{ text: string; traceId?: string } | null>(null);
@@ -318,7 +322,11 @@ export function VenueBookingCard({ booking, viewer, actions, visitorZone, loadEv
 
       {children}
 
-      {failure && <Alert title={failure.text} traceId={failure.traceId} className="mt-4" />}
+      {calendar && (
+        <AddToCalendar source={calendar} fileKind="venue-booking" reference={booking.reference} status={booking.status} start={booking.start} end={booking.end} />
+      )}
+
+      {failure &&<Alert title={failure.text} traceId={failure.traceId} className="mt-4" />}
 
       {open ? (
         <div className="mt-4 rounded-md border border-line-strong p-4">

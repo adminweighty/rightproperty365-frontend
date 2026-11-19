@@ -178,6 +178,7 @@ function MyBookings() {
                 <VenueBookingCard
                   booking={item}
                   viewer="CUSTOMER"
+                  calendar={{ kind: "my-venue-booking", id: item.id }}
                   visitorZone={zone}
                   actions={actionsFor(item)}
                   onChanged={reload}
@@ -347,6 +348,7 @@ function HostBookings({ user }: { user: User }) {
     <VenueBookingCard
       booking={item}
       viewer="HOST"
+      calendar={{ kind: "hosted-venue-booking", scope, id: item.id }}
       visitorZone={zone}
       actions={actionsFor(item)}
       onChanged={reload}

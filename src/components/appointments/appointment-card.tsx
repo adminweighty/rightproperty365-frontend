@@ -3,6 +3,7 @@
 import { CalendarClock, MapPin } from "lucide-react";
 import Link from "next/link";
 import { useRef, useState, type ReactNode } from "react";
+import { AddToCalendar } from "@/components/calendar/add-to-calendar";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import {
 } from "@/lib/api/appointments";
 import { titleFromCode } from "@/lib/api/auth";
 import type { ApiFailure, ApiResult } from "@/lib/api/http";
+import type { CalendarSource } from "@/lib/calendar";
 
 const tones: Record<AppointmentStatus, "info" | "success" | "warning" | "neutral" | "danger"> = {
   REQUESTED: "info",
@@ -53,6 +55,8 @@ type Props<T extends Appointment> = {
   onChanged: () => void;
   /** Extra rows for this viewer (the customer's contact details in the professional's list). */
   children?: ReactNode;
+  /** Where "Add to calendar" downloads from; shown only while confirmed and to come. */
+  calendar?: CalendarSource;
 };
 
 const conflictMessages: Record<string, string> = {
@@ -74,6 +78,7 @@ export function AppointmentCard<T extends Appointment>({
   loadTimeline,
   onChanged,
   children,
+  calendar,
 }: Props<T>) {
   const [open, setOpen] = useState<AppointmentAction | null>(null);
   const [pending, setPending] = useState(false);
@@ -194,6 +199,17 @@ export function AppointmentCard<T extends Appointment>({
       </dl>
 
       {children}
+
+      {calendar && (
+        <AddToCalendar
+          source={calendar}
+          fileKind="appointment"
+          reference={appointment.reference}
+          status={appointment.status}
+          start={appointment.start_utc}
+          end={appointment.end_utc}
+        />
+      )}
 
       {failure && <Alert title={failure} className="mt-4" />}
 
