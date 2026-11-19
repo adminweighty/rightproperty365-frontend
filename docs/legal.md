@@ -67,3 +67,5 @@ Check each of these against how the business will really operate:
 2. In `src/lib/legal.ts`, set that document's `version` and `effectiveDate`.
 3. The Privacy Policy's version is sent to the API with every consent (`PRIVACY_NOTICE_VERSION` in `src/lib/env.ts` follows it), so the API records which text a person agreed to. It may be at most 32 characters.
 4. If the change is significant, tell users before it takes effect, as each document promises.
+5. The Terms and Conditions' version is sent at registration too (`terms_version`, API 0.43.0), as the form agrees to both documents.
+6. The API also holds per-market versions of these documents (`/admin/legal`). The site does not show them yet; its own pages stay the text until the lawyers' text is published there and the site is switched over. To ask signed-in people to accept a new version, publish it there with "Ask people to accept this version again": they see a banner leading to `/account/legal-updates`.

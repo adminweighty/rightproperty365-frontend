@@ -228,6 +228,21 @@ src/lib/
 
 **They are working documents written from what the product does. They are not legal advice and must be reviewed by a qualified lawyer before the live launch.** Several values in `src/lib/legal.ts` are assumptions marked `CONFIRM`. `docs/legal.md` lists them and what needs sign-off.
 
+**Versions held by the API (BR-001, API 0.43.0).** Administrators keep per-market versions of these documents at `/admin/legal` (SUPER_ADMIN, CONTENT_ADMIN, and MARKET_ADMIN for its own country): drafts, publishing (a published version never changes) and retiring. **The site does not read them**: `/legal` keeps showing the text in `src/content/legal`. The API's bodies are placeholders that say "DRAFT — awaiting legal review", and in production nothing may be published at all; the site works the same either way. Registration sends the Terms version from `src/lib/legal.ts` (`terms_version`) beside the Privacy Policy's. When `GET /v1/me` lists `pending_legal_acceptances` (a published version marked "ask people to accept again"), signed-in pages show a banner leading to `/account/legal-updates`, where each version is read from the API and accepted; nothing is blocked. Tax rules per market are kept at `/admin/tax-rules` (SUPER_ADMIN, FINANCE_ADMIN) and are **not applied anywhere yet**.
+
+## Languages (i18n)
+
+The site is English only and has no translation system. The API has one (0.43.0): `GET /v1/i18n/languages` lists the languages (only `en` today), every route picks a language from `?lang=` or `Accept-Language` (falling back to `en`), and its error messages and legal document titles come from its message catalogue.
+
+The web sends no language of its own: `apiFetch` (`src/lib/api/http.ts`) does not set `Accept-Language`. The browser already sends the visitor's `Accept-Language` with every request it makes to the API, and the server-side readers send none, so the API answers in `en`. While `en` is the only language this changes nothing.
+
+What the web would need for a second language:
+
+1. A message catalogue for the site's own words (every string in `src/components` and `src/content`, the legal pages included, which would then come from the API's per-language versions), and a way to choose the language: a locale segment in the address (`/fr/...`) so pages stay cacheable and indexable per language, with `hreflang` links, the sitemap and `<html lang>` following it.
+2. Sending that language to the API on every request (`?lang=` or `Accept-Language` in `apiFetch` and in `src/lib/api/server/client.ts`), and adding it to the cache keys of the `use cache` readers.
+3. Dates, numbers and prices formatted for the locale (today they are `en-GB`).
+4. The mobile app links (`/.well-known/*`) and the email links kept working under the new addresses.
+
 ## Mobile app links
 
 **Opening links in the app (BR-016).** `/.well-known/assetlinks.json` (Android) and `/.well-known/apple-app-site-association` (iOS) tell the phones which app may open links to `/listings/*`, `/directory/*`, `/apply/*`, `/sign/*`, `/invitations/*`, `/account/*`, `/agent/*`, `/verify-email` and `/reset-password`. They are built on each request from `ANDROID_APP_SHA256_FINGERPRINTS` and `APPLE_TEAM_ID` (see "Environment variables") and answer 404 until those are set, so nothing is claimed by default. Both hosts, `rightproperty365.com` and `www.rightproperty365.com`, must serve them over HTTPS with no redirect. Details are in `docs/seo.md` ("Mobile app link files").

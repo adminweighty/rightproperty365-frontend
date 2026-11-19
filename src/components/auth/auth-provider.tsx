@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { getMe, logout, type SessionResponse, type SessionScope, type User } from "@/lib/api/auth";
+import type { PendingLegalAcceptance } from "@/lib/legal-versions";
 
 type AuthState =
   | { status: "loading"; user: null; scope: null; mfaEnrolmentRequired: false }
@@ -12,6 +13,8 @@ type AuthState =
       scope: SessionScope;
       /** An administrator session that may only set up two-step verification (API 0.40.0). */
       mfaEnrolmentRequired: boolean;
+      /** Legal versions to accept again (API 0.43.0). Usually empty; only `GET /v1/me` reports them. */
+      pendingLegalAcceptances: PendingLegalAcceptance[];
     };
 
 type AuthContextValue = AuthState & {
@@ -26,11 +29,12 @@ type AuthContextValue = AuthState & {
 
 const anonymous: AuthState = { status: "anonymous", user: null, scope: null, mfaEnrolmentRequired: false };
 
-const fromResponse = ({ user, session }: SessionResponse): AuthState => ({
+const fromResponse = ({ user, session, pending_legal_acceptances }: SessionResponse): AuthState => ({
   status: "authenticated",
   user,
   scope: session?.scope ?? "customer",
   mfaEnrolmentRequired: session?.mfa_enrolment_required === true,
+  pendingLegalAcceptances: Array.isArray(pending_legal_acceptances) ? pending_legal_acceptances : [],
 });
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -52,7 +56,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const setSession = useCallback((response: SessionResponse) => setState(fromResponse(response)), []);
+  const setSession = useCallback((response: SessionResponse) => {
+    setState(fromResponse(response));
+    // The sign-in answers do not carry `pending_legal_acceptances`: read them from /v1/me.
+    if (!Array.isArray(response.pending_legal_acceptances)) {
+      getMe().then((result) => {
+        if (result.ok) setState(fromResponse(result.data));
+      });
+    }
+  }, []);
 
   const refresh = useCallback(async () => {
     const result = await getMe();

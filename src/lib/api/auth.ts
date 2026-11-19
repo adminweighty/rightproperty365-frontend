@@ -1,5 +1,7 @@
 import { apiFetch } from "@/lib/api/http";
 import { PRIVACY_NOTICE_VERSION } from "@/lib/env";
+import { legal } from "@/lib/legal";
+import type { PendingLegalAcceptance } from "@/lib/legal-versions";
 import type { MfaChallenge } from "@/lib/admin-mfa";
 import type { SignInChallenge } from "@/lib/sign-in-code";
 
@@ -96,6 +98,12 @@ export type SessionResponse = {
      */
     mfa_enrolment_required?: boolean;
   };
+  /**
+   * Published legal versions the person is asked to accept again (API
+   * 0.43.0, `GET /v1/me`). Nothing is blocked: the site only prompts. Usually
+   * empty; absent from older API builds and from the sign-in answers.
+   */
+  pending_legal_acceptances?: PendingLegalAcceptance[];
 };
 
 // Role names are titles (design/guidelines/content-voice.md, "Role names")
@@ -216,6 +224,10 @@ export const PEOPLE_EXPORT_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "PLA
 /** Online payments (API 0.42.0): refunds and the payments CSV. Reading payments is SUBSCRIPTION_READ_ROLES. */
 export const PAYMENT_REFUND_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "FINANCE_ADMIN"];
 export const PAYMENT_EXPORT_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "FINANCE_ADMIN"];
+/** Per-market legal document versions (API 0.43.0); a MARKET_ADMIN only for its own market, never GLOBAL. */
+export const LEGAL_ADMIN_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "CONTENT_ADMIN", "MARKET_ADMIN"];
+/** Tax rules per market (API 0.43.0). */
+export const TAX_RULE_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "FINANCE_ADMIN"];
 export const SUBSCRIPTION_EXPORT_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "FINANCE_ADMIN", "PLATFORM_ADMIN"];
 
 export const getMe = () => apiFetch<SessionResponse>("/v1/me");
@@ -302,7 +314,12 @@ export const register = (input: {
       password: input.password,
       roles: input.roles,
       captcha: input.captcha,
-      consent: { privacy_version: PRIVACY_NOTICE_VERSION, accepted: input.accepted },
+      // The form agrees to the Terms and Conditions too (API 0.43.0 records it as a TERMS acceptance).
+      consent: {
+        privacy_version: PRIVACY_NOTICE_VERSION,
+        accepted: input.accepted,
+        terms_version: legal.documents.termsAndConditions.version,
+      },
     },
   });
 

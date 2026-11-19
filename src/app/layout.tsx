@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import { Geist_Mono, Inter } from "next/font/google";
 import { AnalyticsRoot } from "@/components/analytics/analytics-root";
 import { NotificationsProvider } from "@/components/account/notifications-provider";
@@ -6,6 +7,7 @@ import { AuthProvider } from "@/components/auth/auth-provider";
 import { SavedListingsProvider } from "@/components/listings/saved-listings-provider";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
+import { ReacceptanceBanner } from "@/components/legal/reacceptance-banner";
 import { TestSiteBanner } from "@/components/layout/test-site-banner";
 import { SiteMotion } from "@/components/motion/site-motion";
 import { env } from "@/lib/env";
@@ -59,6 +61,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <NotificationsProvider>
               <TestSiteBanner />
               <SiteHeader />
+              {/* "We've updated our Terms": signed-in people with a version to accept again. Usually renders nothing. */}
+              <Suspense fallback={null}>
+                <ReacceptanceBanner />
+              </Suspense>
               <main id="main" className="flex-1">
                 {children}
               </main>
