@@ -31,6 +31,9 @@ export const APP_LINK_PATHS = [
   "/invitations/*",
   "/account/*",
   "/agent/*",
+  // The development showcase (mobile 46d1072): the list and /developments/{market}/{slug}.
+  "/developments",
+  "/developments/*",
 ] as const;
 
 /** A SHA-256 certificate fingerprint as keytool and Play Console print it: 32 bytes of hex, colon-separated. */

@@ -101,12 +101,21 @@ test("apple-app-site-association is exactly the document in the mobile note", ()
             { "/": "/invitations/*" },
             { "/": "/account/*" },
             { "/": "/agent/*" },
+            { "/": "/developments" },
+            { "/": "/developments/*" },
           ],
         },
       ],
     },
   });
-  assert.equal(APP_LINK_PATHS.length, 9);
+  assert.equal(APP_LINK_PATHS.length, 11);
+});
+
+test("the development showcase: the list and /developments/{market}/{slug}", () => {
+  assert.ok(APP_LINK_PATHS.includes("/developments"));
+  assert.ok(APP_LINK_PATHS.includes("/developments/*"));
+  // Unset values still claim nothing.
+  assert.equal(buildAppleAppSiteAssociation({}), null);
 });
 
 test("apple-app-site-association has no webcredentials or other sections", () => {
