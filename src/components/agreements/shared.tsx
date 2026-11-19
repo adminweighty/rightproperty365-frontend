@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import type { AgreementRecipient } from "@/lib/api/agreements";
 import type { ApiFailure, ApiResult } from "@/lib/api/http";
 import { cn } from "@/lib/cn";
+import { isScanErrorCode } from "@/lib/file-scan";
 import { AGREEMENT_STATUS, isKnownCode, RECIPIENT_STATUS, recipientColour, ROLE_LABELS, signingMessage, statusOf } from "@/lib/signing";
 
 /** The result of an action, shown where it was taken. */
@@ -17,7 +18,7 @@ export type Notice = { tone: "success" | "danger" | "warning" | "info"; text: st
 export const failureNotice = (failure: ApiFailure, tone: Notice["tone"] = "danger"): Notice => ({
   tone,
   text: signingMessage(failure),
-  traceId: isKnownCode(failure.code) ? undefined : failure.traceId,
+  traceId: isKnownCode(failure.code) || isScanErrorCode(failure.code) ? undefined : failure.traceId,
 });
 
 /** A focusable live region for the result of an action. */

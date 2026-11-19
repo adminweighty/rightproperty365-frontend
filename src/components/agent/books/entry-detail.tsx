@@ -24,12 +24,14 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Field, fieldDescribedBy, Textarea } from "@/components/ui/field";
+import { ScanGuard, ScanNote, useScanPolling } from "@/components/ui/scan-status";
 import type { SelectOption } from "@/components/ui/searchable-select";
 import type { User } from "@/lib/api/auth";
 import type { DashboardOrganisation } from "@/lib/api/dashboard";
 import type { ApiResult } from "@/lib/api/http";
 import { addEntryNote, correctEntry, downloadEntryAttachment, getEntry, reconcileEntry, reverseEntry, uploadEntryAttachment } from "@/lib/api/ledger";
 import { contactHref } from "@/lib/contacts";
+import { isScanErrorCode } from "@/lib/file-scan";
 import { tenancyHref } from "@/lib/tenancies";
 import {
   booksPath,
@@ -263,7 +265,10 @@ function Attachments({ entry, org, writer, onChanged }: { entry: LedgerEntry; or
       setMessage({ tone: "danger", text: `${file.name} was not added. ${answer.failure.message}`, traceId: answer.failure.traceId });
       return;
     }
-    setMessage({ tone: "success", text: `${file.name} added.` });
+    setMessage({
+      tone: "success",
+      text: answer.data?.scanStatus === "PENDING" ? `${file.name} added. It is being checked for viruses, which usually takes under a minute.` : `${file.name} added.`,
+    });
     onChanged();
   }
 
@@ -273,7 +278,10 @@ function Attachments({ entry, org, writer, onChanged }: { entry: LedgerEntry; or
     const answer = await downloadEntryAttachment(org, entry.id, id);
     setDownloading(null);
     if (!answer.ok) {
-      setMessage({ tone: "danger", text: answer.failure.message, traceId: answer.failure.traceId });
+      const scanning = answer.failure.status === 409 && isScanErrorCode(answer.failure.code);
+      setMessage({ tone: "danger", text: answer.failure.message, traceId: scanning ? undefined : answer.failure.traceId });
+      // Being checked, or removed by the check: show the entry as it is now.
+      if (scanning) onChanged();
       return;
     }
     saveBlob(answer.data.blob, fileNameFrom(answer.data.headers.get("Content-Disposition"), name));
@@ -298,11 +306,24 @@ function Attachments({ entry, org, writer, onChanged }: { entry: LedgerEntry; or
                   {[file.size !== null ? fileSizeText(file.size) : null, file.uploadedBy?.name, file.uploadedAt ? formatWhen(file.uploadedAt) : null].filter(Boolean).join(" · ")}
                 </span>
               </span>
-              <Button variant="secondary" onClick={() => download(file.id, file.name)} disabled={downloading === file.id} aria-busy={downloading === file.id}>
-                <Download className="size-4" aria-hidden="true" />
-                {downloading === file.id ? "Downloading…" : "Download"}
-                <span className="sr-only"> {file.name}</span>
-              </Button>
+              <ScanGuard
+                status={file.scanStatus}
+                describedBy={`attachment-scan-${file.id}`}
+                label={
+                  <>
+                    <Download className="size-4" aria-hidden="true" />
+                    Download
+                    <span className="sr-only"> {file.name}</span>
+                  </>
+                }
+              >
+                <Button variant="secondary" onClick={() => download(file.id, file.name)} disabled={downloading === file.id} aria-busy={downloading === file.id}>
+                  <Download className="size-4" aria-hidden="true" />
+                  {downloading === file.id ? "Downloading…" : "Download"}
+                  <span className="sr-only"> {file.name}</span>
+                </Button>
+              </ScanGuard>
+              <ScanNote id={`attachment-scan-${file.id}`} status={file.scanStatus} canReplace={writer} className="basis-full" />
             </li>
           ))}
         </ul>
@@ -472,6 +493,8 @@ function EntryPage({ id, organisation, user, currencies }: { id: string; organis
 
   // While a change is read again the entry stays on screen, with the result of the change.
   const shown = state.status === "ready" ? state.data : state.status === "loading" && state.previous?.entry.id === id ? state.previous : null;
+  // While an attachment is checked for viruses, read the entry again (it stays on screen meanwhile).
+  useScanPolling(shown ? shown.entry.attachments.map((file) => file.scanStatus) : [], reload);
   if (!shown && state.status !== "error") return <LoadingBlock label="Loading the entry" rows={3} />;
   if (state.status === "error") {
     if (state.failure.status === 404) {

@@ -15,6 +15,7 @@ import { Card } from "@/components/ui/card";
 import { getAdminOverview, type AdminOverview } from "@/lib/api/admin";
 import {
   AUDIT_ROLES,
+  FILE_SCAN_ROLES,
   hasPlatformRole,
   LEASE_TEMPLATE_ROLES,
   platformRoleLabels,
@@ -290,6 +291,7 @@ const TOOLS: { href: string; label: string; text: string; roles: readonly Platfo
   { href: "/admin/reports", label: "Reports", text: "Figures over a range of days, and spreadsheet downloads.", roles: REPORT_ROLES },
   { href: "/admin/analytics", label: "Analytics", text: "Listing views, enquiries and top listings, by country.", roles: ANALYTICS_ROLES },
   { href: "/admin/reviews", label: "Reviews", text: "Check reviews of service providers, and the reported ones.", roles: REVIEW_MODERATION_ROLES },
+  { href: "/admin/file-scans", label: "Upload scanning", text: "Whether uploads are checked for viruses, and the files waiting or removed.", roles: FILE_SCAN_ROLES },
   { href: "/admin/audit", label: "Audit log", text: "Every change administrators made here.", roles: AUDIT_ROLES },
 ];
 

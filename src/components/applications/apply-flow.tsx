@@ -12,6 +12,7 @@ import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useScanPolling } from "@/components/ui/scan-status";
 import {
   closedReasonOf,
   deleteApplicationFile,
@@ -165,6 +166,14 @@ function Editor({ listing, initial, definition }: { listing: Listing; initial: A
   const session = useRef({ answers: initial.answers, dirty: false, inFlight: false, again: false, timer: undefined as ReturnType<typeof setTimeout> | undefined });
   const top = useRef<HTMLDivElement>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
+
+  // While a file is checked for viruses, read its status again; only the files change, never the answers.
+  const pollFiles = useCallback(async () => {
+    const result = await getOwnApplication(initial.id);
+    if (!result.ok) return;
+    setFiles((current) => current.map((file) => result.data.files.find((item) => item.id === file.id) ?? file));
+  }, [initial.id]);
+  useScanPolling(files.map((file) => file.scan_status), pollFiles);
 
   const flush = useCallback(async (): Promise<boolean> => {
     const s = session.current;

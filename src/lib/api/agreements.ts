@@ -1,5 +1,6 @@
 import { apiFetch, apiFetchBytes } from "@/lib/api/http";
 import type { Stamp } from "@/lib/api/stamps";
+import type { ScanStatus } from "@/lib/file-scan";
 
 /*
  * Agreements (API 0.24.0), modelled on Adobe Acrobat Sign: a PDF sent to
@@ -24,6 +25,8 @@ export type AgreementDocument = {
   size_bytes: number;
   file_name: string;
   pages?: PageSize[];
+  /** The uploaded PDF only, and only while uploads are scanned for malware (API 0.41.0). */
+  scan_status?: ScanStatus;
 };
 
 /** A field on the document: position and size in PDF points from the page's top-left corner. */

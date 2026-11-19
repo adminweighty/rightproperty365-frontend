@@ -6,6 +6,8 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { fieldDisplay, fieldSpec, shownDetailNames, type FieldLists } from "@/components/onboarding/fields";
 import { PrivateImage } from "@/components/ui/private-image";
+import { ScanBadge, ScanGuard, ScanNote, useScanPolling } from "@/components/ui/scan-status";
+import { isFileOpenable, scanNotice } from "@/lib/file-scan";
 import { LOGO_DOCUMENT } from "@/lib/logo-rules";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -123,6 +125,13 @@ function Review({ id, requirements, lists, directoryLabels, organisationKindLabe
     const timer = window.setTimeout(read, 0);
     return () => window.clearTimeout(timer);
   }, [read, attempt]);
+
+  // While a document is checked for viruses, read the application again quietly (an error keeps what is shown).
+  const poll = useCallback(async () => {
+    const result = await getApplication(id);
+    if (result.ok) setState({ status: "ready", application: result.data.application });
+  }, [id]);
+  useScanPolling(state.status === "ready" ? state.application.documents.map((item) => item.scan_status) : [], poll);
 
   const back = (
     <Link
@@ -361,7 +370,9 @@ function Review({ id, requirements, lists, directoryLabels, organisationKindLabe
                         </h3>
                         <p className="mt-1 text-sm text-muted">{type.description}</p>
                       </div>
-                      {file ? (
+                      {file && scanNotice(file.scan_status) ? (
+                        <ScanBadge status={file.scan_status} />
+                      ) : file ? (
                         <Badge tone="success">Attached</Badge>
                       ) : (
                         <Badge tone={type.required ? "danger" : "neutral"}>
@@ -370,7 +381,7 @@ function Review({ id, requirements, lists, directoryLabels, organisationKindLabe
                       )}
                     </div>
                     {/* The logo is an image and will be public: the reviewer sees it, not only its file name. */}
-                    {file && type.code === LOGO_DOCUMENT && (
+                    {file && type.code === LOGO_DOCUMENT && isFileOpenable(file.scan_status) && (
                       <PrivateImage
                         src={adminDocumentUrl(application.id, file.id)}
                         alt={`The logo uploaded by the applicant, ${file.file_name}`}
@@ -389,16 +400,23 @@ function Review({ id, requirements, lists, directoryLabels, organisationKindLabe
                             </span>
                           </span>
                         </p>
-                        <a
-                          href={adminDocumentUrl(application.id, file.id)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={buttonClasses("secondary")}
-                        >
-                          Open
-                          <span className="sr-only"> {file.file_name} (downloads in a new tab)</span>
-                        </a>
+                        <ScanGuard status={file.scan_status} label="Open" describedBy={`scan-${file.id}`}>
+                          <a
+                            href={adminDocumentUrl(application.id, file.id)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={buttonClasses("secondary")}
+                          >
+                            Open
+                            <span className="sr-only"> {file.file_name} (downloads in a new tab)</span>
+                          </a>
+                        </ScanGuard>
                       </div>
+                    )}
+                    {file && scanNotice(file.scan_status) && (
+                      <p id={`scan-${file.id}`} className={`mt-2 text-sm ${file.scan_status === "INFECTED" ? "text-danger" : "text-muted"}`}>
+                        {scanNotice(file.scan_status)?.text}
+                      </p>
                     )}
                   </li>
                 );
@@ -413,15 +431,18 @@ function Review({ id, requirements, lists, directoryLabels, organisationKindLabe
                         {file.file_name} · {formatFileSize(file.size_bytes)}
                       </span>
                     </p>
-                    <a
-                      href={adminDocumentUrl(application.id, file.id)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={buttonClasses("secondary")}
-                    >
-                      Open
-                      <span className="sr-only"> {file.file_name} (downloads in a new tab)</span>
-                    </a>
+                    <ScanGuard status={file.scan_status} label="Open" describedBy={`scan-${file.id}`}>
+                      <a
+                        href={adminDocumentUrl(application.id, file.id)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={buttonClasses("secondary")}
+                      >
+                        Open
+                        <span className="sr-only"> {file.file_name} (downloads in a new tab)</span>
+                      </a>
+                    </ScanGuard>
+                    <ScanNote id={`scan-${file.id}`} status={file.scan_status} className="basis-full" />
                   </li>
                 ))}
             </ul>

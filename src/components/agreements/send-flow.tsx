@@ -13,10 +13,12 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Field, fieldDescribedBy, Input, Textarea } from "@/components/ui/field";
+import { ScanNote, useScanPolling } from "@/components/ui/scan-status";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
   createAgreement,
   deleteAgreement,
+  getAgreement,
   getAgreementPdf,
   patchAgreement,
   putAgreementFields,
@@ -30,6 +32,7 @@ import {
 import { getDashboard, type DashboardOrganisation } from "@/lib/api/dashboard";
 import { EMAIL_MAX, emailProblem } from "@/lib/auth-validation";
 import { cn } from "@/lib/cn";
+import { isFileOpenable, isScanErrorCode, type ScanStatus } from "@/lib/file-scan";
 import {
   assignOrders,
   dayAfter,
@@ -510,6 +513,7 @@ function DocumentStep({ agreement, onUploaded }: { agreement: Agreement; onUploa
           <p className="text-sm text-muted">
             {formatBytes(document_.size_bytes)} · {document_.pages?.length ?? 0} {document_.pages?.length === 1 ? "page" : "pages"}
           </p>
+          <ScanNote status={document_.scan_status} canReplace className="mt-2" />
         </Card>
       )}
       <div
@@ -661,8 +665,11 @@ export function SendFlow({ initial, onSent }: { initial: Agreement | null; onSen
   // The PDF of a draft that already has one, for the field editor.
   const documentSha = agreement?.document?.sha256;
   const agreementId = agreement?.id;
+  // Absent unless uploads are scanned for malware (API 0.41.0); the API serves the PDF only once it is clean.
+  const documentScan: ScanStatus | undefined = agreement?.document?.scan_status;
+  const documentOpenable = isFileOpenable(documentScan);
   useEffect(() => {
-    if (!agreementId || !documentSha || bytes) return;
+    if (!agreementId || !documentSha || bytes || !documentOpenable) return;
     let cancelled = false;
     getAgreementPdf(agreementId).then((result) => {
       if (!cancelled && result.ok) setBytes(result.data.bytes);
@@ -670,7 +677,19 @@ export function SendFlow({ initial, onSent }: { initial: Agreement | null; onSen
     return () => {
       cancelled = true;
     };
-  }, [agreementId, documentSha, bytes]);
+  }, [agreementId, documentSha, bytes, documentOpenable]);
+
+  // While the PDF is checked for viruses, read its status again; only the document changes, never the settings.
+  const pollDocument = useCallback(async () => {
+    if (!agreementId) return;
+    const result = await getAgreement(agreementId);
+    if (!result.ok) return;
+    const { document: fresh } = result.data.agreement;
+    const s = session.current;
+    if (s.agreement?.id === agreementId) s.agreement = { ...s.agreement, document: fresh };
+    setAgreement((current) => (current && current.id === agreementId ? { ...current, document: fresh } : current));
+  }, [agreementId]);
+  useScanPolling([documentScan], pollDocument);
 
   // The latest `flush`, for the save that follows one still on its way.
   const flushRef = useRef<() => Promise<unknown>>(async () => null);
@@ -790,6 +809,8 @@ export function SendFlow({ initial, onSent }: { initial: Agreement | null; onSen
       onSent(result.data.agreement);
       return;
     }
+    // The PDF is still being checked, or was removed by the check: show where it stands.
+    if (result.failure.status === 409 && isScanErrorCode(result.failure.code)) void pollDocument();
     const detail = result.failure.fields ? ` ${Object.values(result.failure.fields).join(" ")}` : "";
     setNotice({ ...failureNotice(result.failure), text: `${signingMessage(result.failure)}${detail}` });
     noticeRef.current?.focus();
@@ -863,7 +884,14 @@ export function SendFlow({ initial, onSent }: { initial: Agreement | null; onSen
           />
         )}
         {step === 3 && agreement && agreement.document && (
-          bytes ? (
+          documentScan === "INFECTED" ? (
+            <Card>
+              <ScanNote status={documentScan} canReplace />
+              <Button variant="primary" className="mt-4" onClick={() => void goTo(2)}>
+                Upload a clean copy
+              </Button>
+            </Card>
+          ) : bytes ? (
             <FieldEditor
               key={agreement.document.sha256}
               agreement={agreement}
@@ -874,6 +902,11 @@ export function SendFlow({ initial, onSent }: { initial: Agreement | null; onSen
               }}
               onFieldsChange={setFields}
             />
+          ) : documentScan === "PENDING" ? (
+            <Card>
+              <ScanNote status={documentScan} canReplace />
+              <p className="mt-2 text-sm text-muted">The fields can be placed once the check is done.</p>
+            </Card>
           ) : (
             <LoadingBlock label="Loading the document" rows={2} />
           )
@@ -890,9 +923,24 @@ export function SendFlow({ initial, onSent }: { initial: Agreement | null; onSen
             Next: {STEPS[step]}
           </Button>
         ) : (
-          <Button size="lg" onClick={() => void send()} disabled={sending} aria-busy={sending || undefined}>
-            {sending ? "Sending…" : "Send"}
-          </Button>
+          <div className="flex flex-col items-end gap-2">
+            <Button
+              size="lg"
+              onClick={() => void send()}
+              disabled={sending || !documentOpenable}
+              aria-busy={sending || undefined}
+              aria-describedby={documentOpenable ? undefined : "send-scan-wait"}
+            >
+              {sending ? "Sending…" : "Send"}
+            </Button>
+            {!documentOpenable && (
+              <p id="send-scan-wait" className={cn("max-w-sm text-right text-sm", documentScan === "INFECTED" ? "text-danger" : "text-muted")}>
+                {documentScan === "PENDING"
+                  ? "The PDF is still being checked for viruses. You can send it once the check is done, usually within a minute; this page updates by itself."
+                  : "The PDF failed our virus check and was removed. Go back to step 2 and upload a clean copy before sending."}
+              </p>
+            )}
+          </div>
         )}
       </div>
 

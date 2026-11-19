@@ -22,6 +22,7 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { LegalLink } from "@/components/legal/legal-link";
 import { Field, fieldDescribedBy, Input, Textarea } from "@/components/ui/field";
+import { useScanPolling } from "@/components/ui/scan-status";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import type { ApiFailure } from "@/lib/api/http";
 import {
@@ -92,6 +93,14 @@ function Details({ requirement, lists }: Props) {
     const timer = window.setTimeout(read, 0);
     return () => window.clearTimeout(timer);
   }, [read, attempt]);
+
+  // While a document is checked for viruses, read the application again quietly (an error keeps what is shown).
+  const poll = useCallback(async () => {
+    const result = await listMyApplications();
+    const application = result.ok ? result.data.applications.find((item) => item.role === role) : undefined;
+    if (application) setState({ status: "ready", application });
+  }, [role]);
+  useScanPolling(state.status === "ready" ? state.application.documents.map((item) => item.scan_status) : [], poll);
 
   if (state.status === "loading") {
     return (

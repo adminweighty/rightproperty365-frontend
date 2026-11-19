@@ -2,6 +2,7 @@
 
 import { EyeOff, FileText } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { ScanNote } from "@/components/ui/scan-status";
 import type { ApplicationFile } from "@/lib/api/applications";
 import {
   allFields,
@@ -13,6 +14,7 @@ import {
   type FormField,
   type FormSection,
 } from "@/lib/questionnaires";
+import { isFileOpenable } from "@/lib/file-scan";
 
 /*
  * The answers of an application in the layout of the form version it was
@@ -45,13 +47,14 @@ function conditionText(field: FormField, fields: FormField[]): string {
 function FileList({ field, value, files, fileHref }: { field: FormField; value: unknown; files: ApplicationFile[]; fileHref: Props["fileHref"] }) {
   const ids = Array.isArray(value) ? value.map(String) : typeof value === "string" ? [value] : [];
   const attached = files.filter((file) => file.field === field.key || ids.includes(file.id));
-  const listed = attached.length > 0 ? attached : ids.map((id, index) => ({ id, field: field.key, file_name: `File ${index + 1}`, size_bytes: null, content_type: null, uploaded_at: null }));
+  const listed = attached.length > 0 ? attached : ids.map((id, index): ApplicationFile => ({ id, field: field.key, file_name: `File ${index + 1}`, size_bytes: null, content_type: null, uploaded_at: null }));
   if (listed.length === 0) return <dd className="mt-1 text-muted">No file attached</dd>;
   return (
     <dd className="mt-1">
       <ul className="grid gap-2">
         {listed.map((file) => {
-          const href = fileHref(file.id);
+          // A file being checked for viruses, or removed by the check, cannot be opened.
+          const href = !isFileOpenable(file.scan_status) ? null : fileHref(file.id);
           return (
             <li key={file.id} className="flex flex-wrap items-center gap-2 text-sm">
               <FileText className="size-4 shrink-0 text-muted" aria-hidden="true" />
@@ -64,6 +67,7 @@ function FileList({ field, value, files, fileHref }: { field: FormField; value: 
                 <span className="break-all font-medium text-ink">{file.file_name}</span>
               )}
               {file.size_bytes !== null && <span className="text-muted">{fileSizeText(file.size_bytes)}</span>}
+              <ScanNote status={file.scan_status} className="basis-full" />
             </li>
           );
         })}

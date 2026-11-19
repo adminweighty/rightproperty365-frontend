@@ -1,4 +1,5 @@
 import { env } from "@/lib/env";
+import { scanErrorMessage } from "@/lib/file-scan";
 
 /**
  * Shared fetch wrapper for the RightProperty365 Go API.
@@ -103,10 +104,13 @@ function failureFrom(response: Response, payload: unknown): ApiFailure {
     window.dispatchEvent(new Event(MFA_ENROLMENT_REQUIRED_EVENT));
   }
 
+  const code = envelope?.error?.code ?? `HTTP_${response.status}`;
   return {
-    code: envelope?.error?.code ?? `HTTP_${response.status}`,
+    code,
     status: response.status,
+    // The malware scanning errors (API 0.41.0) in the same plain words on every page.
     message:
+      scanErrorMessage({ code, status: response.status }) ??
       envelope?.error?.message ??
       fallbackMessages[response.status] ??
       "Something went wrong on our side. Please try again.",

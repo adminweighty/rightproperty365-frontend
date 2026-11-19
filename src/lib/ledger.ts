@@ -536,7 +536,12 @@ function linked(raw: Raw, key: string): LinkedThing | null {
 }
 
 export type EntryNote = { id: string; text: string; author: Person | null; createdAt: string | null };
-export type EntryAttachment = { id: string; name: string; size: number | null; type: string | null; uploadedAt: string | null; uploadedBy: Person | null };
+/** `scanStatus`: null when uploads are not scanned for malware (API 0.41.0). */
+export type EntryAttachment = { id: string; name: string; size: number | null; type: string | null; uploadedAt: string | null; uploadedBy: Person | null; scanStatus: AttachmentScanStatus | null };
+
+/** The same four words as `ScanStatus` in lib/file-scan.ts (repeated: this file has no imports). */
+export type AttachmentScanStatus = "PENDING" | "CLEAN" | "INFECTED" | "LEGACY_UNSCANNED";
+const SCAN_STATUSES: readonly string[] = ["PENDING", "CLEAN", "INFECTED", "LEGACY_UNSCANNED"];
 export type EntryEvent = { id: string; kind: string; label: string | null; text: string | null; at: string | null; actor: Person | null; relatedId: string | null };
 
 export type LedgerEntry = {
@@ -609,6 +614,7 @@ export function normaliseAttachment(value: unknown): EntryAttachment | null {
     type: str(raw.content_type) ?? str(raw.mime_type) ?? str(raw.type),
     uploadedAt: str(raw.uploaded_at) ?? str(raw.created_at),
     uploadedBy: person(raw, "uploaded_by") ?? person(raw, "author"),
+    scanStatus: typeof raw.scan_status === "string" && SCAN_STATUSES.includes(raw.scan_status) ? (raw.scan_status as AttachmentScanStatus) : null,
   };
 }
 

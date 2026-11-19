@@ -13,6 +13,7 @@ import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useScanPolling } from "@/components/ui/scan-status";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Field, fieldDescribedBy, Input, Textarea } from "@/components/ui/field";
 import { Pagination } from "@/components/ui/pagination";
@@ -519,6 +520,8 @@ function Detail({ organisation, id }: { organisation: DashboardOrganisation; id:
     const result = await getReceivedApplication(organisation.id, id);
     if (result.ok) replace(result.data);
   }, [organisation.id, id, replace]);
+  // While a file is checked for viruses, read the application again quietly.
+  useScanPolling(state.status === "ready" ? state.data.files.map((file) => file.scan_status) : [], readAgain);
 
   if (state.status === "loading") return <LoadingBlock label="Loading the application" rows={4} />;
   if (state.status === "error") {

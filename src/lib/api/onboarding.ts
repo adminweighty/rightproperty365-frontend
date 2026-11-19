@@ -1,6 +1,7 @@
 import type { OnboardingStatus } from "@/lib/api/auth";
 import { apiFetch } from "@/lib/api/http";
 import { env } from "@/lib/env";
+import type { ScanStatus } from "@/lib/file-scan";
 
 /**
  * Client for onboarding: the step after sign-up in which a person who chose a
@@ -62,6 +63,8 @@ export type OnboardingDocument = {
   content_type: "application/pdf" | "image/jpeg" | "image/png";
   size_bytes: number;
   uploaded_at: string;
+  /** Present only while uploads are scanned for malware (API 0.41.0). */
+  scan_status?: ScanStatus;
 };
 
 export type OnboardingDecision = { reason: string | null; decided_at: string | null };

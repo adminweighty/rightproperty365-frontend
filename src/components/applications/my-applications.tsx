@@ -11,6 +11,7 @@ import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useScanPolling } from "@/components/ui/scan-status";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Pagination } from "@/components/ui/pagination";
 import {
@@ -203,6 +204,13 @@ function Detail({ id }: { id: string }) {
   const [error, setError] = useState<string | undefined>();
   const [done, setDone] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
+
+  // While a file is checked for viruses, read the application again quietly.
+  const poll = useCallback(async () => {
+    const result = await getOwnApplication(id);
+    if (result.ok) replace(result.data);
+  }, [id, replace]);
+  useScanPolling(state.status === "ready" ? state.data.files.map((file) => file.scan_status) : [], poll);
 
   if (state.status === "loading") return <LoadingBlock label="Loading your application" rows={3} />;
   if (state.status === "error") {

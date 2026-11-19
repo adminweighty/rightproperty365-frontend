@@ -1,4 +1,5 @@
 import { apiFetch, type ApiFailure, type ApiResult } from "@/lib/api/http";
+import { scanErrorMessage } from "@/lib/file-scan";
 import type { MarketUsage } from "@/lib/api/packages";
 import type { ListingAdvertiser } from "@/lib/api/types";
 import { env } from "@/lib/env";
@@ -235,6 +236,7 @@ export function uploadListingPhoto(
         code: envelope?.error?.code ?? `HTTP_${request.status}`,
         status: request.status,
         message:
+          scanErrorMessage({ code: envelope?.error?.code ?? "", status: request.status }) ??
           envelope?.error?.fields?.file ??
           envelope?.error?.message ??
           uploadMessages[request.status] ??

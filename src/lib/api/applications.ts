@@ -1,5 +1,6 @@
 import { apiFetch, type ApiFailure, type ApiResult } from "@/lib/api/http";
 import { env } from "@/lib/env";
+import { readScanStatus, type ScanStatus } from "@/lib/file-scan";
 import {
   listOf,
   normaliseSections,
@@ -60,6 +61,8 @@ export type ApplicationFile = {
   size_bytes: number | null;
   content_type: string | null;
   uploaded_at: string | null;
+  /** Null when uploads are not scanned for malware (API 0.41.0). */
+  scan_status?: ScanStatus | null;
 };
 
 export type ApplicationEvent = {
@@ -203,6 +206,7 @@ function normaliseFile(value: unknown): ApplicationFile | null {
     size_bytes: num(raw.size_bytes ?? raw.size),
     content_type: str(raw.content_type),
     uploaded_at: str(raw.uploaded_at) ?? str(raw.created_at),
+    scan_status: readScanStatus(raw.scan_status),
   };
 }
 

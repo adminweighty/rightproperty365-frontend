@@ -5,6 +5,7 @@ import { useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { PrivateImage } from "@/components/ui/private-image";
+import { ScanBadge, ScanGuard } from "@/components/ui/scan-status";
 import {
   DOCUMENT_ACCEPT,
   DOCUMENT_MAX_BYTES,
@@ -15,6 +16,7 @@ import {
   uploadDocument,
   type OnboardingDocument,
 } from "@/lib/api/onboarding";
+import { isFileOpenable, scanNotice } from "@/lib/file-scan";
 import { LOGO_ACCEPT, LOGO_DOCUMENT, LOGO_FORMATS_NOTE, logoProblem } from "@/lib/logo-rules";
 
 type Props = {
@@ -62,6 +64,7 @@ export function DocumentUploader({ role, type, document: attached, editable, err
   const [notice, setNotice] = useState<Notice | null>(null);
   const id = `doc-${type.code}`;
   const isLogo = type.code === LOGO_DOCUMENT;
+  const scan = attached?.scan_status;
 
   async function upload(file: File) {
     const problem = problemWith(file, isLogo);
@@ -74,7 +77,14 @@ export function DocumentUploader({ role, type, document: attached, editable, err
     const result = await uploadDocument(role, type.code, file);
     if (result.ok) {
       await onChanged();
-      setNotice({ tone: "status", text: `${result.data.document.file_name} was uploaded.` });
+      const { document: uploaded } = result.data;
+      setNotice({
+        tone: "status",
+        text:
+          uploaded.scan_status === "PENDING"
+            ? `${uploaded.file_name} was uploaded. It is being checked for viruses, which usually takes under a minute.`
+            : `${uploaded.file_name} was uploaded.`,
+      });
     } else {
       const { failure } = result;
       setNotice({ tone: "alert", text: failure.fields?.file ?? failure.fields?.type ?? failure.message });
@@ -114,7 +124,9 @@ export function DocumentUploader({ role, type, document: attached, editable, err
             {type.description}
           </p>
         </div>
-        {attached ? (
+        {attached && scanNotice(scan) ? (
+          <ScanBadge status={scan} />
+        ) : attached ? (
           <Badge tone="success">
             <CircleCheck className="size-3.5" aria-hidden="true" />
             Attached
@@ -133,7 +145,7 @@ export function DocumentUploader({ role, type, document: attached, editable, err
           </span>
         </p>
       )}
-      {isLogo && attached && (
+      {isLogo && attached && isFileOpenable(scan) && (
         <PrivateImage
           src={documentUrl(role, attached.id)}
           alt={`The logo you uploaded, ${attached.file_name}`}
@@ -148,6 +160,11 @@ export function DocumentUploader({ role, type, document: attached, editable, err
             <span className="break-all font-medium">{attached.file_name}</span>
             <span className="text-muted"> · {formatFileSize(attached.size_bytes)}</span>
           </span>
+        </p>
+      )}
+      {attached && scanNotice(scan) && (
+        <p id={`${id}-scan`} className={`mt-2 text-sm ${scan === "INFECTED" ? "text-danger" : "text-muted"}`}>
+          {scanNotice(scan, editable)?.text}
         </p>
       )}
 
@@ -171,7 +188,7 @@ export function DocumentUploader({ role, type, document: attached, editable, err
             />
             <Button
               id={`${id}-upload`}
-              variant={attached ? "secondary" : "primary"}
+              variant={attached && scan !== "INFECTED" ? "secondary" : "primary"}
               disabled={busy !== null}
               aria-busy={busy === "uploading"}
               aria-describedby={`${id}-label ${id}-description ${id}-notice`}
@@ -183,18 +200,20 @@ export function DocumentUploader({ role, type, document: attached, editable, err
           </>
         )}
         {attached && (
-          <a
-            href={documentUrl(role, attached.id)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={buttonClasses("secondary")}
-          >
-            Open
-            <span className="sr-only">
-              {" "}
-              {attached.file_name} (downloads in a new tab)
-            </span>
-          </a>
+          <ScanGuard status={scan} label="Open" describedBy={`${id}-scan`}>
+            <a
+              href={documentUrl(role, attached.id)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={buttonClasses("secondary")}
+            >
+              Open
+              <span className="sr-only">
+                {" "}
+                {attached.file_name} (downloads in a new tab)
+              </span>
+            </a>
+          </ScanGuard>
         )}
         {editable && attached && (
           <Button variant="ghost" disabled={busy !== null} aria-busy={busy === "removing"} onClick={remove}>

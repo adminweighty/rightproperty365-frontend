@@ -1,5 +1,6 @@
 import type { StageCount } from "@/lib/api/agent";
-import { apiFetch } from "@/lib/api/http";
+import { apiFetch, type ApiResult } from "@/lib/api/http";
+import { readFileScanReport, type FileScanReport } from "@/lib/file-scan";
 
 /**
  * Administrator overview and routing exceptions (new in API 0.20.0). Admin
@@ -75,3 +76,14 @@ export const resolveRoutingException = (id: string, note: string) =>
     method: "POST",
     body: note ? { note } : {},
   });
+
+/**
+ * The malware scanning of uploads (API 0.41.0): counts, the oldest file still
+ * waiting, the latest pending and unsafe files, and this API process's image
+ * counters. SUPER_ADMIN and PLATFORM_ADMIN. `fetchedAt` dates the answer, for
+ * the age of the oldest pending file.
+ */
+export async function getFileScans(): Promise<ApiResult<FileScanReport & { fetchedAt: number }>> {
+  const result = await apiFetch<unknown>("/v1/admin/file-scans", { cache: "no-store" });
+  return result.ok ? { ...result, data: { ...readFileScanReport(result.data), fetchedAt: Date.now() } } : result;
+}

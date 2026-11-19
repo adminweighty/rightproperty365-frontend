@@ -3,8 +3,10 @@
 import { FileText, Upload } from "lucide-react";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ScanNote } from "@/components/ui/scan-status";
 import { ownFileUrl, uploadApplicationFile, type ApplicationFile } from "@/lib/api/applications";
 import { cn } from "@/lib/cn";
+import { isFileOpenable } from "@/lib/file-scan";
 import {
   acceptAttribute,
   acceptedTypesText,
@@ -92,10 +94,14 @@ export function FileQuestion({ field, applicationId, value, known, disabled, des
           {attached.map((file) => (
             <li key={file.id} className="flex flex-wrap items-center gap-2 rounded-md bg-soft p-2 text-sm">
               <FileText className="size-4 shrink-0 text-muted" aria-hidden="true" />
-              <a href={ownFileUrl(applicationId, file.id)} target="_blank" rel="noopener noreferrer" className="min-w-0 flex-1 break-all font-medium text-primary-ink hover:underline">
-                {file.file_name}
-                <span className="sr-only"> (opens in a new tab)</span>
-              </a>
+              {isFileOpenable(file.scan_status) ? (
+                <a href={ownFileUrl(applicationId, file.id)} target="_blank" rel="noopener noreferrer" className="min-w-0 flex-1 break-all font-medium text-primary-ink hover:underline">
+                  {file.file_name}
+                  <span className="sr-only"> (opens in a new tab)</span>
+                </a>
+              ) : (
+                <span className="min-w-0 flex-1 break-all font-medium text-ink">{file.file_name}</span>
+              )}
               {file.size_bytes !== null && <span className="text-muted">{fileSizeText(file.size_bytes)}</span>}
               {!disabled && (
                 <Button
@@ -114,6 +120,7 @@ export function FileQuestion({ field, applicationId, value, known, disabled, des
                   <span className="sr-only"> {file.file_name}</span>
                 </Button>
               )}
+              <ScanNote status={file.scan_status} canReplace={!disabled} className="basis-full" />
             </li>
           ))}
         </ul>

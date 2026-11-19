@@ -1,4 +1,5 @@
 import { apiFetch, type ApiFailure, type ApiResult } from "@/lib/api/http";
+import { scanErrorMessage } from "@/lib/file-scan";
 import { env } from "@/lib/env";
 import {
   normaliseOptions,
@@ -186,7 +187,9 @@ function uploadPhoto(path: string, file: File, onProgress: (fraction: number) =>
         failure: {
           code: envelope?.error?.code ?? `HTTP_${request.status}`,
           status: request.status,
-          message: envelope?.error?.fields?.file ?? envelope?.error?.message ?? uploadMessages[request.status] ?? "Something went wrong on our side. Please try again.",
+          message:
+            scanErrorMessage({ code: envelope?.error?.code ?? "", status: request.status }) ??
+            envelope?.error?.fields?.file ?? envelope?.error?.message ?? uploadMessages[request.status] ?? "Something went wrong on our side. Please try again.",
           fields: envelope?.error?.fields,
           traceId: envelope?.trace_id,
           body: payload ?? undefined,

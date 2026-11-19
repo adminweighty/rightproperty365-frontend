@@ -13,6 +13,7 @@ import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Field, Textarea } from "@/components/ui/field";
 import { Pagination } from "@/components/ui/pagination";
+import { ScanBadge } from "@/components/ui/scan-status";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
   cancelAgreement,
@@ -26,6 +27,7 @@ import {
 } from "@/lib/api/agreements";
 import { canUseInbox } from "@/lib/api/auth";
 import type { ApiResult } from "@/lib/api/http";
+import { isFileOpenable } from "@/lib/file-scan";
 import { pageFrom } from "@/lib/request-filters";
 
 const PATH = "/agent/agreements";
@@ -145,7 +147,8 @@ function Row({
             Remind<span className="sr-only"> the recipients of {agreement.name}</span>
           </Button>
         )}
-        {agreement.document && (
+        {agreement.document && !isFileOpenable(agreement.document.scan_status) && <ScanBadge status={agreement.document.scan_status} />}
+        {agreement.document && isFileOpenable(agreement.document.scan_status) && (
           <PdfActions read={() => getAgreementPdf(agreement.id)} name={agreement.name} reference={agreement.reference} label="PDF" variant="ghost" />
         )}
         {agreement.can_cancel && (
