@@ -419,6 +419,10 @@ export function RequestInbox({ requestTypeLabels, contactMethodLabels }: Props) 
               <AppointmentsWaiting />
             </Link>
             {" · "}
+            <Link href="/agent/requests/funnel" className="font-medium text-primary-ink hover:underline">
+              Lead conversion
+            </Link>
+            {" · "}
             <Link href="/agent/listings" className="font-medium text-primary-ink hover:underline">
               Your listings
             </Link>

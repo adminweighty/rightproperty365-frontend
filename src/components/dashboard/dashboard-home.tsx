@@ -481,6 +481,7 @@ function Workspace({ data }: { data: Dashboard }) {
   const toSign = counterValue(data, "agreements.waiting_for_you");
   const links = ([
     data.capabilities.receives_requests && { href: "/agent/requests", label: "Request inbox" },
+    data.capabilities.receives_requests && { href: "/agent/requests/funnel", label: "Lead conversion" },
     data.capabilities.manages_appointments && { href: "/agent/appointments", label: "Appointments received" },
     data.capabilities.manages_listings && { href: "/agent/listings", label: "Your listings" },
     data.organisations.length > 0 && { href: "/agent/contacts", label: "Contacts" },
