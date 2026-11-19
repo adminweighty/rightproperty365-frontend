@@ -68,3 +68,30 @@ export async function getListingEditorLists(): Promise<ListingEditorLists> {
     suburbs: place(sets.suburbs),
   };
 }
+
+/** What the development project editor and its review page choose from (API 0.44.0). */
+export type DevelopmentEditorLists = {
+  /** Every country, with its currency: a project may be anywhere. */
+  countries: (EditorOption & { currency: string })[];
+  /** The reference cities and suburbs of every country that has them. Elsewhere the city is free text. */
+  cities: EditorOption[];
+  suburbs: EditorOption[];
+  amenities: EditorOption[];
+  /** ISO 4217 codes of every country, for unit type prices. */
+  currencies: string[];
+};
+
+export async function getDevelopmentEditorLists(): Promise<DevelopmentEditorLists> {
+  const [catalogue, countries] = await Promise.all([getCatalogue(), getAllCountries()]);
+  const { sets } = catalogue;
+  return {
+    countries: countries
+      .filter(({ code }) => /^[A-Z]{2}$/.test(code))
+      .map(({ code, name, currency_code }) => ({ value: code, label: name, keywords: [code], currency: currency_code }))
+      .sort((a, b) => a.label.localeCompare(b.label, "en-GB")),
+    cities: place(sets.cities),
+    suburbs: place(sets.suburbs),
+    amenities: plain(sets.development_amenities),
+    currencies: [...new Set(countries.map(({ currency_code }) => currency_code).filter((code) => /^[A-Z]{3}$/.test(code)))].sort(),
+  };
+}

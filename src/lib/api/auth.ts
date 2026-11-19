@@ -341,3 +341,6 @@ export const confirmPasswordReset = (token: string, password: string) =>
   apiFetch<null>("/v1/auth/password-reset/confirm", { method: "POST", body: { token, password } });
 /** Moderate reviews of service providers (API 0.36.4): the queue, publish, hide and reject. */
 export const REVIEW_MODERATION_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "CONTENT_ADMIN", "MODERATOR"];
+
+/** Review development projects (API 0.44.0): the listing review roles. A MARKET_ADMIN sees their own countries only. */
+export const DEVELOPMENT_REVIEW_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "PLATFORM_ADMIN", "MODERATOR", "MARKET_ADMIN"];

@@ -48,6 +48,7 @@ async function getReferenceSets(): Promise<ReferenceSets> {
     contact_types: data.sets.contact_types ?? [],
     contact_sources: data.sets.contact_sources ?? [],
     contact_stages: data.sets.contact_stages ?? [],
+    development_amenities: data.sets.development_amenities ?? [],
   };
 }
 

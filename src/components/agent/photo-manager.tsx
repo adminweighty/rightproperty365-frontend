@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/field";
+import type { ApiResult } from "@/lib/api/http";
 import {
   deletePhoto,
   describePhoto,
@@ -36,12 +37,37 @@ type Upload = {
   message?: string;
 };
 
-type Props = {
-  listing: ManagedListing;
+/** The photos of whatever owns them (a listing, a development project), as the manager shows them. */
+export type PhotoSet = {
+  ownerId: string;
+  photos: ManagedPhoto[];
+  limit: number;
+  /** True while the public sees the owner: its approved photos then need no session. */
+  isPublic: boolean;
+};
+
+/**
+ * How the manager reads and changes the photos of one kind of owner. Every
+ * call answers with the whole owner, which becomes the page's copy.
+ */
+export type PhotoApi<T> = {
+  toSet: (owner: T) => PhotoSet;
+  upload: (ownerId: string, file: File, onProgress: (fraction: number) => void) => Promise<ApiResult<T>>;
+  describe: (ownerId: string, photoId: string, alt: string) => Promise<ApiResult<T>>;
+  order: (ownerId: string, photoIds: string[]) => Promise<ApiResult<T>>;
+  remove: (ownerId: string, photoId: string) => Promise<ApiResult<T>>;
+  /** Error codes that mean the owner changed state: the page reads it again. */
+  conflicts: ReadonlySet<string>;
+  /** "listing" or "project", in the sentences that name the owner. */
+  noun: string;
+};
+
+type Props<T> = {
+  owner: T;
+  api: PhotoApi<T>;
   editable: boolean;
-  /** Every photo call answers with the whole listing: it becomes the page's listing. */
-  onListing: (listing: ManagedListing) => void;
-  /** Says a photo call failed because the listing changed state (it is read again). */
+  onChange: (owner: T) => void;
+  /** Says a photo call failed because the owner changed state (it is read again). */
   onConflict: (message: string) => void;
 };
 
@@ -62,13 +88,43 @@ async function readSize(file: File): Promise<{ width: number; height: number } |
 
 const CONFLICTS = new Set(["LISTING_IN_REVIEW", "LISTING_STATE_CONFLICT", "LISTING_CHANGED"]);
 
+async function unwrapListing(answer: Promise<ApiResult<{ listing: ManagedListing }>>): Promise<ApiResult<ManagedListing>> {
+  const result = await answer;
+  return result.ok ? { ...result, data: result.data.listing } : result;
+}
+
+const listingPhotoApi: PhotoApi<ManagedListing> = {
+  toSet: (listing) => ({ ownerId: listing.id, photos: listing.photos, limit: listing.photo_limit, isPublic: listing.public }),
+  upload: (id, file, onProgress) => unwrapListing(uploadListingPhoto(id, file, onProgress)),
+  describe: (id, photoId, alt) => unwrapListing(describePhoto(id, photoId, alt)),
+  order: (id, photoIds) => unwrapListing(orderPhotos(id, photoIds)),
+  remove: (id, photoId) => unwrapListing(deletePhoto(id, photoId)),
+  conflicts: CONFLICTS,
+  noun: "listing",
+};
+
+type ListingProps = {
+  listing: ManagedListing;
+  editable: boolean;
+  /** Every photo call answers with the whole listing: it becomes the page's listing. */
+  onListing: (listing: ManagedListing) => void;
+  /** Says a photo call failed because the listing changed state (it is read again). */
+  onConflict: (message: string) => void;
+};
+
+/** The photos of a listing. */
+export function PhotoManager({ listing, editable, onListing, onConflict }: ListingProps) {
+  return <PhotoManagerFor owner={listing} api={listingPhotoApi} editable={editable} onChange={onListing} onConflict={onConflict} />;
+}
+
 /**
- * The photos of a listing: add (drag and drop or the file picker, several at
+ * The photos of a listing or a project: add (drag and drop or the file picker, several at
  * once, uploaded one by one with progress), describe, put in order (buttons,
  * or drag and drop with a mouse) and delete. The first photo is the cover.
  * At most `photo_limit` (20) per property. Every change is saved at once.
  */
-export function PhotoManager({ listing, editable, onListing, onConflict }: Props) {
+export function PhotoManagerFor<T>({ owner, api, editable, onChange: onListing, onConflict }: Props<T>) {
+  const photoSet = api.toSet(owner);
   const inputId = useId();
   const fileInput = useRef<HTMLInputElement>(null);
   const [uploads, setUploads] = useState<Upload[]>([]);
@@ -83,18 +139,19 @@ export function PhotoManager({ listing, editable, onListing, onConflict }: Props
   const focusAfterMove = useRef<{ id: string; direction: "up" | "down" } | null>(null);
   const running = useRef(false);
   const queue = useRef<Upload[]>([]);
-  // The latest listing for the upload loop, which outlives renders.
-  const latest = useRef(listing);
+  // The latest owner for the upload loop, which outlives renders.
+  const latest = useRef(owner);
   useEffect(() => {
-    latest.current = listing;
-  }, [listing]);
+    latest.current = owner;
+  }, [owner]);
+  const latestSet = () => api.toSet(latest.current);
 
-  const byId = new Map(listing.photos.map((photo) => [photo.id, photo]));
-  const ids = order ?? listing.photos.map((photo) => photo.id);
+  const byId = new Map(photoSet.photos.map((photo) => [photo.id, photo]));
+  const ids = order ?? photoSet.photos.map((photo) => photo.id);
   const photos = ids.map((id) => byId.get(id)).filter((photo): photo is ManagedPhoto => photo !== undefined);
   const inFlight = uploads.filter((upload) => upload.status === "waiting" || upload.status === "uploading").length;
-  const counter = photoCounter(listing.photos.length, listing.photo_limit);
-  const full = listing.photos.length + inFlight >= listing.photo_limit;
+  const counter = photoCounter(photoSet.photos.length, photoSet.limit);
+  const full = photoSet.photos.length + inFlight >= photoSet.limit;
 
   // Keep focus on the photo that moved, on the button that still works.
   const orderKey = ids.join(",");
@@ -125,30 +182,29 @@ export function PhotoManager({ listing, editable, onListing, onConflict }: Props
       }
       update(item.key, { status: "uploading", progress: 0 });
       setAnnouncement(`Uploading ${item.file.name}.`);
-      const result = await uploadListingPhoto(latest.current.id, item.file, (progress) =>
-        update(item.key, { progress }),
-      );
+      const result = await api.upload(latestSet().ownerId, item.file, (progress) => update(item.key, { progress }));
       if (result.ok) {
         update(item.key, { status: "done", progress: 1 });
-        setAnnouncement(`${item.file.name} was added. ${photoCounter(result.data.listing.photos.length, result.data.listing.photo_limit).text}.`);
-        latest.current = result.data.listing;
-        onListing(result.data.listing);
+        const added = api.toSet(result.data);
+        setAnnouncement(`${item.file.name} was added. ${photoCounter(added.photos.length, added.limit).text}.`);
+        latest.current = result.data;
+        onListing(result.data);
         continue;
       }
       const message = result.failure.message;
       update(item.key, { status: "error", message });
       setAnnouncement(`${item.file.name} was not added. ${message}`);
-      if (result.failure.code === "PHOTO_LIMIT_REACHED" || CONFLICTS.has(result.failure.code)) {
+      if (result.failure.code === "PHOTO_LIMIT_REACHED" || api.conflicts.has(result.failure.code)) {
         // Nothing after it can be added either.
         const rest = queue.current.splice(0);
         setUploads((current) =>
           current.map((upload) =>
             rest.some((other) => other.key === upload.key)
-              ? { ...upload, status: "error", message: result.failure.code === "PHOTO_LIMIT_REACHED" ? photoLimitMessage(listing.photo_limit) : message }
+              ? { ...upload, status: "error", message: result.failure.code === "PHOTO_LIMIT_REACHED" ? photoLimitMessage(photoSet.limit) : message }
               : upload,
           ),
         );
-        if (CONFLICTS.has(result.failure.code)) onConflict(message);
+        if (api.conflicts.has(result.failure.code)) onConflict(message);
       }
     }
     running.current = false;
@@ -158,13 +214,13 @@ export function PhotoManager({ listing, editable, onListing, onConflict }: Props
     if (!editable || files.length === 0) return;
     const checked = files.map((file) => ({ file, problem: photoFileProblem(file) }));
     const fine = checked.filter((entry) => !entry.problem).map((entry) => entry.file);
-    const { take, over } = splitByRoom(fine, latest.current.photos.length + inFlight, latest.current.photo_limit);
+    const { take, over } = splitByRoom(fine, latestSet().photos.length + inFlight, latestSet().limit);
     const items: Upload[] = checked.map(({ file, problem }) => {
       uploadKey += 1;
       const key = `upload-${uploadKey}`;
       if (problem) return { key, file, progress: 0, status: "error", message: problem };
       if (over.includes(file)) {
-        return { key, file, progress: 0, status: "error", message: `Not added. ${photoLimitMessage(latest.current.photo_limit)}` };
+        return { key, file, progress: 0, status: "error", message: `Not added. ${photoLimitMessage(latestSet().limit)}` };
       }
       return { key, file, progress: 0, status: "waiting" };
     });
@@ -189,15 +245,15 @@ export function PhotoManager({ listing, editable, onListing, onConflict }: Props
     const position = next.indexOf(id) + 1;
     setAnnouncement(position === 1 ? `Photo moved to the first place. It is now the cover photo.` : `Photo moved to place ${position} of ${next.length}.`);
     if (focus) focusAfterMove.current = { id, direction: focus };
-    const result = await orderPhotos(listing.id, next);
+    const result = await api.order(photoSet.ownerId, next);
     if (result.ok) {
-      onListing(result.data.listing);
+      onListing(result.data);
       setOrder(null);
     } else {
       // Back to the order the API has.
       setOrder(null);
       setOrderError(`The new order was not saved. ${result.failure.message}`);
-      if (CONFLICTS.has(result.failure.code)) onConflict(result.failure.message);
+      if (api.conflicts.has(result.failure.code)) onConflict(result.failure.message);
     }
   }
 
@@ -212,13 +268,13 @@ export function PhotoManager({ listing, editable, onListing, onConflict }: Props
     if (!toDelete) return;
     setDeleting(true);
     setDeleteError(undefined);
-    const result = await deletePhoto(listing.id, toDelete.id);
+    const result = await api.remove(photoSet.ownerId, toDelete.id);
     setDeleting(false);
     if (!result.ok) {
       setDeleteError(result.failure.message);
       return;
     }
-    onListing(result.data.listing);
+    onListing(result.data);
     setAnnouncement("The photo was deleted.");
     setToDelete(null);
   }
@@ -248,7 +304,7 @@ export function PhotoManager({ listing, editable, onListing, onConflict }: Props
         >
           <ImagePlus className="size-8 text-primary-ink" aria-hidden="true" />
           {full && inFlight === 0 ? (
-            <p className="font-medium text-ink">{photoLimitMessage(listing.photo_limit)} Delete one to add another.</p>
+            <p className="font-medium text-ink">{photoLimitMessage(photoSet.limit)} Delete one to add another.</p>
           ) : (
             <p className="text-ink">Drag photos here, or choose them from your device. You can choose several at once.</p>
           )}
@@ -277,7 +333,7 @@ export function PhotoManager({ listing, editable, onListing, onConflict }: Props
           </Button>
           {full && (
             <p id={`${inputId}-full`} className="sr-only">
-              {photoLimitMessage(listing.photo_limit)}
+              {photoLimitMessage(photoSet.limit)}
             </p>
           )}
         </div>
@@ -324,7 +380,7 @@ export function PhotoManager({ listing, editable, onListing, onConflict }: Props
 
       {photos.length === 0 ? (
         <p className="mt-4 rounded-lg border border-dashed border-line-strong p-6 text-center text-muted">
-          No photos yet. A listing needs at least one photo before it can be submitted.
+          No photos yet. A {api.noun} needs at least one photo before it can be submitted.
         </p>
       ) : (
         <ol aria-label="Photos, in order" className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -334,7 +390,8 @@ export function PhotoManager({ listing, editable, onListing, onConflict }: Props
               photo={photo}
               index={index}
               count={photos.length}
-              listing={listing}
+              set={photoSet}
+              api={api}
               editable={editable}
               dragging={dragFrom === index}
               onMove={(to, focus) => void move(index, to, focus)}
@@ -368,9 +425,9 @@ export function PhotoManager({ listing, editable, onListing, onConflict }: Props
         {toDelete && (
           <>
             <span className="mb-3 block aspect-[4/3] w-40 overflow-hidden rounded-md">
-              <ListingPhotoImage photo={toDelete} size="small" listingPublic={listing.public} alt="" className="size-full" />
+              <ListingPhotoImage photo={toDelete} size="small" listingPublic={photoSet.isPublic} alt="" className="size-full" />
             </span>
-            The photo is removed at once{listing.public && toDelete.status === "APPROVED" ? ", also from the public listing" : ""}. This
+            The photo is removed at once{photoSet.isPublic && toDelete.status === "APPROVED" ? `, also from the public ${api.noun}` : ""}. This
             cannot be undone.
           </>
         )}
@@ -379,11 +436,12 @@ export function PhotoManager({ listing, editable, onListing, onConflict }: Props
   );
 }
 
-function PhotoItem({
+function PhotoItem<T>({
   photo,
   index,
   count,
-  listing,
+  set,
+  api,
   editable,
   dragging,
   onMove,
@@ -397,12 +455,13 @@ function PhotoItem({
   photo: ManagedPhoto;
   index: number;
   count: number;
-  listing: ManagedListing;
+  set: PhotoSet;
+  api: PhotoApi<T>;
   editable: boolean;
   dragging: boolean;
   onMove: (to: number, focus?: "up" | "down") => void;
   onDelete: () => void;
-  onListing: (listing: ManagedListing) => void;
+  onListing: (owner: T) => void;
   onConflict: (message: string) => void;
   onDragStart: () => void;
   onDragEnd: () => void;
@@ -429,20 +488,20 @@ function PhotoItem({
       return;
     }
     setState({ status: "saving" });
-    const result = await describePhoto(listing.id, photo.id, value);
+    const result = await api.describe(set.ownerId, photo.id, value);
     if (result.ok) {
       setSaved(value);
       setAlt(value);
       setState({ status: "saved" });
-      onListing(result.data.listing);
+      onListing(result.data);
     } else {
       setState({ status: "error", message: result.failure.fields?.alt ?? result.failure.message });
-      if (CONFLICTS.has(result.failure.code)) onConflict(result.failure.message);
+      if (api.conflicts.has(result.failure.code)) onConflict(result.failure.message);
     }
   }
 
   const missing = saved.trim() === "" && alt.trim() === "";
-  const error = state.status === "error" ? state.message : missing ? "Describe this photo before you submit the listing." : undefined;
+  const error = state.status === "error" ? state.message : missing ? `Describe this photo before you submit the ${api.noun}.` : undefined;
   const describedBy = error ? `${altId}-error` : `${altId}-hint`;
 
   return (
@@ -482,7 +541,7 @@ function PhotoItem({
         <ListingPhotoImage
           photo={photo}
           size="small"
-          listingPublic={listing.public}
+          listingPublic={set.isPublic}
           alt={saved || `Photo ${number}, not described yet`}
           className="aspect-[4/3] w-full rounded-md"
         />

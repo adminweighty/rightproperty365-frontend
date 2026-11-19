@@ -15,6 +15,7 @@ import { Card } from "@/components/ui/card";
 import { getAdminOverview, type AdminOverview } from "@/lib/api/admin";
 import {
   AUDIT_ROLES,
+  DEVELOPMENT_REVIEW_ROLES,
   FILE_SCAN_ROLES,
   hasPlatformRole,
   LEASE_TEMPLATE_ROLES,
@@ -34,6 +35,7 @@ import {
   type User,
 } from "@/lib/api/auth";
 import { adminListSubscriptions } from "@/lib/api/subscriptions";
+import { listDevelopmentQueue } from "@/lib/api/developments";
 import { REVIEW_QUEUE_STATUSES } from "@/lib/listing-manage";
 
 const VERIFICATION_STATUSES = new Set(["SUBMITTED", "CHANGES_REQUESTED", "APPROVED", "REJECTED", "DRAFT"]);
@@ -60,7 +62,7 @@ function SectionCard({ id, title, intro, children }: { id: string; title: string
   );
 }
 
-function Attention({ data, awaitingPayment }: { data: AdminOverview; awaitingPayment: number | null }) {
+function Attention({ data, awaitingPayment, developmentsWaiting }: { data: AdminOverview; awaitingPayment: number | null; developmentsWaiting: number | null }) {
   const listingsWaiting = data.listings?.by_status.find((item) => item.status === "PENDING_REVIEW")?.count ?? 0;
   const items = [
     data.verifications && data.verifications.waiting > 0
@@ -77,6 +79,14 @@ function Attention({ data, awaitingPayment }: { data: AdminOverview; awaitingPay
           count: listingsWaiting,
           text: listingsWaiting === 1 ? "listing is waiting for review" : "listings are waiting for review",
           href: "/admin/listings",
+        }
+      : null,
+    developmentsWaiting
+      ? {
+          key: "developments",
+          count: developmentsWaiting,
+          text: developmentsWaiting === 1 ? "development project is waiting for review" : "development projects are waiting for review",
+          href: "/admin/developments",
         }
       : null,
     data.requests && data.requests.routing_exceptions.open > 0
@@ -295,6 +305,7 @@ const TOOLS: { href: string; label: string; text: string; roles: readonly Platfo
   { href: "/admin/reference", label: "Reference data", text: "Property types, features, places and the other lists.", roles: REFERENCE_ROLES },
   { href: "/admin/reports", label: "Reports", text: "Figures over a range of days, and spreadsheet downloads.", roles: REPORT_ROLES },
   { href: "/admin/analytics", label: "Analytics", text: "Listing views, enquiries and top listings, by country.", roles: ANALYTICS_ROLES },
+  { href: "/admin/developments", label: "Development reviews", text: "Development projects developers submit: approve or reject them.", roles: DEVELOPMENT_REVIEW_ROLES },
   { href: "/admin/reviews", label: "Reviews", text: "Check reviews of service providers, and the reported ones.", roles: REVIEW_MODERATION_ROLES },
   { href: "/admin/file-scans", label: "Upload scanning", text: "Whether uploads are checked for viruses, and the files waiting or removed.", roles: FILE_SCAN_ROLES },
   { href: "/admin/audit", label: "Audit log", text: "Every change administrators made here.", roles: AUDIT_ROLES },
@@ -345,11 +356,29 @@ function useAwaitingPayment(user: User) {
   return count;
 }
 
+/** How many development projects wait for review (API 0.44.0), for the reviewer roles. Null when unknown. */
+function useDevelopmentsWaiting(user: User) {
+  const [count, setCount] = useState<number | null>(null);
+  const allowed = hasPlatformRole(user, DEVELOPMENT_REVIEW_ROLES);
+  useEffect(() => {
+    if (!allowed) return;
+    let cancelled = false;
+    listDevelopmentQueue({ status: "PENDING_REVIEW" }).then((result) => {
+      if (!cancelled && result.ok) setCount(result.data.total);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [allowed]);
+  return count;
+}
+
 function Home({ user }: { user: User }) {
   const { signOut } = useAuth();
   const router = useRouter();
   const { state, reload } = useApi(getAdminOverview);
   const awaitingPayment = useAwaitingPayment(user);
+  const developmentsWaiting = useDevelopmentsWaiting(user);
 
   return (
     <>
@@ -365,7 +394,7 @@ function Home({ user }: { user: User }) {
         {state.status === "error" && <LoadError failure={state.failure} onRetry={reload} />}
         {state.status === "ready" && (
           <>
-            <Attention data={state.data} awaitingPayment={awaitingPayment} />
+            <Attention data={state.data} awaitingPayment={awaitingPayment} developmentsWaiting={developmentsWaiting} />
             {state.data.sections.length === 0 ? (
               <Card>
                 <h2 className="text-2xl">No figures for your role here</h2>

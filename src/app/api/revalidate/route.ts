@@ -14,8 +14,8 @@ import { revalidateTag } from "next/cache";
  * tags the readers in src/lib/api/server use are accepted. Nothing is read
  * or returned apart from the tags that were marked stale.
  */
-const TAGS = new Set(["reference", "markets", "listings", "directory", "onboarding"]);
-const PREFIXED = /^(listing|profile):[a-z0-9:-]{1,200}$/;
+const TAGS = new Set(["reference", "markets", "listings", "directory", "onboarding", "developments"]);
+const PREFIXED = /^(listing|profile|development):[a-z0-9:-]{1,200}$/;
 
 function authorised(request: Request, secret: string): boolean {
   const given = Buffer.from(request.headers.get("authorization") ?? "");

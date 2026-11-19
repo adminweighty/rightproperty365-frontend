@@ -4,6 +4,8 @@
  * label in the app comes from the API at run time, never from this file.
  */
 
+import type { DevelopmentListItem } from "@/lib/developments";
+
 /**
  * The category of places let by the night. The one category the app knows by
  * code, because behaviour hangs on it: stay dates, guests, the availability
@@ -372,6 +374,11 @@ export type DirectoryProfile = {
 export type DirectoryProfileDetail = DirectoryProfile & {
   agents: ProfileRef[];
   listings: Listing[];
+  /**
+   * A developer's public projects (API 0.44.0), in the shape of
+   * `GET /v1/developments` items. Absent for every other kind and from older API builds.
+   */
+  projects?: DevelopmentListItem[];
 };
 
 export type DirectoryPage = {
@@ -421,7 +428,9 @@ export type ReferenceSetCode =
   | "contact_types"
   | "contact_sources"
   /** Labels for the fixed lead stages of a contact, only if the API has such a set. */
-  | "contact_stages";
+  | "contact_stages"
+  /** API 0.44.0: what a development project may list (clubhouse, borehole water, ...). Missing from older API builds (read as empty). */
+  | "development_amenities";
 
 export type ReferenceSets = Record<ReferenceSetCode, ReferenceItem[]>;
 
@@ -442,6 +451,8 @@ export type Country = {
 export type SitemapEntries = {
   listings: { slug: string; updated_at: string }[];
   profiles: { kind: string; slug: string; updated_at: string }[];
+  /** Public development projects (API 0.44.0). Optional: older API builds do not send it. */
+  developments?: { market: string; slug: string; updated_at: string }[];
 };
 
 /** A value and its label, as passed from Server Components to form controls. */

@@ -8,11 +8,13 @@ import { getCatalogue } from "@/lib/api/server/reference";
 import { LEGAL_INDEX_PATH, legalDocuments } from "@/lib/legal";
 import { pricingPath } from "@/lib/packages";
 import { absoluteUrl, listingPath, profilePath } from "@/lib/seo";
+import { developmentPath, developmentsPath } from "@/lib/developments";
 
 /**
  * Only indexable URLs: home, the curated result pages that have listings
  * (docs/seo.md), the directories, every public listing and profile from
- * GET /v1/sitemap, which returns only published, unexpired listings, the FAQ, the
+ * GET /v1/sitemap, which returns only published, unexpired listings, the
+ * development showcase (/developments and every public project), the FAQ, the
  * listing package pages of countries that have packages, how
  * listing figures are counted and the legal pages.
  * Free-text and filtered searches, result pages 2 and later and private pages
@@ -41,6 +43,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .map((listing) => listing.updated_at)
     .sort()
     .at(-1);
+  const projects = entries.developments ?? [];
+  const newestProject = projects
+    .map((project) => project.updated_at)
+    .sort()
+    .at(-1);
 
   return [
     { url: absoluteUrl("/"), lastModified: newest },
@@ -55,6 +62,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...entries.listings.map((listing) => ({
       url: absoluteUrl(listingPath(listing)),
       lastModified: listing.updated_at,
+    })),
+    // Public development projects (API 0.44.0). The list is indexed only while it has projects (docs/seo.md).
+    ...(projects.length > 0 ? [{ url: absoluteUrl("/developments"), lastModified: newestProject }] : []),
+    ...[...new Set(projects.map((project) => project.market.toUpperCase()))].map((market) => ({
+      url: absoluteUrl(developmentsPath({ market })),
+    })),
+    ...projects.map((project) => ({
+      url: absoluteUrl(developmentPath(project)),
+      lastModified: project.updated_at,
     })),
     { url: absoluteUrl("/faq") },
     // The pricing pages exist only for countries with active packages (docs/seo.md).

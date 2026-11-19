@@ -11,8 +11,13 @@ import type { ContactMethod } from "@/lib/api/property-requests";
  */
 
 export type BusinessEnquiryInput = {
-  /** `kind` is a `directory_kinds` code from the API. */
-  recipient: { kind: string; slug: string };
+  /**
+   * `kind` is a `directory_kinds` code from the API. May be left out with
+   * `development`: the recipient is then the project's developer.
+   */
+  recipient?: { kind: string; slug: string };
+  /** An enquiry about a development project (API 0.44.0), optionally about one of its unit types. */
+  development?: { market: string; slug: string; unit_type_id?: string };
   /** One of the recipient's listed services, when the customer picked one. */
   service?: string;
   message: string;
@@ -35,7 +40,7 @@ export type BusinessEnquiryResult =
   | { ok: false; failure: ApiFailure };
 
 const messages: Record<number, string> = {
-  404: "Enquiries to this profile are not available yet. Please try again later.",
+  404: "Enquiries here are not available at the moment. Please try again later.",
   409: "We already received a different enquiry with this reference. Please try again.",
   410: "This profile is no longer accepting enquiries.",
 };
@@ -50,6 +55,9 @@ export async function submitBusinessEnquiry(input: BusinessEnquiryInput): Promis
   if (result.ok) return { ok: true, receipt: result.data };
 
   const { failure } = result;
+  if (failure.code === "DEVELOPMENT_NOT_FOUND") {
+    return { ok: false, failure: { ...failure, message: "This project is no longer shown on RightProperty365, so it cannot take enquiries." } };
+  }
   return {
     ok: false,
     failure: failure.fields ? failure : { ...failure, message: messages[failure.status] ?? failure.message },

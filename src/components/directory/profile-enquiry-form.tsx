@@ -26,6 +26,13 @@ type Props = {
   services: string[];
   /** The API's `contact_methods` reference set, in display order. */
   contactMethods: Option[];
+  /**
+   * An enquiry about a development project (API 0.44.0) instead of one to the
+   * profile itself: the API sends it to the project's developer.
+   */
+  development?: { market: string; slug: string };
+  /** The project's unit types, for the optional "Which homes?" choice. */
+  unitTypes?: Option[];
 };
 
 // Only an email reply needs no phone number.
@@ -41,13 +48,14 @@ const apiFieldToControl: Record<string, string> = {
   preferred_contact_method: "preferred_contact_method",
   "consent.accepted": "consent",
   consent: "consent",
+  "development.unit_type_id": "unit_type",
 };
 
 /**
  * The only way to contact a directory profile. Ids are prefixed with "enquiry-"
  * so the form can share a page with other forms.
  */
-export function ProfileEnquiryForm({ kind, slug, name, services, contactMethods }: Props) {
+export function ProfileEnquiryForm({ kind, slug, name, services, contactMethods, development, unitTypes = [] }: Props) {
   const { user } = useAuth();
   const [contactMethod, setContactMethod] = useState<ContactMethod>(contactMethods[0]?.value ?? "");
   const phoneRequired = contactMethod !== EMAIL;
@@ -76,8 +84,11 @@ export function ProfileEnquiryForm({ kind, slug, name, services, contactMethods 
     setPending(true);
     setFailure(null);
 
+    const unitTypeId = text("unit_type");
     const result = await submitBusinessEnquiry({
-      recipient: { kind, slug },
+      ...(development
+        ? { development: { market: development.market, slug: development.slug, ...(unitTypeId && { unit_type_id: unitTypeId }) } }
+        : { recipient: { kind, slug } }),
       service: text("service") || undefined,
       message: text("message"),
       preferred_contact_method: contactMethod,
@@ -133,6 +144,19 @@ export function ProfileEnquiryForm({ kind, slug, name, services, contactMethods 
       }}
       className="flex flex-col gap-4"
     >
+      {development && unitTypes.length > 0 && (
+        <Field id="enquiry-unit-type" label="Which homes are you interested in?" optional error={errors.unit_type}>
+          <SearchableSelect
+            id="enquiry-unit-type"
+            name="unit_type"
+            defaultValue=""
+            aria-invalid={Boolean(errors.unit_type)}
+            aria-describedby={fieldDescribedBy("enquiry-unit-type", { error: errors.unit_type })}
+            options={[{ value: "", label: "Any, or not sure yet" }, ...unitTypes]}
+          />
+        </Field>
+      )}
+
       {services.length > 0 && (
         <Field id="enquiry-service" label="What do you need?" optional error={errors.service}>
           <SearchableSelect
@@ -210,7 +234,7 @@ export function ProfileEnquiryForm({ kind, slug, name, services, contactMethods 
       <Field
         id="enquiry-message"
         label="Message"
-        hint="Say what you need, where, and when."
+        hint={development ? "Say what you would like to know: availability, prices, payment plans or a site visit." : "Say what you need, where, and when."}
         error={errors.message}
       >
         <Textarea

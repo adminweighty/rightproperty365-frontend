@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { ProfileAvatar, ProfileGrid, ProfileRefGrid } from "@/components/directory/profile-card";
 import { ProfileEnquiryForm } from "@/components/directory/profile-enquiry-form";
 import { ListingGrid } from "@/components/listings/listing-card";
+import { DevelopmentGrid } from "@/components/developments/development-card";
 import { Reveal } from "@/components/motion/reveal";
 import { Stagger } from "@/components/motion/stagger";
 import { JsonLd } from "@/components/seo/json-ld";
@@ -120,6 +121,8 @@ async function ProfileContent({ params }: Pick<Props, "params">) {
 
   const { profile, kind, catalogue, team, reviews } = loaded.data;
   const { agency, agents, listings } = profile;
+  // A developer’s public projects (API 0.44.0); absent for other kinds.
+  const projects = profile.projects ?? [];
   // The published count and average: on the profile when the API puts it there, else with the reviews.
   const rating = profileSummary(profile) ?? (reviews.state === "ok" ? reviews.page.summary : null);
   const profileId = profile.id ?? null;
@@ -268,6 +271,11 @@ async function ProfileContent({ params }: Pick<Props, "params">) {
                 contactMethods={toOptions(catalogue.sets.contact_methods)}
               />
             </div>
+            {projects.length > 0 && (
+              <ButtonLink href="#projects" variant="secondary" className="mt-4 w-full">
+                See their projects
+              </ButtonLink>
+            )}
             {listings.length > 0 && (
               <ButtonLink href="#listings" variant="secondary" className="mt-4 w-full">
                 See their listings
@@ -301,6 +309,22 @@ async function ProfileContent({ params }: Pick<Props, "params">) {
             ) : (
               <ProfileRefGrid profiles={agents} person />
             )}
+          </div>
+        </section>
+      )}
+
+      {projects.length > 0 && (
+        <section id="projects" aria-labelledby="projects-heading" className="mt-16 scroll-mt-24 border-t border-line pt-12">
+          <Reveal>
+            <h2 id="projects-heading" className="text-2xl md:text-3xl">
+              Projects
+            </h2>
+            <p className="mt-2 max-w-2xl text-muted">
+              {projects.length === 1 ? "1 development" : `${projects.length} developments`} by {profile.name} on RightProperty365.
+            </p>
+          </Reveal>
+          <div className="mt-8">
+            <DevelopmentGrid developments={projects} />
           </div>
         </section>
       )}

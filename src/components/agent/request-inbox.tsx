@@ -354,7 +354,13 @@ function BusinessEnquiries({ contactMethodLabels }: { contactMethodLabels: Label
                 <li key={item.enquiry_id}>
                   <Card>
                     <div className="flex flex-wrap items-center gap-2">
-                      <Badge tone="primary">{item.service ?? "Business enquiry"}</Badge>
+                      <Badge tone="primary">{item.development ? "Development enquiry" : (item.service ?? "Business enquiry")}</Badge>
+                      {item.development && (
+                        <span className="text-sm text-ink">
+                          {item.development.name}
+                          {item.development.unit_type && <span className="text-muted"> · {item.development.unit_type.name}</span>}
+                        </span>
+                      )}
                       <span className="ml-auto text-sm text-muted">{formatWhen(item.created_at)}</span>
                     </div>
                     <h3 className="mt-3 font-sans text-lg font-medium tracking-normal">

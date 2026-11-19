@@ -21,6 +21,7 @@ const columns: { title: string; links: NavItem[] }[] = [
       { href: "/listings?category=commercial", label: "Commercial property" },
       { href: "/listings?category=land", label: "Land and stands" },
       { href: "/listings?category=short-stay", label: "Short stays" },
+      { href: "/developments", label: "New developments" },
       { href: "/listings", label: "All listings" },
     ],
   },

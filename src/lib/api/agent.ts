@@ -50,6 +50,18 @@ export type InboxBusinessEnquiry = {
    * A replied enquiry at least 14 days old lets its customer review the provider.
    */
   replied_at?: string | null;
+  /**
+   * The development project it is about (API 0.44.0), with the unit type the
+   * customer chose. Names are snapshots kept from when it was sent. Null for
+   * any other enquiry; absent from older API builds.
+   */
+  development?: {
+    id: string;
+    market: string;
+    slug: string;
+    name: string;
+    unit_type: { id: string; name: string } | null;
+  } | null;
 };
 
 /** Organisation members only. The API returns just the enquiries the caller may read. */

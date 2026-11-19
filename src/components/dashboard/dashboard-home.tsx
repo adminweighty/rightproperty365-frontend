@@ -484,6 +484,8 @@ function Workspace({ data }: { data: Dashboard }) {
     data.capabilities.receives_requests && { href: "/agent/requests/funnel", label: "Lead conversion" },
     data.capabilities.manages_appointments && { href: "/agent/appointments", label: "Appointments received" },
     data.capabilities.manages_listings && { href: "/agent/listings", label: "Your listings" },
+    // Property developers (API 0.44.0): their estates and projects, with phases, unit types and linked listings.
+    data.organisations.some((organisation) => organisation.kind === "DEVELOPER") && { href: "/agent/developments", label: "Development projects" },
     data.organisations.length > 0 && { href: "/agent/contacts", label: "Contacts" },
     data.organisations.length > 0 && { href: "/agent/books", label: "Books" },
     data.organisations.length > 0 && { href: "/agent/properties", label: "Properties" },

@@ -183,7 +183,7 @@ export const deletePhoto = (id: string, photoId: string) =>
 
 const uploadMessages: Record<number, string> = {
   401: "Please sign in to continue.",
-  403: "You cannot add photos to this listing.",
+  403: "You cannot add photos here.",
   413: "That photo is larger than 15 MB.",
   415: "That file is not a JPEG, PNG or WebP photo.",
   429: "Too many uploads at once. Please wait a minute and try again.",
@@ -194,14 +194,22 @@ const uploadMessages: Record<number, string> = {
  * much of a body has been sent, so this uses XMLHttpRequest for the progress
  * (0 to 1) of each file. Answers like `apiFetch`.
  */
-export function uploadListingPhoto(
-  id: string,
+export const uploadListingPhoto = (id: string, file: File, onProgress: (fraction: number) => void) =>
+  uploadPhotoFile<Envelope>(`${path(id)}/photos`, file, onProgress);
+
+/**
+ * POSTs one photo file to an API path with the session cookie, reporting the
+ * progress of the upload (0 to 1). Shared by listing and development photos.
+ * The malware scanning errors (API 0.41.0) get their plain-words message.
+ */
+export function uploadPhotoFile<T>(
+  apiPath: string,
   file: File,
   onProgress: (fraction: number) => void,
-): Promise<ApiResult<Envelope>> {
+): Promise<ApiResult<T>> {
   return new Promise((resolve) => {
     const request = new XMLHttpRequest();
-    request.open("POST", `${env.apiUrl}${path(id)}/photos`);
+    request.open("POST", `${env.apiUrl}${apiPath}`);
     request.withCredentials = true;
     request.responseType = "text";
     request.upload.onprogress = (event) => {
@@ -225,7 +233,7 @@ export function uploadListingPhoto(
       }
       if (request.status >= 200 && request.status < 300) {
         onProgress(1);
-        resolve({ ok: true, data: payload as Envelope, status: request.status });
+        resolve({ ok: true, data: payload as T, status: request.status });
         return;
       }
       const envelope = payload as {
