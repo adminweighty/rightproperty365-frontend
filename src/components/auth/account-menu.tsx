@@ -254,6 +254,11 @@ export function AccountMenu({ professionals }: { professionals?: NavItem }) {
                         Tenancies
                       </Link>
                     </li>
+                    <li>
+                      <Link href="/agent/maintenance" className={itemClass} onClick={() => setOpen(false)}>
+                        Maintenance
+                      </Link>
+                    </li>
                   </>
                 )}
                 <li>

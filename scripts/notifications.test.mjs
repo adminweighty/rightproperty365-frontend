@@ -69,6 +69,8 @@ test("notificationHref sends API paths with no page here to their list", () => {
   assert.equal(notificationHref("/account/hourly-bookings/3"), "/account/venue-bookings");
   assert.equal(notificationHref("/agent/listings/4"), "/agent/listings/4");
   assert.equal(notificationHref("/account/subscriptions/8"), "/account/subscription");
+  assert.equal(notificationHref("/account/tenancy"), "/account/tenancies");
+  assert.equal(notificationHref("/agent/maintenance/7c1e"), "/agent/maintenance/7c1e");
   assert.equal(notificationHref("/account"), "/account");
   assert.equal(notificationHref("/account/notifications"), "/account/notifications");
   // The lists themselves are left alone, and nothing unsafe gets through.

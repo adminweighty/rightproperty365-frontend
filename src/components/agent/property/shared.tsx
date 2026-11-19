@@ -18,6 +18,7 @@ import type { ApiResult } from "@/lib/api/http";
 import { listLeases } from "@/lib/api/leases";
 import { listProperties } from "@/lib/api/properties";
 import { contactFiltersApiQuery, contactsPath } from "@/lib/contacts";
+import { maintenancePath } from "@/lib/maintenance";
 import { formatLedgerAmount } from "@/lib/ledger";
 import { arrearsHref } from "@/lib/rent";
 import {
@@ -72,13 +73,20 @@ async function loadBooks(userId: string): Promise<ApiResult<DashboardOrganisatio
   return { ok: true, status: 200, data: [personal] };
 }
 
-export type Area = "properties" | "tenancies" | "arrears";
+export type Area = "properties" | "tenancies" | "arrears" | "maintenance";
 
 const arrearsPath = (_path: string, org?: string) => arrearsHref(org);
 
-const areaPath = (area: Area) => (area === "properties" ? propertiesPath : area === "tenancies" ? tenanciesPath : arrearsPath);
+const AREA_PATHS: Record<Area, (path: string, org?: string) => string> = {
+  properties: propertiesPath,
+  tenancies: tenanciesPath,
+  arrears: arrearsPath,
+  maintenance: maintenancePath,
+};
 
-/** "Properties", "Tenancies" and "Arrears" as one row of links, keeping the book. */
+const areaPath = (area: Area) => AREA_PATHS[area];
+
+/** "Properties", "Tenancies", "Arrears" and "Maintenance" as one row of links, keeping the book. */
 export function ManagementNav({ org, current }: { org: string; current: Area }) {
   return (
     <ChipNav
@@ -87,6 +95,7 @@ export function ManagementNav({ org, current }: { org: string; current: Area }) 
         { key: "properties", href: propertiesPath("", org), label: "Properties", current: current === "properties" },
         { key: "tenancies", href: tenanciesPath("", org), label: "Tenancies", current: current === "tenancies" },
         { key: "arrears", href: arrearsHref(org), label: "Arrears", current: current === "arrears" },
+        { key: "maintenance", href: maintenancePath("", org), label: "Maintenance", current: current === "maintenance" },
       ]}
     />
   );
@@ -94,7 +103,7 @@ export function ManagementNav({ org, current }: { org: string; current: Area }) 
 
 type ShellProps = {
   area: Area;
-  /** The page's address after `/agent/properties` or `/agent/tenancies` (none for `/agent/arrears`), for the book picker. */
+  /** The page's address after `/agent/properties`, `/agent/tenancies` or `/agent/maintenance` (none for `/agent/arrears`), for the book picker. */
   path: string;
   title?: string;
   intro?: ReactNode;

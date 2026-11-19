@@ -45,6 +45,8 @@ const PAGE_FOR_API_LINK: { pattern: RegExp; page: string }[] = [
   { pattern: /^\/agent\/venue-bookings\/[^/?#]+\/?$/, page: "/agent/venue-bookings" },
   { pattern: /^\/account\/(hourly-bookings|venue-bookings)(\/[^/?#]+)?\/?$/, page: "/account/venue-bookings" },
   { pattern: /^\/account\/subscriptions?(\/[^/?#]+)?\/?$/, page: "/account/subscription" },
+  // A maintenance notification to a tenant (API 0.36.2) links to their tenancy area.
+  { pattern: /^\/account\/tenancy\/?$/, page: "/account/tenancies" },
 ];
 
 /**

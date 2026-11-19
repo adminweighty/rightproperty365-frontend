@@ -28,18 +28,16 @@ import {
   type Tenancy,
 } from "@/lib/tenancies";
 import { formatDay, LaterSections, Linked, ManagementShell, rentWords, TenancyStatusBadge } from "./shared";
+import { MaintenanceSection } from "./maintenance-section";
 import { RentSection } from "./rent-section";
 import { PartiesCard, TermsCard, TimelineCard } from "./tenancy-view";
 
 /*
- * Rent (part b of the 0.36 contract) is its own section. Parts (c) and (d)
- * add maintenance requests and inspections here; until then they are named
- * in "Coming later", with no figures and no sample rows.
+ * Rent (part b of the 0.36 contract) and maintenance (part c) are their own
+ * sections. Part (d) adds inspections here; until then it is named in
+ * "Coming later", with no figures and no sample rows.
  */
-const LATER = [
-  { key: "maintenance", title: "Maintenance", text: "Repair requests for this property and their progress. Not available yet." },
-  { key: "inspections", title: "Inspections", text: "Move-in, routine and move-out inspections. Not available yet." },
-];
+const LATER = [{ key: "inspections", title: "Inspections", text: "Move-in, routine and move-out inspections. Not available yet." }];
 
 /** `/agent/tenancies/<id>`: parties, terms, the status timeline; activate a draft, end an active tenancy. */
 export function TenancyDetail({ id }: { id: string }) {
@@ -110,6 +108,7 @@ function Detail({ id, organisation }: { id: string; organisation: DashboardOrgan
             </Card>
           )}
           <RentSection org={org} role={organisation.role} tenancy={tenancy} />
+          <MaintenanceSection org={org} role={organisation.role} tenancy={tenancy} />
           <TimelineCard tenancy={tenancy} />
           <LaterSections items={LATER} />
         </div>
