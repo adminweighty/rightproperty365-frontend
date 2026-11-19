@@ -241,7 +241,7 @@ function Details({ user, roleLabels, organisationKindLabels }: Props & { user: U
           Notifications
         </ButtonLink>
         <ButtonLink href="/account/notification-preferences" variant="secondary">
-          Notification preferences
+          Communication preferences
         </ButtonLink>
         <ButtonLink href="/dashboard" variant="secondary">
           Dashboard

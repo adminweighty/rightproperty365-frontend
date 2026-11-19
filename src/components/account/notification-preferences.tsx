@@ -2,6 +2,7 @@
 
 import { Lock } from "lucide-react";
 import { useCallback, useState, type FormEvent, type ReactNode } from "react";
+import { MarketingPreferencesSection } from "@/components/account/marketing-preferences";
 import { RequireAuth } from "@/components/auth/require-auth";
 import { BackLink, EmptyState, LoadError, LoadingBlock } from "@/components/portal/portal-ui";
 import { useApi } from "@/components/portal/use-api";
@@ -125,7 +126,7 @@ function Editor({ saved, onSaved, pushNote }: { saved: NotificationPreference[];
   const optional = draft.filter((item) => !item.essential);
 
   return (
-    <form onSubmit={submit} noValidate className="mt-8">
+    <form onSubmit={submit} noValidate className="mt-4">
       <p id="in-app-note" className="text-sm text-muted">
         In-app notifications are always on: this list is the record of what we told you.
       </p>
@@ -133,9 +134,9 @@ function Editor({ saved, onSaved, pushNote }: { saved: NotificationPreference[];
 
       {optional.length > 0 && (
         <section aria-labelledby="optional-heading" className="mt-8">
-          <h2 id="optional-heading" className="text-2xl">
+          <h3 id="optional-heading" className="text-xl">
             You choose
-          </h2>
+          </h3>
           <div className="mt-4 space-y-3">
             {optional.map((item) => (
               <PreferenceRow key={item.type} item={item} disabled={saving} error={rowErrors[item.type]} onChange={change} />
@@ -146,9 +147,9 @@ function Editor({ saved, onSaved, pushNote }: { saved: NotificationPreference[];
 
       {essential.length > 0 && (
         <section aria-labelledby="essential-heading" className="mt-8">
-          <h2 id="essential-heading" className="text-2xl">
+          <h3 id="essential-heading" className="text-xl">
             Always sent
-          </h2>
+          </h3>
           <p className="mt-1 max-w-2xl text-sm text-muted">
             These are about your account&apos;s security, contracts and invoices, so they cannot be switched off.
           </p>
@@ -194,37 +195,49 @@ function Preferences({ pushNote }: { pushNote: ReactNode }) {
   return (
     <>
       <BackLink href="/account/notifications">Notifications</BackLink>
-      <h1 className="mt-2 text-4xl">Notification preferences</h1>
+      <h1 className="mt-2 text-4xl">Communication preferences</h1>
       <p className="mt-2 max-w-2xl text-muted">
-        Choose how we tell you about each kind of update. Changes apply from the next notification we send.
+        Choose whether we send you marketing, and how we tell you about each kind of update.
       </p>
 
-      {state.status === "loading" && (
-        <div className="mt-8">
-          <NotificationPreferencesSkeleton />
-        </div>
-      )}
-      {state.status === "error" && (
-        <div className="mt-8">
-          <LoadError failure={state.failure} onRetry={reload} />
-        </div>
-      )}
-      {state.status === "ready" &&
-        (state.data.length === 0 ? (
+      <MarketingPreferencesSection />
+
+      <section aria-labelledby="notifications-heading" className="mt-12">
+        <h2 id="notifications-heading" className="text-2xl">
+          Notifications
+        </h2>
+        <p className="mt-2 max-w-2xl text-muted">
+          How we tell you about each kind of update. Changes apply from the next notification we send.
+        </p>
+
+        {state.status === "loading" && (
           <div className="mt-8">
-            <EmptyState title="There are no notification settings for your account yet" />
+            <NotificationPreferencesSkeleton />
           </div>
-        ) : (
-          // The draft starts from this answer; a save hands the saved list back with `replace`.
-          <Editor saved={state.data} onSaved={replace} pushNote={pushNote} />
-        ))}
+        )}
+        {state.status === "error" && (
+          <div className="mt-8">
+            <LoadError failure={state.failure} onRetry={reload} />
+          </div>
+        )}
+        {state.status === "ready" &&
+          (state.data.length === 0 ? (
+            <div className="mt-8">
+              <EmptyState title="There are no notification settings for your account yet" />
+            </div>
+          ) : (
+            // The draft starts from this answer; a save hands the saved list back with `replace`.
+            <Editor saved={state.data} onSaved={replace} pushNote={pushNote} />
+          ))}
+      </section>
     </>
   );
 }
 
 /**
- * `/account/notification-preferences`: Email and Push for each kind of
- * notification, In-app always on, essential kinds locked on with the reason.
+ * `/account/notification-preferences` ("Communication preferences"): the
+ * Marketing section, then Email and Push for each kind of notification,
+ * In-app always on, essential kinds locked on with the reason.
  * `pushNote` is rendered by the server page (it holds the app store links).
  */
 export function NotificationPreferences({ pushNote }: { pushNote: ReactNode }) {

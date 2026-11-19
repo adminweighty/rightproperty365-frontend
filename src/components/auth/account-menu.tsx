@@ -165,7 +165,7 @@ export function AccountMenu({ professionals }: { professionals?: NavItem }) {
                 </li>
                 <li>
                   <Link href="/account/notification-preferences" className={itemClass} onClick={() => setOpen(false)}>
-                    Notification preferences
+                    Communication preferences
                   </Link>
                 </li>
                 <li>
