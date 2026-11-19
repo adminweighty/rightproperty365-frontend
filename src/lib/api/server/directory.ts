@@ -73,3 +73,24 @@ export async function getDirectoryProfile(
   );
   return status === 200 ? data.profile : null;
 }
+
+/** Published reviews shown with the cached page: the first page. Later pages are read in the browser. */
+export const PROFILE_REVIEWS_PAGE_SIZE = 10;
+
+/**
+ * The first page of a profile's published reviews with their replies, and
+ * the published count and average (API 0.36.4). Raw: read with
+ * `normaliseReviewPage`. Null when the profile has no reviews route (a kind
+ * that cannot be reviewed, or an older API).
+ */
+export async function getProfileReviews(kind: string, slug: string): Promise<unknown | null> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("directory", `profile:${kind}:${slug}`, `reviews:${kind}:${slug}`);
+  if (!SLUG.test(kind) || !SLUG.test(slug) || slug.length > 80) return null;
+  const { status, data } = await apiGet<unknown>(
+    `/v1/directory/${kind}/${slug}/reviews${queryString({ page: 1, page_size: PROFILE_REVIEWS_PAGE_SIZE })}`,
+    [400, 404],
+  );
+  return status === 200 ? data : null;
+}

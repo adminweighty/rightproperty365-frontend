@@ -13,7 +13,10 @@ import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
 import { ErrorState } from "@/components/ui/error-state";
-import { getDirectoryKinds, getDirectoryList, getDirectoryProfile } from "@/lib/api/server/directory";
+import { getDirectoryKinds, getDirectoryList, getDirectoryProfile, getProfileReviews } from "@/lib/api/server/directory";
+import { ProfileReviews } from "@/components/reviews/profile-reviews";
+import { RatingSummaryLine } from "@/components/reviews/stars";
+import { normaliseReviewPage, profileSummary, type ReviewPage } from "@/lib/reviews";
 import { getSitemapEntries } from "@/lib/api/server/listings";
 import { load, readAtBuild } from "@/lib/api/server/load";
 import { getCatalogue } from "@/lib/api/server/reference";
@@ -57,7 +60,23 @@ async function readProfile(kindCode: string, slug: string) {
     .map((agent) => directory.find((item) => item.kind === agent.kind && item.slug === agent.slug))
     .filter((item) => item !== undefined);
 
-  return { profile, kind, catalogue, team };
+  const reviews = await readReviews(profile.kind, profile.slug);
+  return { profile, kind, catalogue, team, reviews };
+}
+
+/**
+ * The first page of published reviews. "none": the profile cannot be
+ * reviewed (no reviews route); "failed": the API did not answer, so the
+ * section shows its error state and the profile itself still loads.
+ */
+async function readReviews(kind: string, slug: string): Promise<{ state: "ok"; page: ReviewPage } | { state: "none" | "failed" }> {
+  try {
+    const raw = await getProfileReviews(kind, slug);
+    return raw === null ? { state: "none" } : { state: "ok", page: normaliseReviewPage(raw) };
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : error);
+    return { state: "failed" };
+  }
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -99,12 +118,15 @@ async function ProfileContent({ params }: Pick<Props, "params">) {
   }
   if (!loaded.data) notFound();
 
-  const { profile, kind, catalogue, team } = loaded.data;
+  const { profile, kind, catalogue, team, reviews } = loaded.data;
   const { agency, agents, listings } = profile;
+  // The published count and average: on the profile when the API puts it there, else with the reviews.
+  const rating = profileSummary(profile) ?? (reviews.state === "ok" ? reviews.page.summary : null);
+  const profileId = profile.id ?? null;
 
   return (
     <>
-      <JsonLd data={profileJsonLd(profile, kind)} />
+      <JsonLd data={profileJsonLd(profile, kind, rating)} />
       <nav aria-label="Breadcrumb">
         <ol className="flex flex-wrap items-center gap-1.5 text-sm text-muted">
           <li>
@@ -151,6 +173,9 @@ async function ProfileContent({ params }: Pick<Props, "params">) {
               {profile.sponsored && <Badge tone="accent">Sponsored</Badge>}
             </div>
             <h1 className="mt-2 text-3xl md:text-4xl">{profile.name}</h1>
+            {rating && rating.count >= 1 && (
+              <RatingSummaryLine average={rating.average} count={rating.count} href="#reviews" className="mt-1" />
+            )}
             <p className="mt-1 text-muted">
               {profile.role || profile.trade?.label || kind.singular_label}
               {agency && (
@@ -251,6 +276,17 @@ async function ProfileContent({ params }: Pick<Props, "params">) {
           </Card>
         </Reveal>
       </div>
+
+      {/* Only service providers are reviewed (those with a trade); other kinds answer an empty list, which is not shown. */}
+      {reviews.state !== "none" && (profile.trade || (rating?.count ?? 0) > 0 || (reviews.state === "ok" && reviews.page.total > 0)) && (
+        <ProfileReviews
+          kind={profile.kind}
+          slug={profile.slug}
+          profileName={profile.name}
+          profileId={profileId}
+          initial={reviews.state === "ok" ? { ...reviews.page, summary: reviews.page.summary ?? rating } : null}
+        />
+      )}
 
       {agents.length > 0 && (
         <section aria-labelledby="team-heading" className="mt-16 border-t border-line pt-12">

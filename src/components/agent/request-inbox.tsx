@@ -14,7 +14,7 @@ import { Card } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/field";
 import { Pagination } from "@/components/ui/pagination";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { listAgentPropertyRequests, listBusinessEnquiries, type AgentPropertyRequest } from "@/lib/api/agent";
+import { listAgentPropertyRequests, listBusinessEnquiries, markBusinessEnquiryReplied, type AgentPropertyRequest, type InboxBusinessEnquiry } from "@/lib/api/agent";
 import { getInboxSummary } from "@/lib/api/appointments";
 import { canManageTeam, canUseInbox, isProfessional } from "@/lib/api/auth";
 import { formatStay, guestCount } from "@/lib/nights";
@@ -281,6 +281,50 @@ function PropertyRequests({ typeLabels, inTeam }: { typeLabels: Labels; inTeam: 
   );
 }
 
+/**
+ * "Mark as replied" on a business enquiry (API 0.36.4). The reply goes by
+ * email, phone or WhatsApp; marking it lets the customer review the provider
+ * 14 days after the enquiry. Once marked, it says when.
+ */
+function RepliedMark({ item }: { item: InboxBusinessEnquiry }) {
+  const [repliedAt, setRepliedAt] = useState<string | null>(item.replied_at ?? null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  if (repliedAt) {
+    return (
+      <p className="text-sm text-muted">
+        <Badge tone="success">Replied</Badge> <span className="ml-1">Marked {formatWhen(repliedAt)}</span>
+      </p>
+    );
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <Button
+        variant="secondary"
+        disabled={busy}
+        aria-busy={busy || undefined}
+        onClick={async () => {
+          setBusy(true);
+          setError(null);
+          const answer = await markBusinessEnquiryReplied(item.enquiry_id);
+          setBusy(false);
+          if (answer.ok) setRepliedAt(answer.data.item?.replied_at ?? new Date().toISOString());
+          else setError(answer.failure.message);
+        }}
+      >
+        {busy ? "Saving…" : "Mark as replied"}
+        <span className="sr-only">: {item.reference}</span>
+      </Button>
+      <span className="text-sm text-muted">Once you have answered {item.contact.name}. They can then review you after 14 days.</span>
+      {error && (
+        <p role="alert" className="w-full text-sm text-danger">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
 /** Enquiries sent from a public profile. Not paged by the API. */
 function BusinessEnquiries({ contactMethodLabels }: { contactMethodLabels: Labels }) {
   const { state: loaded, reload } = useApi(listBusinessEnquiries);
@@ -333,6 +377,9 @@ function BusinessEnquiries({ contactMethodLabels }: { contactMethodLabels: Label
                         Prefers {(contactMethodLabels[item.preferred_contact_method] ?? item.preferred_contact_method).toLowerCase()}
                       </span>
                       <span className="font-mono text-xs text-subtle sm:ml-auto">{item.reference}</span>
+                    </div>
+                    <div className="mt-4 border-t border-line pt-4">
+                      <RepliedMark item={item} />
                     </div>
                     <CreateContactButton requestId={item.enquiry_id} name={item.contact.name} className="mt-4 border-t border-line pt-4" />
                   </Card>

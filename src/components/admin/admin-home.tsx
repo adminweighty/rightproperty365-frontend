@@ -20,6 +20,7 @@ import {
   platformRoleLabels,
   REFERENCE_ROLES,
   REPORT_ROLES,
+  REVIEW_MODERATION_ROLES,
   ANALYTICS_ROLES,
   SIGNING_OVERSIGHT_ROLES,
   SUBSCRIPTION_READ_ROLES,
@@ -286,6 +287,7 @@ const TOOLS: { href: string; label: string; text: string; roles: readonly Platfo
   { href: "/admin/reference", label: "Reference data", text: "Property types, features, places and the other lists.", roles: REFERENCE_ROLES },
   { href: "/admin/reports", label: "Reports", text: "Figures over a range of days, and spreadsheet downloads.", roles: REPORT_ROLES },
   { href: "/admin/analytics", label: "Analytics", text: "Listing views, enquiries and top listings, by country.", roles: ANALYTICS_ROLES },
+  { href: "/admin/reviews", label: "Reviews", text: "Check reviews of service providers, and the reported ones.", roles: REVIEW_MODERATION_ROLES },
   { href: "/admin/audit", label: "Audit log", text: "Every change administrators made here.", roles: AUDIT_ROLES },
 ];
 

@@ -488,6 +488,7 @@ function Workspace({ data }: { data: Dashboard }) {
     data.organisations.length > 0 && { href: "/agent/tenancies", label: "Tenancies" },
     data.organisations.length > 0 && { href: "/agent/maintenance", label: "Maintenance" },
     data.organisations.length > 0 && { href: "/agent/inspections", label: "Inspections" },
+    data.organisations.length > 0 && { href: "/agent/reviews", label: "Reviews" },
     leases && {
       href: "/agent/leases",
       label: "Leases",
@@ -506,6 +507,7 @@ function Workspace({ data }: { data: Dashboard }) {
     { href: "/account/signing", label: "Documents to sign", count: toSign, countLabel: "waiting for your signature" },
     (data.capabilities.sees_team || data.organisations.some(managesTeam)) && { href: "/agent/team", label: "Your team" },
     { href: "/account/saved", label: "Saved properties" },
+    { href: "/account/reviews", label: "Your reviews" },
     { href: "/account/subscription", label: "Subscription" },
     { href: "/account", label: "Your account and roles" },
   ] as (WorkspaceLink | false)[]).filter((link): link is WorkspaceLink => Boolean(link));

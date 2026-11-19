@@ -18,6 +18,7 @@ import { logoUrl } from "@/lib/logos";
 import { formatBbox, parseBbox } from "@/lib/map";
 import { isNight } from "@/lib/nights";
 import { coverPhoto } from "@/lib/photos";
+import { aggregateRatingJsonLd, type RatingSummary } from "@/lib/reviews";
 import { joinPlaces, shortPlace } from "@/lib/places";
 
 /**
@@ -719,8 +720,14 @@ const DEFAULT_ENTITY_TYPE = "Organization";
 
 export const profileEntityType = (kindCode: string) => profileEntityTypes[kindCode] ?? DEFAULT_ENTITY_TYPE;
 
-export function profileJsonLd(profile: DirectoryProfile, kind: DirectoryKindInfo): JsonLd {
+/**
+ * `rating`: the published reviews' count and average (API 0.36.4). An
+ * `AggregateRating` is added only with at least one published review, and
+ * only to a business: schema.org gives a `Person` no rating.
+ */
+export function profileJsonLd(profile: DirectoryProfile, kind: DirectoryKindInfo, rating?: RatingSummary | null): JsonLd {
   const url = absoluteUrl(profilePath(profile));
+  const aggregateRating = profileEntityType(profile.kind) === "Person" ? null : aggregateRatingJsonLd(rating);
   const common = {
     "@id": url,
     url,
@@ -757,6 +764,7 @@ export function profileJsonLd(profile: DirectoryProfile, kind: DirectoryKindInfo
           ...(profile.country && { addressCountry: profile.country.code }),
         },
         ...(profile.since && { foundingDate: String(profile.since) }),
+        ...(aggregateRating && { aggregateRating }),
       };
 
   return {

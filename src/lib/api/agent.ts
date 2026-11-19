@@ -45,11 +45,24 @@ export type InboxBusinessEnquiry = {
   contact: { name: string; email: string; phone?: string | null };
   status: string;
   created_at: string;
+  /**
+   * When the recipient marked it as replied to (API 0.36.4); null until then.
+   * A replied enquiry at least 14 days old lets its customer review the provider.
+   */
+  replied_at?: string | null;
 };
 
 /** Organisation members only. The API returns just the enquiries the caller may read. */
 export const listBusinessEnquiries = () =>
   apiFetch<{ items: InboxBusinessEnquiry[] }>("/v1/inbox/business-enquiries");
+
+/**
+ * Records that the enquiry was answered (by email, phone or WhatsApp: the
+ * reply itself is not sent through the site). Idempotent: the first time is
+ * kept. Answers `{item}`.
+ */
+export const markBusinessEnquiryReplied = (id: string) =>
+  apiFetch<{ item: InboxBusinessEnquiry }>(`/v1/inbox/business-enquiries/${encodeURIComponent(id)}/replied`, { method: "POST" });
 
 /** The lead stages in pipeline order; their wording comes from the API. */
 export type LeadStage =

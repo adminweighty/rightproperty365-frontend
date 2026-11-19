@@ -6,7 +6,9 @@ import { LogoMark } from "@/components/ui/logo-mark";
 import type { DirectoryProfile, Logo, ProfileRef } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
 import { profilePlace } from "@/lib/places";
+import { profileSummary } from "@/lib/reviews";
 import { profilePath } from "@/lib/seo";
+import { RatingSummaryLine } from "@/components/reviews/stars";
 
 type AvatarProps = {
   name: string;
@@ -29,6 +31,8 @@ const cardLink =
 
 /** One directory entry. The whole card is a single link, like ListingCard. */
 export function ProfileCard({ profile }: { profile: DirectoryProfile }) {
+  // The published reviews' average and count (API 0.36.4), only with at least one.
+  const rating = profileSummary(profile);
   return (
     <article
       className={cn(
@@ -59,6 +63,7 @@ export function ProfileCard({ profile }: { profile: DirectoryProfile }) {
         </div>
       </div>
 
+      {rating && rating.count >= 1 && <RatingSummaryLine average={rating.average} count={rating.count} size="sm" className="mt-3" />}
       <p className="mt-4 text-sm leading-relaxed text-muted">{profile.tagline}</p>
 
       <div className="mt-auto flex flex-wrap items-center gap-2 pt-4">

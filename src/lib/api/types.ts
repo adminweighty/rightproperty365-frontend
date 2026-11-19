@@ -332,6 +332,8 @@ export type DirectoryKindInfo = {
 export type DirectoryKindCount = DirectoryKindInfo & { count: number };
 
 export type DirectoryProfile = {
+  /** The profile's id, when the API sends it (reviews name the profile by it). */
+  id?: string | null;
   kind: string;
   slug: string;
   name: string;
@@ -357,6 +359,13 @@ export type DirectoryProfile = {
   /** Agent profiles only: the agency they work for. */
   agency: ProfileRef | null;
   listing_count: number;
+  /**
+   * The published reviews (API 0.36.4): the average with one decimal as a
+   * string ("4.5", null when there is none) and the count. Only service
+   * providers are reviewed; every other profile has `{null, 0}`. Read it
+   * with `profileSummary` in `lib/reviews.ts`.
+   */
+  rating?: { average: string | null; count: number };
   updated_at: string;
 };
 

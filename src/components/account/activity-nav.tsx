@@ -5,7 +5,7 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { ChipNav } from "@/components/portal/portal-ui";
 import { listMyTenancies } from "@/lib/api/properties";
 
-export type ActivityTab = "requests" | "appointments" | "venue-bookings" | "applications" | "saved" | "tenancies";
+export type ActivityTab = "requests" | "appointments" | "venue-bookings" | "applications" | "saved" | "reviews" | "tenancies";
 
 const TABS: { key: ActivityTab; href: string; label: string }[] = [
   { key: "requests", href: "/account/requests", label: "Requests" },
@@ -13,6 +13,7 @@ const TABS: { key: ActivityTab; href: string; label: string }[] = [
   { key: "venue-bookings", href: "/account/venue-bookings", label: "Hourly bookings" },
   { key: "applications", href: "/account/applications", label: "Applications" },
   { key: "saved", href: "/account/saved", label: "Saved" },
+  { key: "reviews", href: "/account/reviews", label: "Reviews" },
 ];
 
 const TENANCY_TAB = { key: "tenancies" as const, href: "/account/tenancies", label: "My tenancy" };

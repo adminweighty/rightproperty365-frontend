@@ -14,6 +14,7 @@ import {
   hasPlatformRole,
   isProfessional,
   LEASE_TEMPLATE_ROLES,
+  REVIEW_MODERATION_ROLES,
   SIGNING_OVERSIGHT_ROLES,
 } from "@/lib/api/auth";
 
@@ -112,6 +113,13 @@ export function AccountMenu({ professionals }: { professionals?: NavItem }) {
                     Listing reviews
                   </Link>
                 </li>
+                {hasPlatformRole(user, REVIEW_MODERATION_ROLES) && (
+                  <li>
+                    <Link href="/admin/reviews" className={itemClass} onClick={() => setOpen(false)}>
+                      Provider reviews
+                    </Link>
+                  </li>
+                )}
                 {hasPlatformRole(user, LEASE_TEMPLATE_ROLES) && (
                   <li>
                     <Link href="/admin/lease-templates" className={itemClass} onClick={() => setOpen(false)}>
@@ -183,6 +191,11 @@ export function AccountMenu({ professionals }: { professionals?: NavItem }) {
                 <li>
                   <Link href="/account/saved" className={itemClass} onClick={() => setOpen(false)}>
                     Saved properties
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/account/reviews" className={itemClass} onClick={() => setOpen(false)}>
+                    Your reviews
                   </Link>
                 </li>
                 <li>
@@ -262,6 +275,11 @@ export function AccountMenu({ professionals }: { professionals?: NavItem }) {
                     <li>
                       <Link href="/agent/inspections" className={itemClass} onClick={() => setOpen(false)}>
                         Inspections
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="/agent/reviews" className={itemClass} onClick={() => setOpen(false)}>
+                        Reviews of your business
                       </Link>
                     </li>
                   </>

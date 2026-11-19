@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useState, type FormEvent } from "react";
 import { todayLocal } from "@/components/agent/books/shared";
 import { ErrorSummary } from "@/components/agent/property/form-bits";
+import { ReviewComposer } from "@/components/reviews/write-review";
 import { Linked, ManagementShell } from "@/components/agent/property/shared";
 import { EmptyState, formatWhen, LoadError, LoadingBlock } from "@/components/portal/portal-ui";
 import { useApi } from "@/components/portal/use-api";
@@ -167,6 +168,26 @@ function Detail({ id, organisation }: { id: string; organisation: DashboardOrgan
         <div className="grid min-w-0 content-start gap-6">
           {actions.moves.length > 0 && <StatusCard key={request.status} org={org} request={request} moves={actions.moves} onChanged={replace} onStale={reload} />}
           <AssignCard org={org} request={request} canAssign={actions.assign} onChanged={replace} />
+          {(request.status === "RESOLVED" || request.status === "CLOSED") && request.assignment && (request.assignment.provider.id || request.assignment.provider.slug) && organisation.role !== "STAFF" && (
+            <Card>
+              <h2 className={sectionHeading}>Review the provider</h2>
+              <p className="mt-1 mb-3 text-sm text-muted">
+                The work is finished. Tell other landlords and agents how {request.assignment.provider.name} did; the review shows{" "}
+                {organisation.name}&rsquo;s name.
+              </p>
+              <ReviewComposer
+                who={{ as: "org", orgId: org }}
+                profile={
+                  request.assignment.provider.id
+                    ? { id: request.assignment.provider.id }
+                    : { kind: request.assignment.provider.kind ?? "", slug: request.assignment.provider.slug ?? "" }
+                }
+                basisId={request.id}
+                providerName={request.assignment.provider.name}
+                explain
+              />
+            </Card>
+          )}
           <CostsCard org={org} request={request} options={options} canAdd={actions.addCost} onChanged={replace} />
           {actions.moves.length === 0 && !actions.assign && !actions.addCost && (
             <p className="text-sm text-muted">
