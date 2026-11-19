@@ -39,6 +39,10 @@ Open http://localhost:3000. Start the backend API on http://localhost:8080 as we
 | `NEXT_PUBLIC_MAP_TILE_URL` | build time | Raster tile URL template for the maps (Leaflet), such as `https://tiles.example.com/{z}/{x}/{y}.png`; https only. Unset: OpenStreetMap's public tiles in development and on a test site, and **no map at all on production** (the Map view, the listing page map and the editor map are left out; every list works as before). OpenStreetMap's tiles must not carry production traffic, so production needs a paid or self-hosted tile source. See "Maps". |
 | `NEXT_PUBLIC_MAP_ATTRIBUTION` | build time | The credit the tile provider requires, shown on every map (HTML allowed, such as a link). Defaults to "© OpenStreetMap contributors" for OpenStreetMap's tiles. |
 | `REVALIDATE_SECRET` | run time, server only | Turns on `POST /api/revalidate` and is the bearer token it requires. Unset by default, which leaves the route off (404). See "Onboarding and verification". |
+| `ANDROID_APP_SHA256_FINGERPRINTS` | run time, server only | Comma-separated SHA-256 fingerprints (`AB:CD:…`, 32 colon-separated hex bytes) of the Android app's signing certificate: Play Console's "App signing key certificate", plus the upload or debug key only if those builds should open links too. Builds `/.well-known/assetlinks.json`, which answers 404 while this is unset or invalid. See "Mobile app links". |
+| `ANDROID_APP_PACKAGE` | run time, server only | Android package name for `assetlinks.json`. Optional; defaults to `com.rightproperty365.rightproperty365`. |
+| `APPLE_TEAM_ID` | run time, server only | Apple Developer Team ID (10 letters and digits). Builds `/.well-known/apple-app-site-association`, which answers 404 while this is unset or invalid. See "Mobile app links". |
+| `IOS_BUNDLE_ID` | run time, server only | iOS bundle id for `apple-app-site-association`. Optional; defaults to `com.rightproperty365.rightproperty365`. |
 
 ## Data from the API
 
@@ -225,6 +229,8 @@ src/lib/
 **They are working documents written from what the product does. They are not legal advice and must be reviewed by a qualified lawyer before the live launch.** Several values in `src/lib/legal.ts` are assumptions marked `CONFIRM`. `docs/legal.md` lists them and what needs sign-off.
 
 ## Mobile app links
+
+**Opening links in the app (BR-016).** `/.well-known/assetlinks.json` (Android) and `/.well-known/apple-app-site-association` (iOS) tell the phones which app may open links to `/listings/*`, `/directory/*`, `/apply/*`, `/sign/*`, `/invitations/*`, `/account/*`, `/agent/*`, `/verify-email` and `/reset-password`. They are built on each request from `ANDROID_APP_SHA256_FINGERPRINTS` and `APPLE_TEAM_ID` (see "Environment variables") and answer 404 until those are set, so nothing is claimed by default. Both hosts, `rightproperty365.com` and `www.rightproperty365.com`, must serve them over HTTPS with no redirect. Details are in `docs/seo.md` ("Mobile app link files").
 
 The footer ("Get the app") and the FAQ link to the Apple App Store, Google Play and Huawei AppGallery. The three addresses are in `src/lib/app-links.ts`. **They are placeholders today**: each points at the store's home page and is flagged `placeholder: true`, and the site says the apps are being prepared for the stores. **At launch, set each `url` to the app's store page and `placeholder` to `false`.**
 

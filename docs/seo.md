@@ -129,6 +129,16 @@ Titles, headings, canonicals and structured data are built from what the API ret
 - Sponsored profiles are labelled "Sponsored" wherever they appear and are sorted first; the label is part of the page, not hidden from crawlers.
 - Listing photos are real `<img>` elements through `next/image`, with the alt text the API returns and fixed aspect ratios (no layout shift).
 
+## Mobile app link files
+
+Two special routes are not pages and are not in the sitemap or `robots.txt`. They let the mobile app open links to the site (BR-016): `/.well-known/assetlinks.json` (Android App Links) and `/.well-known/apple-app-site-association` (iOS Universal Links, no extension). The code is `src/lib/mobile-app-associations.ts` and the route handlers under `src/app/.well-known/`; the env vars are in the README ("Environment variables").
+
+- Both answer `application/json` with `Cache-Control: public, max-age=3600`, on every host the server answers for, with no redirect: there is no proxy (middleware), no `trailingSlash` or locale redirects, and no host redirect in `next.config.ts`. A host redirect in front of the site (apex to `www`, say) must leave `/.well-known/` alone on both `rightproperty365.com` and `www.rightproperty365.com`, because neither Google nor Apple follows redirects for these files.
+- They are read from the environment on each request (`connection()`), never prerendered, so setting a value in the deployment takes effect on restart without a rebuild.
+- **Until a value is set, the file answers 404** (`no-store`), so the site claims nothing for the app. A 404 is what both verifiers expect from a site without an association; an empty `[]` would be a valid Android statement list that grants nothing, hiding the missing setting behind a 200. An invalid value (a malformed fingerprint, a Team ID that is not 10 letters and digits) is treated as unset.
+- The claimed paths are `/verify-email`, `/reset-password`, `/listings/*`, `/directory/*`, `/apply/*`, `/sign/*`, `/invitations/*`, `/account/*` and `/agent/*`, matching the app's entitlements and manifest. Change them together with the mobile app. There is no `webcredentials` section.
+- Only the `/.well-known/` address is served for Apple. Apple's CDN, which fetches the file for iOS 14 and later, does not read `/apple-app-site-association` at the root.
+
 ## Known gaps
 
 - **Unknown listings return HTTP 200 with `noindex`, not 404.** With Cache Components the response starts before the listing is looked up (still true now that the page has no `<Suspense>`: checked on 14 November 2026). Google treats this as a soft 404, which is acceptable; a real 404 needs a slug check in a proxy before the response starts.
