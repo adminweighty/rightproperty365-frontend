@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
+import { hasOnlinePayments, PaymentHistory, PayOnline } from "@/components/account/online-payment";
 import type { Notice } from "@/components/agent/team/shared";
 import { RequireAuth } from "@/components/auth/require-auth";
 import { BackLink, EmptyState, formatWhen, LoadError, LoadingBlock } from "@/components/portal/portal-ui";
@@ -37,6 +38,7 @@ import {
   periodLabel,
   subscriptionStatus,
 } from "@/lib/subscriptions";
+import { canPayOnline } from "@/lib/online-payment";
 
 type CountryOption = { value: string; label: string };
 
@@ -89,7 +91,8 @@ function Facts({ items }: { items: [string, string][] }) {
 }
 
 /** The invoice of a request waiting for payment, and how to pay it. */
-function InvoiceDetails({ subscription }: { subscription: Subscription }) {
+function InvoiceDetails({ subscription, onReload }: { subscription: Subscription; onReload: () => void }) {
+  const online = canPayOnline(subscription);
   return (
     <>
       <Facts
@@ -103,9 +106,12 @@ function InvoiceDetails({ subscription }: { subscription: Subscription }) {
       {subscription.payment_instructions && (
         <p className="mt-4 whitespace-pre-line rounded-md bg-sunken p-3 text-sm text-ink">{subscription.payment_instructions}</p>
       )}
+      {online && <PayOnline subscription={subscription} onStale={onReload} className="mt-4" />}
       <p className="mt-3 text-sm leading-relaxed text-muted">
-        {PAY_WORDS} Pay only into the account named on an invoice we sent you. Nothing is charged automatically.
+        {online ? "Or pay by bank transfer or the method on the invoice, quoting the invoice number. We activate it when your payment arrives." : PAY_WORDS}{" "}
+        Pay only into the account named on an invoice we sent you. Nothing is charged automatically.
       </p>
+      {hasOnlinePayments(subscription) && <PaymentHistory key={subscription.updated_at} subscription={subscription} />}
     </>
   );
 }
@@ -422,6 +428,9 @@ function Subscriber({
               {created.subscription.payment_instructions && <p className="mt-1 whitespace-pre-line">{created.subscription.payment_instructions}</p>}
               {created.note && <p className="mt-1">{created.note}</p>}
               <p className="mt-1">{PAY_WORDS}</p>
+              {canPayOnline(created.subscription) && (
+                <PayOnline subscription={created.subscription} label="Pay this invoice online" onStale={onReload} className="mt-3" />
+              )}
             </Alert>
           )}
           {notice && <Alert tone={notice.tone} title={notice.text} traceId={notice.traceId} className="mt-4" />}
@@ -442,6 +451,7 @@ function Subscriber({
                 ["Invoice number", current.invoice_number],
               ]}
             />
+            {hasOnlinePayments(current) && <PaymentHistory key={current.updated_at} subscription={current} />}
           </div>
         ) : (
           <p className="mt-2 text-muted">No subscription is in force.</p>
@@ -470,7 +480,7 @@ function Subscriber({
             <h3 className="flex flex-wrap items-center gap-2 font-sans text-base font-semibold tracking-normal">
               Waiting for your payment <StatusBadge subscription={pending} />
             </h3>
-            <InvoiceDetails subscription={pending} />
+            <InvoiceDetails subscription={pending} onReload={onReload} />
             <Button
               variant="secondary"
               className="mt-4"
@@ -603,14 +613,16 @@ function Subscriber({
 function Body({ countries }: { countries: CountryOption[] }) {
   const { state, reload } = useApi(listMySubscriptions);
   const data = state.status === "ready" ? state.data : state.status === "loading" ? state.previous : undefined;
+  const online = Boolean(data?.subscribers.some((entry) => canPayOnline(entry.pending)));
 
   return (
     <>
       <BackLink href="/account">Your account</BackLink>
       <h1 className="mt-1 text-4xl">Subscription</h1>
       <p className="mt-2 max-w-2xl leading-relaxed text-muted">
-        Plans for people who list or manage property. Each period is invoiced and paid outside the site, by bank transfer or the
-        method on the invoice. We activate it when your payment arrives. Nothing is charged automatically. See the{" "}
+        {online
+          ? "Plans for people who list or manage property. Each period is invoiced. Pay it online, or by bank transfer or the method on the invoice. It activates once the payment is confirmed. Nothing is charged automatically. See the "
+          : "Plans for people who list or manage property. Each period is invoiced and paid outside the site, by bank transfer or the method on the invoice. We activate it when your payment arrives. Nothing is charged automatically. See the "}
         <Link href="/legal/refund-policy" className="font-medium text-primary-ink hover:underline">
           Refund Policy
         </Link>

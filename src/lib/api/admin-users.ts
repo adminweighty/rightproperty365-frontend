@@ -37,6 +37,13 @@ export type AuditAction =
   | "SUBSCRIPTION_APPROVED"
   | "SUBSCRIPTION_REJECTED"
   | "SUBSCRIPTION_CANCELLED"
+  // Online payment (API 0.42.0); the target is the subscription.
+  | "PAYMENT_CHECKOUT_CREATED"
+  | "PAYMENT_CONFIRMED"
+  | "PAYMENT_FAILED"
+  | "PAYMENT_FLAGGED"
+  | "PAYMENT_REFUND_REQUESTED"
+  | "PAYMENT_REFUNDED"
   | "REFERENCE_ITEM_CREATED"
   | "REFERENCE_ITEM_UPDATED"
   | "REFERENCE_ITEM_DEACTIVATED"
@@ -172,6 +179,12 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   SUBSCRIPTION_APPROVED: "Payment recorded and subscription activated",
   SUBSCRIPTION_REJECTED: "Subscription request rejected",
   SUBSCRIPTION_CANCELLED: "Subscription cancelled",
+  PAYMENT_CHECKOUT_CREATED: "Online payment started",
+  PAYMENT_CONFIRMED: "Online payment confirmed",
+  PAYMENT_FAILED: "Online payment failed",
+  PAYMENT_FLAGGED: "Online payment flagged for review",
+  PAYMENT_REFUND_REQUESTED: "Refund requested",
+  PAYMENT_REFUNDED: "Refund paid",
   REFERENCE_ITEM_CREATED: "Reference row added",
   REFERENCE_ITEM_UPDATED: "Reference row changed",
   REFERENCE_ITEM_DEACTIVATED: "Reference row deactivated",

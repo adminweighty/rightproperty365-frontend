@@ -105,7 +105,10 @@ function Plans({ user, roleLabels }: { user: User; roleLabels: Record<string, st
                       For {plan.eligible_roles.map((role) => roleLabels[role] ?? titleFromCode(role)).join(", ") || "no roles"}
                     </p>
                     <p className="text-sm text-ink">{pricesText(plan) || "No prices"}</p>
-                    <p className="text-xs text-subtle">Active listings: {listingLimitText(plan)}</p>
+                    <p className="text-xs text-subtle">
+                      Active listings: {listingLimitText(plan)}
+                      {plan.package_code && ` · Listing package: ${plan.package_code}`}
+                    </p>
                   </div>
                   <ButtonLink href={`${PATH}/${plan.id}`} size="sm" variant="secondary">
                     {manages && plan.status === "ACTIVE" ? "Edit" : "View"}

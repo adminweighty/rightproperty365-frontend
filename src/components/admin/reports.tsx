@@ -14,6 +14,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { adminReportExport, adminReportSummary, type ReportExport, type ReportRange, type ReportSection, type ReportSummary } from "@/lib/api/admin-reports";
 import {
   hasPlatformRole,
+  PAYMENT_EXPORT_ROLES,
   PEOPLE_EXPORT_ROLES,
   REPORT_ROLES,
   SUBSCRIPTION_EXPORT_ROLES,
@@ -52,6 +53,7 @@ const EXPORTS: { kind: ReportExport; label: string; roles: readonly PlatformRole
   { kind: "users", label: "Accounts (CSV)", roles: PEOPLE_EXPORT_ROLES, note: "Names and email addresses: personal data." },
   { kind: "listings", label: "Listings (CSV)", roles: PEOPLE_EXPORT_ROLES, note: "Every listing created in the range." },
   { kind: "subscriptions", label: "Subscriptions (CSV)", roles: SUBSCRIPTION_EXPORT_ROLES, note: "Invoices, payments recorded and refunds due." },
+  { kind: "payments", label: "Online payments (CSV)", roles: PAYMENT_EXPORT_ROLES, note: "Online checkouts, their status and refunds. Not limited by country." },
 ];
 
 /** The days before `to`, as YYYY-MM-DD. */

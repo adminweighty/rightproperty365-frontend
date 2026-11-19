@@ -35,6 +35,7 @@ import {
 } from "@/lib/api/subscriptions";
 import { actionMessage, AMOUNT_PATTERN, FEATURE_LABELS, fieldText, toCents } from "@/lib/subscriptions";
 import { cn } from "@/lib/cn";
+import { PACKAGE_CODE } from "@/lib/packages";
 
 const PATH = "/admin/subscription-plans";
 const LIMIT_MAX = 1_000_000;
@@ -63,9 +64,10 @@ type Draft = {
   benefits: BenefitRow[];
   prices: PriceRow[];
   sortOrder: string;
+  packageCode: string;
 };
 
-type Errors = Partial<Record<"name" | "description" | "subscriber_kind" | "eligible_roles" | "features" | "benefits" | "prices" | "sort_order", string>>;
+type Errors = Partial<Record<"name" | "description" | "subscriber_kind" | "eligible_roles" | "features" | "benefits" | "prices" | "sort_order" | "package_code", string>>;
 
 let rowCount = 0;
 const rowKey = () => `row-${(rowCount += 1)}`;
@@ -101,11 +103,12 @@ function toDraft(plan: SubscriptionPlan | null, codes: FeatureCode[]): Draft {
     benefits: (plan?.benefits ?? []).map((text) => ({ key: rowKey(), text })),
     prices: byCurrency.size > 0 ? [...byCurrency.values()] : [{ key: rowKey(), currency: "USD", quarterly: "", yearly: "" }],
     sortOrder: plan ? String(plan.sort_order) : "",
+    packageCode: plan?.package_code ?? "",
   };
 }
 
 /** The input for the API, or the problems to fix first. */
-function validate(draft: Draft): { input: SubscriptionPlanInput; errors: Errors } {
+function validate(draft: Draft, hadPackageCode = false): { input: SubscriptionPlanInput; errors: Errors } {
   const errors: Errors = {};
   const name = draft.name.trim();
   if (!name) errors.name = "Enter the plan's name.";
@@ -170,6 +173,12 @@ function validate(draft: Draft): { input: SubscriptionPlanInput; errors: Errors 
   const sortText = draft.sortOrder.trim();
   if (sortText && !/^-?\d+$/.test(sortText)) errors.sort_order = "Enter a whole number, or leave it empty.";
 
+  // API 0.42.0: "" clears it. Sent only when it is set or was set, so an older API is not sent an unknown field.
+  const packageCode = draft.packageCode.trim().toUpperCase();
+  if (packageCode && !PACKAGE_CODE.test(packageCode)) {
+    errors.package_code = "Use 2 to 32 capital letters, digits or underscores, starting with a letter, for example BUSINESS.";
+  }
+
   return {
     errors,
     input: {
@@ -181,6 +190,7 @@ function validate(draft: Draft): { input: SubscriptionPlanInput; errors: Errors 
       benefits,
       prices,
       ...(sortText && /^-?\d+$/.test(sortText) ? { sort_order: Number(sortText) } : {}),
+      ...(packageCode || hadPackageCode ? { package_code: packageCode } : {}),
     },
   };
 }
@@ -195,6 +205,7 @@ const ERROR_TARGETS: [keyof Errors, string][] = [
   ["benefits", "plan-benefits"],
   ["prices", "plan-prices"],
   ["sort_order", "plan-sort"],
+  ["package_code", "plan-package"],
 ];
 
 function focusFirst(errors: Errors) {
@@ -251,7 +262,7 @@ function Form({
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (readOnly) return;
-    const { input, errors: problems } = validate(draft);
+    const { input, errors: problems } = validate(draft, Boolean(plan?.package_code));
     setErrors(problems);
     setFailure(null);
     if (Object.values(problems).some(Boolean)) {
@@ -281,6 +292,7 @@ function Form({
       benefits: fieldText("Benefits", fields.benefits),
       prices: fieldText("Prices", fields.prices),
       sort_order: fieldText("Sort order", fields.sort_order),
+      package_code: fieldText("Listing package code", fields.package_code),
     };
     if (Object.values(fromApi).some(Boolean)) {
       setErrors(fromApi);
@@ -378,6 +390,27 @@ function Form({
               onChange={(event) => set({ sortOrder: event.target.value })}
               aria-invalid={Boolean(errors.sort_order)}
               aria-describedby={fieldDescribedBy("plan-sort", { hint: "x", error: errors.sort_order })}
+            />
+          </Field>
+          <Field
+            id="plan-package"
+            label="Listing package code"
+            optional
+            hint="The code of a listing package, for example BUSINESS. When a subscription to this plan is paid, the subscriber gets that package of their country for the paid period, if it is active there. Leave it empty to grant none."
+            error={errors.package_code}
+            className="sm:max-w-md"
+          >
+            <Input
+              id="plan-package"
+              value={draft.packageCode}
+              maxLength={32}
+              autoComplete="off"
+              spellCheck={false}
+              autoCapitalize="characters"
+              disabled={readOnly}
+              onChange={(event) => set({ packageCode: event.target.value.toUpperCase() })}
+              aria-invalid={Boolean(errors.package_code)}
+              aria-describedby={fieldDescribedBy("plan-package", { hint: "x", error: errors.package_code })}
             />
           </Field>
         </Card>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { RoleGate } from "@/components/admin/admin-gate";
+import { SubscriptionPayments } from "@/components/admin/subscription-payments";
 import { BackLink, formatWhen, LoadError, LoadingBlock } from "@/components/portal/portal-ui";
 import { useApi } from "@/components/portal/use-api";
 import { Alert } from "@/components/ui/alert";
@@ -44,6 +45,7 @@ const EVENT_WORDS: Record<SubscriptionEvent["action"], string> = {
   ACTIVATED: "Activated",
   REJECTED: "Rejected",
   EXPIRED: "Ended",
+  REFUNDED: "Refunded",
 };
 
 const CANCELLED_BY: Record<string, string> = { SUBSCRIBER: "the subscriber", ADMIN: "an administrator", SYSTEM: "the system" };
@@ -445,11 +447,24 @@ function Detail({ subscriptionId, user }: { subscriptionId: string; user: User }
                 <Row label="Amount">{formatAmount(sub.payment.amount, sub.currency_code)}</Row>
                 <Row label="Received on">{formatDay(sub.payment.received_on)}</Row>
                 {sub.payment.note && <Row label="Note">{sub.payment.note}</Row>}
-                <Row label="Recorded by">{sub.payment.recorded_by_name}</Row>
+                <Row label="Recorded by">
+                  {sub.payment.recorded_by_name}
+                  {sub.payment.recorded_by === "GATEWAY" && <span className="block text-sm text-muted">Confirmed by the payment provider&apos;s signed notice.</span>}
+                </Row>
               </dl>
             </Card>
           </section>
         )}
+
+        <SubscriptionPayments
+          key={sub.updated_at}
+          subscription={sub}
+          user={user}
+          onChanged={(text, tone = "success") => {
+            show({ tone, text });
+            reload();
+          }}
+        />
 
         <section aria-labelledby="sub-usage">
           <Card>
@@ -463,6 +478,9 @@ function Detail({ subscriptionId, user }: { subscriptionId: string; user: User }
                 : `of ${usage.max_active_listings} active listings`}
             </p>
             {!usage.limit_enforced && <p className="mt-1 text-sm text-muted">The limit is shown only. It is not enforced yet.</p>}
+            {usage.limit_enforced && usage.package_code && (
+              <p className="mt-1 text-sm text-muted">The limit is enforced by the listing package {usage.package_code}.</p>
+            )}
           </Card>
         </section>
 

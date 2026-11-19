@@ -285,6 +285,7 @@ function Sections({ data }: { data: AdminOverview }) {
 const TOOLS: { href: string; label: string; text: string; roles: readonly PlatformRole[] }[] = [
   { href: "/admin/users", label: "Accounts", text: "Find an account; suspend, reactivate or delete it.", roles: USER_READ_ROLES },
   { href: "/admin/subscriptions", label: "Subscriptions", text: "Record payments, and reject or cancel subscriptions.", roles: SUBSCRIPTION_READ_ROLES },
+  { href: "/admin/payments", label: "Online payments", text: "Payments made online, the ones to review, refunds and the spreadsheet.", roles: SUBSCRIPTION_READ_ROLES },
   { href: "/admin/subscription-plans", label: "Subscription plans", text: "What professionals can subscribe to, and the prices.", roles: SUBSCRIPTION_READ_ROLES },
   { href: "/admin/packages", label: "Listing packages", text: "How many listings each account may have live, and the prices, per country.", roles: PACKAGE_ROLES },
   { href: "/admin/reference", label: "Reference data", text: "Property types, features, places and the other lists.", roles: REFERENCE_ROLES },

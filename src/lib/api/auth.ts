@@ -213,6 +213,9 @@ export const ANALYTICS_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "PLATFOR
 /** The users and listings CSV exports (personal data). */
 export const PEOPLE_EXPORT_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "PLATFORM_ADMIN"];
 /** The subscriptions CSV export. */
+/** Online payments (API 0.42.0): refunds and the payments CSV. Reading payments is SUBSCRIPTION_READ_ROLES. */
+export const PAYMENT_REFUND_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "FINANCE_ADMIN"];
+export const PAYMENT_EXPORT_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "FINANCE_ADMIN"];
 export const SUBSCRIPTION_EXPORT_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "FINANCE_ADMIN", "PLATFORM_ADMIN"];
 
 export const getMe = () => apiFetch<SessionResponse>("/v1/me");

@@ -42,7 +42,7 @@ const rangeQuery = ({ from, to, markets }: ReportRange) => {
 export const adminReportSummary = (range: ReportRange) =>
   apiFetch<ReportSummary>(`/v1/admin/reports/summary${rangeQuery(range)}`, { cache: "no-store" });
 
-export type ReportExport = "users" | "listings" | "subscriptions";
+export type ReportExport = "users" | "listings" | "subscriptions" | "payments";
 
 /** The CSV as a Blob. `X-Total-Count` / `X-Export-Truncated` are read when the API exposes them. */
 export const adminReportExport = (kind: ReportExport, range: ReportRange) =>

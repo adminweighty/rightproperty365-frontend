@@ -123,13 +123,18 @@ function List({ countries }: { countries: Country[] }) {
         <div>
           <h1 className="text-4xl">Subscriptions</h1>
           <p className="mt-2 max-w-2xl text-muted">
-            Plans professionals asked for. There is no online payment: each request is an invoice paid by bank transfer.
-            Record the payment when it arrives to activate the subscription.
+            Plans professionals asked for. Each request is an invoice. A transfer is recorded here when it arrives, which activates
+            the subscription; when online payment is on, a confirmed online payment activates it by itself.
           </p>
         </div>
-        <ButtonLink href="/admin/subscription-plans" variant="secondary">
-          Plans
-        </ButtonLink>
+        <div className="flex flex-wrap gap-3">
+          <ButtonLink href="/admin/payments" variant="secondary">
+            Online payments
+          </ButtonLink>
+          <ButtonLink href="/admin/subscription-plans" variant="secondary">
+            Plans
+          </ButtonLink>
+        </div>
       </div>
 
       <div className="mt-8">
