@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useCallback } from "react";
 import { formatDay } from "@/components/agent/books/shared";
-import { LaterSections, rentWords, TenancyStatusBadge } from "@/components/agent/property/shared";
+import { rentWords, TenancyStatusBadge } from "@/components/agent/property/shared";
 import { PartiesCard, TermsCard, TimelineCard } from "@/components/agent/property/tenancy-view";
+import { MyInspections } from "@/components/account/my-inspections";
 import { MyMaintenance } from "@/components/account/my-maintenance";
 import { MyRent } from "@/components/account/my-rent";
 import { RequireAuth } from "@/components/auth/require-auth";
@@ -19,14 +20,13 @@ import { isTenancyStatus, myTenancyHref, TENANT_STATUS_EXPLAINED, type Tenancy }
  * The tenant's own tenancies (API 0.36.0): `/account/tenancies`, a tab of the
  * activity hub when there is at least one, and `/account/tenancies/<id>`.
  * Read-only, except maintenance: the tenant reports a problem and comments
- * on it (`my-maintenance.tsx`). The API shows a tenancy only to a signed-in person whose
+ * on it (`my-maintenance.tsx`). Completed inspections are read-only, with
+ * their report (`my-inspections.tsx`). The API shows a tenancy only to a signed-in person whose
  * verified email is a tenant contact's email in that tenancy's book; never a
  * draft, the team's notes, contact ids, emails or phones.
  */
 
 const PATH = "/account/tenancies";
-
-const LATER = [{ key: "inspections", title: "Inspections", text: "Reports of completed inspections. Not available yet." }];
 
 const placeName = (tenancy: Tenancy) => `${tenancy.property?.name ?? "Your tenancy"}${tenancy.unit ? `, ${tenancy.unit.label}` : ""}`;
 
@@ -143,8 +143,8 @@ function Detail({ id }: { id: string }) {
             <PartiesCard tenancy={state.data} />
             <MyRent tenancy={state.data} />
             <MyMaintenance tenancy={state.data} />
+            <MyInspections tenancy={state.data} />
             <TimelineCard tenancy={state.data} hideWhenEmpty />
-            <LaterSections items={LATER} />
             <p className="text-sm text-muted">
               Something wrong here? Ask {state.data.managedBy?.name ?? "your landlord or agent"} to correct it. You can read this
               tenancy but not change it; report repairs under Maintenance.

@@ -27,17 +27,16 @@ import {
   tenancyHref,
   type Tenancy,
 } from "@/lib/tenancies";
-import { formatDay, LaterSections, Linked, ManagementShell, rentWords, TenancyStatusBadge } from "./shared";
+import { formatDay, Linked, ManagementShell, rentWords, TenancyStatusBadge } from "./shared";
+import { InspectionsSection } from "./inspections-section";
 import { MaintenanceSection } from "./maintenance-section";
 import { RentSection } from "./rent-section";
 import { PartiesCard, TermsCard, TimelineCard } from "./tenancy-view";
 
 /*
- * Rent (part b of the 0.36 contract) and maintenance (part c) are their own
- * sections. Part (d) adds inspections here; until then it is named in
- * "Coming later", with no figures and no sample rows.
+ * Rent (part b of the 0.36 contract), maintenance (part c) and inspections
+ * (part d) are their own sections.
  */
-const LATER = [{ key: "inspections", title: "Inspections", text: "Move-in, routine and move-out inspections. Not available yet." }];
 
 /** `/agent/tenancies/<id>`: parties, terms, the status timeline; activate a draft, end an active tenancy. */
 export function TenancyDetail({ id }: { id: string }) {
@@ -109,8 +108,8 @@ function Detail({ id, organisation }: { id: string; organisation: DashboardOrgan
           )}
           <RentSection org={org} role={organisation.role} tenancy={tenancy} />
           <MaintenanceSection org={org} role={organisation.role} tenancy={tenancy} />
+          <InspectionsSection org={org} role={organisation.role} tenancy={tenancy} />
           <TimelineCard tenancy={tenancy} />
-          <LaterSections items={LATER} />
         </div>
         <div className="grid min-w-0 content-start gap-6">
           {actions.activate && <ActivateCard org={org} tenancy={tenancy} onChanged={reload} />}

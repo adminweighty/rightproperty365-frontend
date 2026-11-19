@@ -487,6 +487,7 @@ function Workspace({ data }: { data: Dashboard }) {
     data.organisations.length > 0 && { href: "/agent/properties", label: "Properties" },
     data.organisations.length > 0 && { href: "/agent/tenancies", label: "Tenancies" },
     data.organisations.length > 0 && { href: "/agent/maintenance", label: "Maintenance" },
+    data.organisations.length > 0 && { href: "/agent/inspections", label: "Inspections" },
     leases && {
       href: "/agent/leases",
       label: "Leases",

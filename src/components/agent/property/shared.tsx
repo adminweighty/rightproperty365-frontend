@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, X } from "lucide-react";
+import { X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
@@ -18,6 +18,7 @@ import type { ApiResult } from "@/lib/api/http";
 import { listLeases } from "@/lib/api/leases";
 import { listProperties } from "@/lib/api/properties";
 import { contactFiltersApiQuery, contactsPath } from "@/lib/contacts";
+import { inspectionsPath } from "@/lib/inspections";
 import { maintenancePath } from "@/lib/maintenance";
 import { formatLedgerAmount } from "@/lib/ledger";
 import { arrearsHref } from "@/lib/rent";
@@ -41,8 +42,7 @@ import {
  * Pieces shared by the property-management pages (`/agent/properties/*`,
  * `/agent/tenancies/*`): the book in `?org=`, the section links, the status
  * badge, the rent in words, the pickers (several contacts from the contact
- * book, the book's properties, its leases) and the placeholders for the
- * parts of a tenancy that come later.
+ * book, the book's properties, its leases).
  */
 
 export { formatDay } from "@/components/agent/books/shared";
@@ -73,7 +73,7 @@ async function loadBooks(userId: string): Promise<ApiResult<DashboardOrganisatio
   return { ok: true, status: 200, data: [personal] };
 }
 
-export type Area = "properties" | "tenancies" | "arrears" | "maintenance";
+export type Area = "properties" | "tenancies" | "arrears" | "maintenance" | "inspections";
 
 const arrearsPath = (_path: string, org?: string) => arrearsHref(org);
 
@@ -82,11 +82,12 @@ const AREA_PATHS: Record<Area, (path: string, org?: string) => string> = {
   tenancies: tenanciesPath,
   arrears: arrearsPath,
   maintenance: maintenancePath,
+  inspections: inspectionsPath,
 };
 
 const areaPath = (area: Area) => AREA_PATHS[area];
 
-/** "Properties", "Tenancies", "Arrears" and "Maintenance" as one row of links, keeping the book. */
+/** "Properties", "Tenancies", "Arrears", "Maintenance" and "Inspections" as one row of links, keeping the book. */
 export function ManagementNav({ org, current }: { org: string; current: Area }) {
   return (
     <ChipNav
@@ -96,6 +97,7 @@ export function ManagementNav({ org, current }: { org: string; current: Area }) 
         { key: "tenancies", href: tenanciesPath("", org), label: "Tenancies", current: current === "tenancies" },
         { key: "arrears", href: arrearsHref(org), label: "Arrears", current: current === "arrears" },
         { key: "maintenance", href: maintenancePath("", org), label: "Maintenance", current: current === "maintenance" },
+        { key: "inspections", href: inspectionsPath("", org), label: "Inspections", current: current === "inspections" },
       ]}
     />
   );
@@ -103,7 +105,7 @@ export function ManagementNav({ org, current }: { org: string; current: Area }) 
 
 type ShellProps = {
   area: Area;
-  /** The page's address after `/agent/properties`, `/agent/tenancies` or `/agent/maintenance` (none for `/agent/arrears`), for the book picker. */
+  /** The page's address after `/agent/properties`, `/agent/tenancies`, `/agent/maintenance` or `/agent/inspections` (none for `/agent/arrears`), for the book picker. */
   path: string;
   title?: string;
   intro?: ReactNode;
@@ -427,32 +429,4 @@ export function useLeaseOptions(org: string, personal: boolean): LeaseChoices {
     };
   }, [org, personal]);
   return state;
-}
-
-// ---- What comes later -----------------------------------------------------------------------------------
-
-/**
- * The parts of a tenancy built in later releases (rent schedule and receipts,
- * maintenance, inspections). Named so people know they are coming; no
- * figures, no sample rows.
- */
-export function LaterSections({ items, className }: { items: { key: string; title: string; text: string }[]; className?: string }) {
-  return (
-    <section aria-labelledby="later-heading" className={className}>
-      <h2 id="later-heading" className="font-sans text-xl font-semibold tracking-normal">
-        Coming later
-      </h2>
-      <ul className="mt-3 grid gap-3 sm:grid-cols-3">
-        {items.map((item) => (
-          <li key={item.key} data-later-section={item.key} className="rounded-lg border border-dashed border-line-strong p-4">
-            <p className="flex items-center gap-2 font-medium text-ink">
-              <Clock className="size-4 shrink-0 text-muted" aria-hidden="true" />
-              {item.title}
-            </p>
-            <p className="mt-1 text-sm text-muted">{item.text}</p>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
 }
