@@ -8,6 +8,7 @@ import { HourlyBookingSection } from "@/components/agent/hourly-settings";
 import { ListingApplications } from "@/components/agent/listing-applications";
 import { PhotoManager } from "@/components/agent/photo-manager";
 import { ListingAnalyticsCard } from "@/components/analytics/agent-analytics";
+import { UsageMeterView } from "@/components/packages/usage-meter";
 import { RequireAuth } from "@/components/auth/require-auth";
 import { BackLink, formatWhen, LoadError, LoadingBlock } from "@/components/portal/portal-ui";
 import { Alert } from "@/components/ui/alert";
@@ -47,6 +48,7 @@ import {
   timelineText,
   type ActionButton,
 } from "@/lib/listing-manage";
+import { pricingPath, QUOTA_REACHED, quotaDetails, quotaReachedMessage } from "@/lib/packages";
 import { isPlaceholderThumbnail, isYouTubeId, startText, thumbnailFor, watchHref, watchUrlFor } from "@/lib/youtube";
 import { LocationPicker } from "@/components/map/maps";
 import { env } from "@/lib/env";
@@ -575,6 +577,13 @@ function Editor({ listingId, lists }: Props) {
         await read();
         return;
       }
+      if (code === QUOTA_REACHED) {
+        const text = quotaReachedMessage(quotaDetails(result.failure.body));
+        if (button.confirm) setActionError(text);
+        else setNotice({ tone: "danger", title: text });
+        await read();
+        return;
+      }
       if (button.confirm) setActionError(message);
       else setNotice({ tone: "danger", title: message });
       if (code === "LISTING_CHANGED" || code === "LISTING_IN_REVIEW" || code === "LISTING_STATE_CONFLICT") await read();
@@ -596,7 +605,9 @@ function Editor({ listingId, lists }: Props) {
         body: updated.status === "PENDING_REVIEW" ? "It is waiting for review again." : "It is a draft again: finish it and submit it.",
       },
     };
-    setNotice({ tone: "success", ...words[button.action] });
+    const done = words[button.action];
+    // Submitting and relisting are never blocked by the package; a full package is said here (API 0.37.0).
+    setNotice({ tone: "success", ...done, body: updated.quota_warning ? `${done.body} ${updated.quota_warning}` : done.body });
     requestAnimationFrame(() => noticeRef.current?.focus());
   }
 
@@ -780,6 +791,12 @@ function Editor({ listingId, lists }: Props) {
             {buttons.length > 0 && (
               <Card>
                 <h2 className="font-sans text-lg font-semibold tracking-normal">Actions</h2>
+                {listing.quota_warning && (
+                  <p className="mt-3 rounded-md bg-warning-soft p-3 text-sm text-ink">
+                    <span className="block font-medium text-warning">Your package is full</span>
+                    {listing.quota_warning}
+                  </p>
+                )}
                 <div className="mt-3 flex flex-col gap-2">
                   {buttons.map((button) => (
                     <div key={button.action}>
@@ -810,6 +827,20 @@ function Editor({ listingId, lists }: Props) {
                     </div>
                   ))}
                 </div>
+              </Card>
+            )}
+
+            {listing.package_usage && (
+              <Card>
+                <h2 className="font-sans text-lg font-semibold tracking-normal">Package</h2>
+                <UsageMeterView usage={listing.package_usage} className="mt-3" />
+                {(listing.package_usage.at_limit || listing.package_usage.over_limit) && listing.package_usage.package && (
+                  <p className="mt-3 text-sm">
+                    <Link href={pricingPath(listing.package_usage.market.code)} className="font-medium text-primary-ink hover:underline">
+                      Bigger packages in {listing.package_usage.market.name}
+                    </Link>
+                  </p>
+                )}
               </Card>
             )}
 

@@ -3,14 +3,17 @@ import { getCuratedListingPages } from "@/lib/api/server/curated";
 import { getDirectoryKinds } from "@/lib/api/server/directory";
 import { getSitemapEntries } from "@/lib/api/server/listings";
 import { load } from "@/lib/api/server/load";
+import { getPricingMarkets } from "@/lib/api/server/packages";
 import { getCatalogue } from "@/lib/api/server/reference";
 import { LEGAL_INDEX_PATH, legalDocuments } from "@/lib/legal";
+import { pricingPath } from "@/lib/packages";
 import { absoluteUrl, listingPath, profilePath } from "@/lib/seo";
 
 /**
  * Only indexable URLs: home, the curated result pages that have listings
  * (docs/seo.md), the directories, every public listing and profile from
- * GET /v1/sitemap, which returns only published, unexpired listings, the FAQ, how
+ * GET /v1/sitemap, which returns only published, unexpired listings, the FAQ, the
+ * listing package pages of countries that have packages, how
  * listing figures are counted and the legal pages.
  * Free-text and filtered searches, result pages 2 and later and private pages
  * are left out. `priority` and `changefreq` are omitted because Google
@@ -23,16 +26,17 @@ import { absoluteUrl, listingPath, profilePath } from "@/lib/seo";
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const loaded = await load(async () => {
-    const [catalogue, entries, kinds] = await Promise.all([
+    const [catalogue, entries, kinds, pricing] = await Promise.all([
       getCatalogue(),
       getSitemapEntries(),
       getDirectoryKinds(),
+      getPricingMarkets(),
     ]);
-    return { entries, kinds, curated: await getCuratedListingPages(catalogue) };
+    return { entries, kinds, pricing, curated: await getCuratedListingPages(catalogue) };
   });
   if (!loaded.ok) throw new Error("The sitemap could not be built: the API is not available.");
 
-  const { entries, kinds, curated } = loaded.data;
+  const { entries, kinds, pricing, curated } = loaded.data;
   const newest = entries.listings
     .map((listing) => listing.updated_at)
     .sort()
@@ -53,6 +57,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: listing.updated_at,
     })),
     { url: absoluteUrl("/faq") },
+    // The pricing pages exist only for countries with active packages (docs/seo.md).
+    ...(pricing.length > 0
+      ? [{ url: absoluteUrl("/pricing") }, ...pricing.map(({ market }) => ({ url: absoluteUrl(pricingPath(market.code)) }))]
+      : []),
     { url: absoluteUrl("/analytics-definitions") },
     { url: absoluteUrl("/verify") },
     { url: absoluteUrl(LEGAL_INDEX_PATH) },

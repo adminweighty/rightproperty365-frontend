@@ -187,6 +187,8 @@ export const AUDIT_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "PLATFORM_AD
 export const SUBSCRIPTION_READ_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "FINANCE_ADMIN", "PLATFORM_ADMIN", "SUPPORT"];
 /** Change plans; record payments, reject and cancel subscriptions. */
 export const SUBSCRIPTION_MANAGE_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "FINANCE_ADMIN"];
+/** Who keeps listing packages and assigns them (API 0.37.0); a MARKET_ADMIN only for its own countries. */
+export const PACKAGE_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "PLATFORM_ADMIN", "MARKET_ADMIN"];
 /** Reference data (a MARKET_ADMIN only changes the rows of its own market). */
 export const REFERENCE_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "PLATFORM_ADMIN", "CONTENT_ADMIN", "MARKET_ADMIN"];
 /** The report summary. */

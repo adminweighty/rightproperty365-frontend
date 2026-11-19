@@ -8,6 +8,7 @@ import { RemindersDueCard } from "@/components/agent/contacts/reminders-due-card
 import { useAuth } from "@/components/auth/auth-provider";
 import { RequireAuth } from "@/components/auth/require-auth";
 import { CountUp } from "@/components/motion/count-up";
+import { PackageUsageCard, packageAccounts } from "@/components/packages/package-card";
 import { Stagger } from "@/components/motion/stagger";
 import { EmptyState, formatWhen, LoadError, LoadingBlock, StatTile } from "@/components/portal/portal-ui";
 import { useApi } from "@/components/portal/use-api";
@@ -642,6 +643,8 @@ function Body({ data }: { data: Dashboard }) {
       <MyRequests data={data} />
       {(data.kind !== "PROFESSIONAL_PENDING" || data.recent.appointments.length > 0) && <Appointments data={data} />}
       {data.kind === "PROFESSIONAL" && data.organisations.length > 0 && <RemindersDueCard organisations={data.organisations} />}
+
+      {professional && data.capabilities.manages_listings && <PackageUsageCard accounts={packageAccounts(data)} />}
 
       {professional && <Workspace data={data} />}
 

@@ -1,10 +1,12 @@
 "use client";
 
 import { BedDouble, Bath, CheckCircle2, Ruler, Users } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useState, type ReactNode } from "react";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { NotAReviewer, reviewKindBadge } from "@/components/admin/listing-queue";
 import { ListingPhotoImage } from "@/components/agent/listing-photo-image";
+import { UsageMeterView } from "@/components/packages/usage-meter";
 import { BackLink, formatWhen, LoadError, LoadingBlock } from "@/components/portal/portal-ui";
 import { useApi } from "@/components/portal/use-api";
 import { Alert } from "@/components/ui/alert";
@@ -37,6 +39,7 @@ import {
   timelineText,
 } from "@/lib/listing-manage";
 import { formatCoordinates, openStreetMapHref } from "@/lib/map";
+import { QUOTA_REACHED, quotaDetails, quotaReachedReviewerMessage } from "@/lib/packages";
 import { joinPlaces } from "@/lib/places";
 import { formatStart, isPlaceholderThumbnail, isYouTubeId, startText, thumbnailFor, watchHref, watchUrlFor } from "@/lib/youtube";
 
@@ -315,7 +318,7 @@ function Review({ listingId, lists }: Props) {
   const [reasonError, setReasonError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<string | undefined>();
-  const [outcome, setOutcome] = useState<{ tone: "success" | "warning"; text: string } | null>(null);
+  const [outcome, setOutcome] = useState<{ tone: "success" | "warning" | "danger"; text: string } | null>(null);
 
   if (state.status === "loading") return <LoadingBlock label="Loading the listing" rows={3} />;
   if (state.status === "error") {
@@ -370,6 +373,20 @@ function Review({ listingId, lists }: Props) {
           : await rejectListing(listingId, text);
     setBusy(false);
     if (!result.ok) {
+      if (result.failure.code === QUOTA_REACHED) {
+        // API 0.37.0: the advertiser's package is full. Nothing changed; the listing still waits for review.
+        setDecision(null);
+        const details = quotaDetails(result.failure.body);
+        setOutcome({
+          tone: "danger",
+          text: quotaReachedReviewerMessage({
+            ...details,
+            accountName: details.accountName ?? listing.advertiser.display?.name ?? listing.advertiser.name,
+          }),
+        });
+        reload();
+        return;
+      }
       if (result.failure.status === 409) {
         setDecision(null);
         setOutcome({ tone: "warning", text: `${result.failure.message} The listing has been loaded again.` });
@@ -428,6 +445,28 @@ function Review({ listingId, lists }: Props) {
                   ))}
                 </ul>
               </div>
+            )}
+            {listing.package_usage && (
+              <div className="mt-4 border-t border-line pt-4">
+                <p className="text-sm font-semibold text-ink">The advertiser&apos;s package</p>
+                <UsageMeterView usage={listing.package_usage} audience="admin" headingLevel={3} className="mt-2" />
+                {listing.owner.type === "organisation" && listing.owner.organisation_id && (
+                  <p className="mt-2 text-sm">
+                    <Link
+                      href={`/admin/packages/organisations/${listing.owner.organisation_id}`}
+                      className="font-medium text-primary-ink hover:underline"
+                    >
+                      Their package and history
+                    </Link>
+                  </p>
+                )}
+              </div>
+            )}
+            {listing.quota_warning && listing.decisions.includes("approve") && (
+              <p className="mt-4 rounded-md bg-warning-soft p-3 text-sm text-ink">
+                <span className="block font-medium text-warning">Package full</span>
+                {listing.quota_warning}
+              </p>
             )}
             {listing.decisions.length === 0 ? (
               <p className="mt-2 text-sm text-muted">Nothing is waiting for a decision on this listing.</p>
@@ -596,6 +635,7 @@ function Review({ listingId, lists }: Props) {
         onConfirm={() => void decide()}
       >
         {decision?.kind === "approve" && <p>{approveBody}</p>}
+        {decision?.kind === "approve" && listing.quota_warning && <p className="mt-2 font-medium text-warning">{listing.quota_warning}</p>}
         {decision?.kind === "reject" && <p>{rejectBody}</p>}
         {decision?.kind === "request_changes" && <p>{words?.body}</p>}
         {needsReason && (

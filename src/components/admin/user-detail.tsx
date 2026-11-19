@@ -22,6 +22,7 @@ import {
 import {
   hasPlatformRole,
   platformRoleLabels,
+  PACKAGE_ROLES,
   SUBSCRIPTION_READ_ROLES,
   titleFromCode,
   USER_MANAGE_ROLES,
@@ -380,6 +381,39 @@ function Detail({ me, userId, roleLabels, organisationKindLabels }: Props & { me
             </ul>
           )}
         </Section>
+
+        {hasPlatformRole(me, PACKAGE_ROLES) && (
+          <Section id="user-packages" title="Listing packages">
+            <p className="text-sm text-muted">
+              A package limits how many listings an account has live at once in a country. Open an account to see its usage, its
+              history and to assign a package.
+            </p>
+            <ul className="mt-3 divide-y divide-line">
+              {account.account_roles.some(({ role }) => role === "PRIVATE_SELLER" || role === "LANDLORD") && (
+                <li className="flex flex-wrap items-center justify-between gap-2 py-3">
+                  <span className="font-medium text-ink">Their own listings (direct owner)</span>
+                  <ButtonLink href={`/admin/packages/users/${account.id}`} size="sm" variant="secondary">
+                    Package<span className="sr-only"> of {account.name}&apos;s own listings</span>
+                  </ButtonLink>
+                </li>
+              )}
+              {[...new Map(account.memberships.map((membership) => [membership.organisation_id, membership])).values()].map((membership) => (
+                <li key={membership.organisation_id} className="flex flex-wrap items-center justify-between gap-2 py-3">
+                  <span className="min-w-0">
+                    <span className="block font-medium text-ink">{membership.organisation_name}</span>
+                    <span className="block text-sm text-muted">{membership.market_code}</span>
+                  </span>
+                  <ButtonLink href={`/admin/packages/organisations/${membership.organisation_id}`} size="sm" variant="secondary">
+                    Package<span className="sr-only"> of {membership.organisation_name}</span>
+                  </ButtonLink>
+                </li>
+              ))}
+            </ul>
+            {account.memberships.length === 0 && !account.account_roles.some(({ role }) => role === "PRIVATE_SELLER" || role === "LANDLORD") && (
+              <p className="mt-2 text-muted">This account does not list property, so no package applies to it.</p>
+            )}
+          </Section>
+        )}
 
         <Section id="user-subscriptions" title="Subscriptions">
           {subscriptions.length === 0 ? (

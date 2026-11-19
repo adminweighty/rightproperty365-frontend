@@ -1,4 +1,5 @@
 import { apiFetch, type ApiFailure, type ApiResult } from "@/lib/api/http";
+import type { MarketUsage } from "@/lib/api/packages";
 import type { ListingAdvertiser } from "@/lib/api/types";
 import { env } from "@/lib/env";
 
@@ -137,6 +138,12 @@ export type ManagedListing = {
   created_at: string;
   updated_at: string;
   timeline: ListingTimelineEntry[];
+  /**
+   * API 0.37.0: the package usage of the listing's account in its market (null while it has no country),
+   * and a warning while the account is at its limit and the listing is not live. Optional for older API builds.
+   */
+  package_usage?: MarketUsage | null;
+  quota_warning?: string | null;
 };
 
 type Envelope = { listing: ManagedListing };
@@ -296,6 +303,7 @@ const adminPath = (id: string) => `/v1/admin/listings/${encodeURIComponent(id)}`
 export const getAdminListing = (id: string) =>
   apiFetch<{ listing: AdminListing }>(adminPath(id), { cache: "no-store" });
 
+/** 409 `LISTING_QUOTA_REACHED` (API 0.37.0) when the advertiser's package is full; `details` has the figures. */
 export const approveListing = (id: string) =>
   apiFetch<{ listing: AdminListing }>(`${adminPath(id)}/approve`, { method: "POST" });
 

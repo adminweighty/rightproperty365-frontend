@@ -143,6 +143,11 @@ export function SiteFooter() {
                   Frequently asked questions
                 </Link>
               </li>
+              <li>
+                <Link href="/pricing" className={linkClass}>
+                  Listing packages and prices
+                </Link>
+              </li>
               {legalDocuments.map((document) => (
                 <Fragment key={document.key}>
                   <li>

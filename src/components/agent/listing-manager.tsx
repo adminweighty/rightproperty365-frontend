@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { ListingPhotoImage } from "@/components/agent/listing-photo-image";
 import { NoAccess, RequireAuth } from "@/components/auth/require-auth";
+import { PackageUsageCard, packageAccounts } from "@/components/packages/package-card";
 import { ChipNav, EmptyState, formatWhen, LoadError, LoadingBlock } from "@/components/portal/portal-ui";
 import { useApi } from "@/components/portal/use-api";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +42,7 @@ import {
   type ActionButton,
 } from "@/lib/listing-manage";
 import { photoCounter } from "@/lib/listing-photos";
+import { QUOTA_REACHED, quotaDetails, quotaReachedMessage } from "@/lib/packages";
 import { listingAnalyticsPath } from "@/components/analytics/agent-analytics";
 import { profilePlace } from "@/lib/places";
 
@@ -193,6 +195,12 @@ function Row({
               : `${listing.completeness.missing.length} things are still needed before it can be submitted.`}
           </p>
         )}
+        {listing?.quota_warning && (
+          <p className="mt-2 rounded-md bg-warning-soft p-3 text-sm text-ink">
+            <span className="font-medium text-warning">Package full. </span>
+            {listing.quota_warning}
+          </p>
+        )}
         {detail?.status === "error" && (
           <p className="mt-2 text-sm text-muted">The actions for this listing could not be loaded. Open it to see them.</p>
         )}
@@ -284,14 +292,17 @@ function Manager({ periods }: { periods: Record<string, string> }) {
       const message =
         result.failure.code === "LISTING_INCOMPLETE"
           ? "This listing is not complete yet. Open it to see what is still needed."
-          : result.failure.message;
+          : result.failure.code === QUOTA_REACHED
+            ? quotaReachedMessage(quotaDetails(result.failure.body))
+            : result.failure.message;
       if (button.confirm) setActionError(message);
       else setAnnouncement(`${title}: ${message}`);
       return;
     }
     setPending(null);
     const done = { submit: "was sent for review", archive: "was archived", relist: "was relisted", delete: "was deleted" };
-    setAnnouncement(`${title} ${done[button.action]}.`);
+    const warning = result.data?.listing.quota_warning;
+    setAnnouncement(`${title} ${done[button.action]}.${warning ? ` ${warning}` : ""}`);
     if (result.data) replace(result.data.listing);
     // Read again: the list (and so every row of this page) reflects the new status.
     reload();
@@ -327,6 +338,7 @@ function Manager({ periods }: { periods: Record<string, string> }) {
         A new listing is a draft that only you and your team see. When you submit it, our review team checks it before
         it is public. Changes to a public listing are checked the same way; visitors see the approved version until then.
       </p>
+      {dashboard.state.status === "ready" && <PackageUsageCard accounts={packageAccounts(dashboard.state.data)} className="mt-6" />}
 
       <div className="mt-8">
         <ChipNav
