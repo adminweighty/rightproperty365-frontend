@@ -5,6 +5,7 @@ import { useCallback } from "react";
 import { formatDay } from "@/components/agent/books/shared";
 import { LaterSections, rentWords, TenancyStatusBadge } from "@/components/agent/property/shared";
 import { PartiesCard, TermsCard, TimelineCard } from "@/components/agent/property/tenancy-view";
+import { MyRent } from "@/components/account/my-rent";
 import { RequireAuth } from "@/components/auth/require-auth";
 import { BackLink, EmptyState, LoadError, LoadingBlock } from "@/components/portal/portal-ui";
 import { useApi } from "@/components/portal/use-api";
@@ -24,7 +25,6 @@ import { isTenancyStatus, myTenancyHref, TENANT_STATUS_EXPLAINED, type Tenancy }
 const PATH = "/account/tenancies";
 
 const LATER = [
-  { key: "rent", title: "Rent and receipts", text: "What is due and what you have paid. Not available yet." },
   { key: "maintenance", title: "Maintenance", text: "Ask for a repair and follow its progress. Not available yet." },
   { key: "inspections", title: "Inspections", text: "Reports of completed inspections. Not available yet." },
 ];
@@ -142,6 +142,7 @@ function Detail({ id }: { id: string }) {
           <div className="mt-8 grid max-w-3xl gap-6">
             <TermsCard tenancy={state.data} lease={state.data.lease ? (state.data.lease.reference ?? "Linked") : undefined} />
             <PartiesCard tenancy={state.data} />
+            <MyRent tenancy={state.data} />
             <TimelineCard tenancy={state.data} hideWhenEmpty />
             <LaterSections items={LATER} />
             <p className="text-sm text-muted">

@@ -1268,6 +1268,8 @@ export type ReceivablesCurrency = {
   total: string | null;
   count: number | null;
   items: ReceivableItem[];
+  /** The part of `total` that is tenancy rent arrears (API 0.36.1); those dues are listed on `/agent/arrears`, not in `items`. */
+  rentOutstanding: string | null;
 };
 
 export function normaliseReceivables(value: unknown): ReceivablesCurrency[] {
@@ -1305,7 +1307,14 @@ export function normaliseReceivables(value: unknown): ReceivablesCurrency[] {
           };
         })
         .filter((item): item is ReceivableItem => item !== null);
-      return { currency, buckets, total: amountOf(block, "outstanding", "total", "total_open"), count: typeof block.count === "number" ? block.count : null, items };
+      return {
+        currency,
+        buckets,
+        total: amountOf(block, "outstanding", "total", "total_open"),
+        count: typeof block.count === "number" ? block.count : null,
+        items,
+        rentOutstanding: amountOf(block, "rent_outstanding"),
+      };
     })
     .filter((block): block is ReceivablesCurrency => block !== null);
 }

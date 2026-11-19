@@ -42,6 +42,7 @@ import {
   type ReceivablesCurrency,
   type StatementCurrency,
 } from "@/lib/ledger";
+import { arrearsHref } from "@/lib/rent";
 
 /*
  * The reports of the books (FR-029): the cashbook, categories, a contact's
@@ -432,6 +433,15 @@ function ReceivablesTable({ block, org }: { block: ReceivablesCurrency; org: str
           </tbody>
         </table>
       </TableRegion>
+      {block.rentOutstanding && /[1-9]/.test(block.rentOutstanding) && (
+        <p className="text-sm text-muted">
+          Includes {amount(block.rentOutstanding, c)} of overdue tenancy rent, listed by tenancy on the{" "}
+          <Link href={arrearsHref(org)} className="font-medium text-primary-ink hover:underline">
+            arrears page
+          </Link>
+          .
+        </p>
+      )}
       {block.items.length > 0 && (
         <TableRegion label={`Open amounts in ${c}, scrolls sideways`}>
           <table className="w-full min-w-[44rem] border-collapse">
@@ -601,7 +611,8 @@ function Reports({ organisation, currencies }: { organisation: DashboardOrganisa
       {values.report === "receivables" && (
         <p className="text-sm text-muted">
           Open amounts {values.side === "PAYABLE" ? "you owe" : "owed to you"}, as at today, by how long they have been open since they were due. Record an amount owed as
-          &ldquo;Owed to you&rdquo; or &ldquo;Owed by you&rdquo;, then record payments against it. Tenancies are not included yet.
+          &ldquo;Owed to you&rdquo; or &ldquo;Owed by you&rdquo;, then record payments against it.
+          {values.side === "PAYABLE" ? "" : " Overdue tenancy rent is included in the totals and listed by tenancy on the arrears page."}
         </p>
       )}
 

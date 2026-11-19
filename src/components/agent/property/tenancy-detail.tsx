@@ -28,15 +28,15 @@ import {
   type Tenancy,
 } from "@/lib/tenancies";
 import { formatDay, LaterSections, Linked, ManagementShell, rentWords, TenancyStatusBadge } from "./shared";
+import { RentSection } from "./rent-section";
 import { PartiesCard, TermsCard, TimelineCard } from "./tenancy-view";
 
 /*
- * Parts (b) to (d) of the 0.36 contract add the rent schedule and receipts,
- * maintenance requests and inspections here. Until then they are named in
- * "Coming later", with no figures and no sample rows.
+ * Rent (part b of the 0.36 contract) is its own section. Parts (c) and (d)
+ * add maintenance requests and inspections here; until then they are named
+ * in "Coming later", with no figures and no sample rows.
  */
 const LATER = [
-  { key: "rent-schedule", title: "Rent schedule", text: "Rent due dates, receipts and arrears for this tenancy. Not available yet." },
   { key: "maintenance", title: "Maintenance", text: "Repair requests for this property and their progress. Not available yet." },
   { key: "inspections", title: "Inspections", text: "Move-in, routine and move-out inspections. Not available yet." },
 ];
@@ -109,6 +109,7 @@ function Detail({ id, organisation }: { id: string; organisation: DashboardOrgan
               <p className="mt-2 text-sm whitespace-pre-line break-words text-ink">{tenancy.notes}</p>
             </Card>
           )}
+          <RentSection org={org} role={organisation.role} tenancy={tenancy} />
           <TimelineCard tenancy={tenancy} />
           <LaterSections items={LATER} />
         </div>

@@ -19,6 +19,7 @@ import { listLeases } from "@/lib/api/leases";
 import { listProperties } from "@/lib/api/properties";
 import { contactFiltersApiQuery, contactsPath } from "@/lib/contacts";
 import { formatLedgerAmount } from "@/lib/ledger";
+import { arrearsHref } from "@/lib/rent";
 import {
   addChosen,
   dueDayWords,
@@ -71,11 +72,13 @@ async function loadBooks(userId: string): Promise<ApiResult<DashboardOrganisatio
   return { ok: true, status: 200, data: [personal] };
 }
 
-export type Area = "properties" | "tenancies";
+export type Area = "properties" | "tenancies" | "arrears";
 
-const areaPath = (area: Area) => (area === "properties" ? propertiesPath : tenanciesPath);
+const arrearsPath = (_path: string, org?: string) => arrearsHref(org);
 
-/** "Properties" and "Tenancies" as one row of links, keeping the book. */
+const areaPath = (area: Area) => (area === "properties" ? propertiesPath : area === "tenancies" ? tenanciesPath : arrearsPath);
+
+/** "Properties", "Tenancies" and "Arrears" as one row of links, keeping the book. */
 export function ManagementNav({ org, current }: { org: string; current: Area }) {
   return (
     <ChipNav
@@ -83,6 +86,7 @@ export function ManagementNav({ org, current }: { org: string; current: Area }) 
       items={[
         { key: "properties", href: propertiesPath("", org), label: "Properties", current: current === "properties" },
         { key: "tenancies", href: tenanciesPath("", org), label: "Tenancies", current: current === "tenancies" },
+        { key: "arrears", href: arrearsHref(org), label: "Arrears", current: current === "arrears" },
       ]}
     />
   );
@@ -90,7 +94,7 @@ export function ManagementNav({ org, current }: { org: string; current: Area }) 
 
 type ShellProps = {
   area: Area;
-  /** The page's address after `/agent/properties` or `/agent/tenancies`, for the book picker. */
+  /** The page's address after `/agent/properties` or `/agent/tenancies` (none for `/agent/arrears`), for the book picker. */
   path: string;
   title?: string;
   intro?: ReactNode;

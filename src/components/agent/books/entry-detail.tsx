@@ -30,6 +30,7 @@ import type { DashboardOrganisation } from "@/lib/api/dashboard";
 import type { ApiResult } from "@/lib/api/http";
 import { addEntryNote, correctEntry, downloadEntryAttachment, getEntry, reconcileEntry, reverseEntry, uploadEntryAttachment } from "@/lib/api/ledger";
 import { contactHref } from "@/lib/contacts";
+import { tenancyHref } from "@/lib/tenancies";
 import {
   booksPath,
   canCorrectEntry,
@@ -497,7 +498,9 @@ function EntryPage({ id, organisation, user, currencies }: { id: string; organis
   const canAttach = entry.can_attach ?? writer;
   const settlement = isMemoType(entry.type) && !entry.reversed_by && writer;
   const reversible = canCorrectEntry(organisation.role, entry, user.id, "reverse");
-  const correctable = canCorrectEntry(organisation.role, entry, user.id, "correct") && canCorrectType(entry.type);
+  // A tenancy receipt is reversed, never corrected (409 LEDGER_ENTRY_IS_RENT_RECEIPT): record a new receipt instead.
+  const rentReceipt = Boolean(entry.tenancyId) && entry.type === "RENT_RECEIVED";
+  const correctable = canCorrectEntry(organisation.role, entry, user.id, "correct") && canCorrectType(entry.type) && !rentReceipt;
   const reconcilable = canReconcileEntry(organisation.role, entry) && !entry.reversed_by;
   const relations = entryRelations(entry);
   const markers = entryMarkers(entry);
@@ -529,6 +532,15 @@ function EntryPage({ id, organisation, user, currencies }: { id: string; organis
       </header>
 
       {notice && <Alert tone="success" title={notice} />}
+
+      {entry.tenancyId && (
+        <Alert tone="info" title={rentReceipt ? "Rent received for a tenancy" : "Linked to a tenancy"}>
+          {rentReceipt && "Reversing this entry undoes the payment on the tenancy: the rent it paid shows as outstanding again. To change the figure, reverse it and record the payment again on the tenancy. "}
+          <Link href={tenancyHref(entry.tenancyId, org)} className={linkClass}>
+            Open the tenancy
+          </Link>
+        </Alert>
+      )}
 
       {entry.reversed_by && (
         <Alert tone="info" title="This entry was reversed">
