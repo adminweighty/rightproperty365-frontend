@@ -818,6 +818,8 @@ A message about an action taken from somewhere on the page that has no room for 
 
 The customer activity hub: "Requests", "Appointments", "Hourly bookings", "Applications" and "Saved" as one row of links at the top of `/account/requests`, `/account/appointments`, `/account/venue-bookings`, `/account/applications` and `/account/saved`. Drawn with `ChipNav` (named "Your activity"); the current page is filled and has `aria-current="page"`. Each page names itself, so the row reads nothing from the address and is part of the static shell.
 
+"My tenancy" (`/account/tenancies`) joins the end of the row only when `GET /v1/me/tenancies` returns at least one tenancy for the signed-in person (asked once per person per visit in the browser; a failure is not remembered; never for an administrator session). On its own page it is always shown, as the current link. The rest of the row renders first and does not move.
+
 ## SavedListings (`account/saved-listings.tsx`, `/account/saved`)
 
 The properties the signed-in person saved, newest saved first, 24 a page (`GET /v1/me/saved-listings`). Read in the browser with the session cookie; `noindex, nofollow`.
@@ -1182,6 +1184,58 @@ In `SiteHeader`, just before `AccountMenu`.
 - At 320px the checkboxes wrap under the type's name.
 
 Links: "Notifications" and "Notification preferences" in the account menu and on the account page; the bell in the header.
+
+## Properties and tenancies (`agent/property/*`, `account/my-tenancies.tsx`, `lib/tenancies.ts`, API 0.36.0)
+
+Phase 2 part (a) (BR-019, FR-047): the properties a book manages, their units, and the tenancies on them. A book is an organisation, or an approved direct owner's own properties ("Your own properties", offered only when the API answers for it), as in the contact book and the books. OWNER, MANAGER and AGENT change; Agency Staff read (the API's `can` decides where it sends one). Every page is `noindex, nofollow`, read in the browser with the session, and reflows at 320px. The pure rules (frequency and due-day words, status words and tones, the date, unit and form checks, the request bodies, the API's field errors under their controls, filters in the address and the API query, who may do what, the status timeline, the tolerant readers of every answer) are in `lib/tenancies.ts`, checked by `npm test` (`scripts/tenancies.test.mjs`). Money is formatted by `formatLedgerAmount` (`lib/ledger.ts`): the API's exact decimal with its currency code, never rounded; the deposit is in the rent's currency, and currencies are never added together.
+
+### ManagementShell and ManagementNav (`property/shared.tsx`)
+
+As `BooksShell`: `BackLink`, `h1`, one line of intro, then the book from `?org=` (an "Organisation" `SearchableSelect` when there are several), the name and role line ("you can read the properties and tenancies but not change them" for Agency Staff), and on the list pages "Properties" and "Tenancies" as a `ChipNav` named "Property management sections". States: loading, error with "Try again", "Properties belong to an organisation or a landlord", signed out, no access. Content keyed by book.
+
+### Property list (`property/property-list.tsx`, `/agent/properties`)
+
+"Add a property" (primary) for writers; a GET search form (name or address) that works without JavaScript; a status line; cards with the name as the link, address and country, and badges: "3 units" or "Let as a whole", "1 of 3 units let" / "Let" / "Not let" (from `occupied_units` of `lettable_units`), "Linked to a listing". `Pagination`. Empty: "No properties yet", "No properties match that search", "There is no page 5 of these properties".
+
+### New property and `PropertyDetailsFields` (`property/property-new.tsx`, `/agent/properties/new`)
+
+Name, Address, Country (`SearchableSelect` of the API's countries, the organisation's market first chosen), Notes (optional), Listing (optional `SearchableSelect` of the person's listings, "No listing" first). Units: a list of fields, each with a 44px "Remove unit 2" button, and "Add a unit"; none means let as a whole. Checked before sending (names 200, addresses 500, labels 80 characters, labels unique ignoring case); the API's field errors land in the same places; a focused danger summary with a 4px bar links to each control. Success opens the property.
+
+### Property page (`property/property-detail.tsx`, `/agent/properties/<id>`)
+
+- Head: the name as `h1`, address and country, the linked listing, the occupancy badge.
+- Main: "Units" (each with "Let" / "Not let" and, for writers, "Rename" (an inline field with "Save the name" / "Cancel") and "Remove" (a `ConfirmDialog`, "Keep it" / "Yes, remove it"; the API refuses a unit a draft or active tenancy uses and its message is shown in the dialog); "Add a unit" with its own field). Each change uses its unit route, answers in a polite live region and reads the property again. "Tenancies": this property's tenancies with status, unit, rent and dates, and "Start a tenancy" (opens the form with the property chosen).
+- Side: "Details" (`PropertyDetailsFields`, "Save the details"); "Delete the property" (danger, behind a `ConfirmDialog`), or one line saying it cannot be deleted while a draft or active tenancy uses it.
+- A 404 is "We could not find that property".
+
+### Tenancy list (`property/tenancy-list.tsx`, `/agent/tenancies`)
+
+"Start a tenancy" (primary) for writers; the statuses as a `ChipNav` ("All", Draft, Active, Ended, Terminated early) with the API's `status_counts` (they ignore the status filter, so every chip has its count); a GET filter form that works without JavaScript: Property (`SearchableSelect`, "All properties" first) and "Tenant or landlord" (the books' `ContactPicker`, submitted as `contact`), "Show tenancies", and "Clear filters". The API has no free-text search of tenancies. A status line, then a `TableRegion`: Tenants (the link, and the reference when there is one), Property (and unit), Rent ("USD 950.00 a month, due on the 1st of each month"), Dates (start, then "to …" or "No end date"), Status badge. `Pagination`. Empty: "No tenancies yet", "No tenancies match these filters", "There is no page 3 of these tenancies".
+
+### ContactsPicker (`property/shared.tsx`)
+
+`ContactPicker` for several contacts. A `fieldset` named by its legend ("Tenants", "Landlords (optional)"), the hint or error under the legend (linked with `aria-describedby`), then the contacts chosen as a list, each with a 44px "Remove tenant Rudo Moyo" button, or "No tenants chosen yet."; "Find in your contact book" (search field; Enter searches without sending the form) with "Search" (secondary); a polite line with the result count (or "No contacts match that search. Add a contact to your contact book first." with the link); then an "Add a tenant" `SearchableSelect` of the matches not yet chosen. Choosing one adds it at once and says so in the polite line.
+
+### New tenancy (`property/tenancy-new.tsx`, `/agent/tenancies/new`)
+
+Four cards. "Property": Property (`SearchableSelect`), then Unit (`SearchableSelect`, required when the property has units; "Let now" on a unit with an active tenancy) or one line saying the tenancy is for the whole property. "Parties": Tenants (1 to 10) and Landlords (0 to 10), each a `ContactsPicker`; nobody may be both. "Terms": Rent (`inputMode="decimal"`, the hint names the currency's decimals), Currency, How often (Weekly, Monthly, Quarterly, Annually), Due on (Monday to Sunday for weekly rent, 1st to 31st otherwise, "the last day in shorter months" from the 29th), Deposit (optional, in the rent's currency), Start date, End date (optional: a tenancy with none runs until notice is given; it must be on or after the start). "Lease and notes": Lease (optional `SearchableSelect` of the book's leases, "No lease" first) and Notes. Checked before sending in the words under each control; the API's field errors (`rent.amount`, `tenants[0]`…) land in the same places; a focused danger summary links to each. "Save as a draft" opens the tenancy.
+
+### Tenancy page (`property/tenancy-detail.tsx`, `/agent/tenancies/<id>`)
+
+- Head: the status badge (the API's `status_label`), the tenants' names as `h1`, the property (a link unless it was deleted), unit and rent in words, and one sentence on what the status means.
+- Main: "Parties" (tenants and landlords, each a link to the contact; a contact deleted or merged since keeps its last name with "No longer in the contact book"), "Terms" (`dl`: rent, how often, due, deposit, starts, ends or agreed end, ended on and why, lease), "Notes" (when there are any), "Status timeline" (an `ol`: created, activated and ended, each with when and by whom, the day it ended and the reason; only steps the API dates; never invented), and "Coming later".
+- Side: "Activate" for a draft ("Activate the tenancy", then a `ConfirmDialog` with the parties and terms, "Not yet" / "Yes, activate it"). A 409 `UNIT_OCCUPIED` closes the dialog and shows the API's message with a link to the tenancy that is active there. "End the tenancy" for an active one: End date and "Why is it ending?" (required, 500 characters), checked first, then a `ConfirmDialog` ("Keep it running" / "Yes, end it") that says when an end before the agreed date is recorded as terminated early. "Delete the draft" for a draft (danger, `ConfirmDialog`). After each, the tenancy is read again.
+- A 404 is "We could not find that tenancy".
+
+### Coming later (`LaterSections`, `property/shared.tsx`)
+
+Parts (b) to (d) of the contract add the rent schedule with receipts and arrears, maintenance and inspections. Until each is built, the tenancy pages name it in a "Coming later" `h2` with one dashed card each (a clock icon, the name, "Not available yet."): no figures, no sample rows, no links. Each card carries `data-later-section` (`rent-schedule`, `maintenance`, `inspections`, and `rent` on the tenant's page) so the part that replaces it can find it.
+
+### My tenancy (`account/my-tenancies.tsx`, `/account/tenancies`, `/account/tenancies/<id>`)
+
+The tenant's own tenancies, read-only: those where a tenant contact's email is the person's verified account email (never a draft). The list: `h1` "My tenancy", one sentence on how a tenancy appears here, cards with the status, "Managed by Sample Estates", the property and unit as the link, the address, the rent and dates. Empty: "You have no tenancies here" with how to get one to appear and "Check your email address". The page: status, managed by, the property and unit as `h1`, the address, the status in the tenant's words, then "Terms", "Parties" (names only: the API sends no ids, emails or phones), the timeline only when the API dates any step, "Coming later" (rent and receipts, maintenance, inspections) and one line on who to ask to correct it. States: loading, error with "Try again", signed out, "We could not find that tenancy".
+
+Links: "Properties" and "Tenancies" in the account menu (professionals) and in "Your workspace" on the dashboard (organisation members); "My tenancy" in `ActivityNav` when there is one.
 
 ## Not built yet
 

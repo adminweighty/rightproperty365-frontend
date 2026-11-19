@@ -242,6 +242,20 @@ export function AccountMenu({ professionals }: { professionals?: NavItem }) {
                     </Link>
                   </li>
                 )}
+                {isProfessional(user) && (
+                  <>
+                    <li>
+                      <Link href="/agent/properties" className={itemClass} onClick={() => setOpen(false)}>
+                        Properties
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="/agent/tenancies" className={itemClass} onClick={() => setOpen(false)}>
+                        Tenancies
+                      </Link>
+                    </li>
+                  </>
+                )}
                 <li>
                   <Link href="/agent/leases" className={itemClass} onClick={() => setOpen(false)}>
                     Leases
