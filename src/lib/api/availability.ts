@@ -1,5 +1,6 @@
 import { apiFetch } from "@/lib/api/http";
 import type { Coded, CountryRef, Money, Photo, Place, PricePeriod, PublicAvailability } from "@/lib/api/types";
+import type { ListingExpiry } from "@/lib/listing-expiry";
 import type { AvailabilityStatus } from "@/lib/nights";
 
 /**
@@ -38,6 +39,8 @@ export type MyListing = {
   photo: Photo | null;
   /** API 0.26.1: the caller may edit it (and draft a lease for it). An agent sees colleagues' listings read-only. */
   can_edit?: boolean;
+  /** API 0.45.0: the publication period; null for a listing that was never published. Optional for older API builds. */
+  expiry?: ListingExpiry | null;
 };
 
 export type MyListingPage = {

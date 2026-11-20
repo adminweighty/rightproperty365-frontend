@@ -2,6 +2,7 @@ import { apiFetch, type ApiFailure, type ApiResult } from "@/lib/api/http";
 import { scanErrorMessage } from "@/lib/file-scan";
 import type { MarketUsage } from "@/lib/api/packages";
 import type { ListingAdvertiser } from "@/lib/api/types";
+import type { ListingExpiry } from "@/lib/listing-expiry";
 import { env } from "@/lib/env";
 
 /**
@@ -111,7 +112,8 @@ export type ListingTimelineEntry = {
   to_status: string | null;
   review_kind: "NEW" | "EDIT" | null;
   reason: string | null;
-  actor: "ADVERTISER" | "REVIEWER";
+  /** SYSTEM (API 0.45.0): the expiry sweep. */
+  actor: "ADVERTISER" | "REVIEWER" | "SYSTEM";
   at: string;
 };
 
@@ -145,6 +147,11 @@ export type ManagedListing = {
    */
   package_usage?: MarketUsage | null;
   quota_warning?: string | null;
+  /**
+   * API 0.45.0: the publication period. Null for a listing that was never published; while a relist waits
+   * for review, the last period with `state: "EXPIRED"`. Optional for older API builds (see `expiryOf`).
+   */
+  expiry?: ListingExpiry | null;
 };
 
 type Envelope = { listing: ManagedListing };
@@ -287,6 +294,8 @@ export type ListingQueueItem = {
   advertiser: { type: "agency" | "private_seller"; name: string; verified: boolean };
   photo_count: number;
   pending_photo_count: number;
+  /** API 0.45.0: the publication period (read-only); null for a listing never published. */
+  expiry?: ListingExpiry | null;
 };
 
 export type ListingQueuePage = {

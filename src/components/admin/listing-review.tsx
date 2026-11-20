@@ -611,7 +611,7 @@ function Review({ listingId, lists }: Props) {
                         )}
                       </p>
                       <p className="text-sm text-muted">
-                        {entry.actor === "REVIEWER" ? "Reviewer" : "Advertiser"} · <time dateTime={entry.at}>{formatWhen(entry.at)}</time>
+                        {entry.actor === "REVIEWER" ? "Reviewer" : entry.actor === "SYSTEM" ? "System" : "Advertiser"} · <time dateTime={entry.at}>{formatWhen(entry.at)}</time>
                       </p>
                       {entry.reason && <p className="mt-1 whitespace-pre-line text-sm text-ink">{entry.reason}</p>}
                     </li>

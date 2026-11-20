@@ -41,6 +41,7 @@ import {
   statusTabs,
   type ActionButton,
 } from "@/lib/listing-manage";
+import { expiryOf, expiryView } from "@/lib/listing-expiry";
 import { photoCounter } from "@/lib/listing-photos";
 import { QUOTA_REACHED, quotaDetails, quotaReachedMessage } from "@/lib/packages";
 import { listingAnalyticsPath } from "@/components/analytics/agent-analytics";
@@ -108,16 +109,22 @@ function Row({
   summary,
   detail,
   periods,
+  now,
   onAction,
 }: {
   summary: MyListing;
   detail: Detail | undefined;
   periods: Record<string, string>;
+  /** When the list was opened: works out the expiry for an API build that sends no `expiry`. */
+  now: number;
   onAction: (listing: ManagedListing, button: ActionButton) => void;
 }) {
   const listing = detail?.status === "ready" ? detail.listing : null;
   const status = listing?.status ?? summary.status;
   const pending = pendingChangesBadge(listing?.pending_changes);
+  // The full listing is the fresher read; the summary's expiry shows until it arrives.
+  const expiry = listing ? expiryOf(listing, now) : (summary.expiry ?? null);
+  const period = expiryView(status, expiry);
   const isStay = summary.category.code === SHORT_STAY;
   const place = profilePlace(summary);
   const title = (listing?.content.title || summary.title || "").trim() || "Untitled listing";
@@ -128,6 +135,7 @@ function Row({
         actions: listing.actions,
         ready: listing.completeness.ready,
         publishedWithChanges: listing.status === "PUBLISHED" && listing.pending_changes !== null,
+        expired: period.expired,
       }).filter((button) => !button.disabledReason)
     : [];
   const cover = listing?.photos[0];
@@ -156,6 +164,7 @@ function Row({
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone={listingStatusTone(status)}>{listingStatusLabel(status, listing?.status_label)}</Badge>
           {pending && <Badge tone={pending.tone}>{pending.text}</Badge>}
+          {period.badge && <Badge tone={period.badge.tone}>{period.badge.text}</Badge>}
           <Badge>{summary.category.label}</Badge>
           {summary.property_type.label && <Badge>{summary.property_type.label}</Badge>}
         </div>
@@ -169,6 +178,9 @@ function Row({
             .filter(Boolean)
             .join(" · ")}
         </p>
+        {period.line && (
+          <p className={period.expired ? "mt-1 text-sm font-medium text-warning" : "mt-1 text-sm text-muted"}>{period.line}</p>
+        )}
         <p className="mt-2 text-ink">
           {hasPrice ? (
             <>
@@ -268,6 +280,7 @@ function Manager({ periods }: { periods: Record<string, string> }) {
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | undefined>();
   const [announcement, setAnnouncement] = useState("");
+  const [now] = useState(() => Date.now());
 
   const items = state.status === "ready" ? state.data.items : (state.status === "loading" ? state.previous?.items : undefined) ?? [];
   const shown = status ? items.filter((item) => item.status === status) : items;
@@ -300,7 +313,8 @@ function Manager({ periods }: { periods: Record<string, string> }) {
       return;
     }
     setPending(null);
-    const done = { submit: "was sent for review", archive: "was archived", relist: "was relisted", delete: "was deleted" };
+    const relisted = result.data?.listing.status === "PENDING_REVIEW" ? "was relisted and sent for review" : "was relisted";
+    const done = { submit: "was sent for review", archive: "was archived", relist: relisted, delete: "was deleted" };
     const warning = result.data?.listing.quota_warning;
     setAnnouncement(`${title} ${done[button.action]}.${warning ? ` ${warning}` : ""}`);
     if (result.data) replace(result.data.listing);
@@ -408,6 +422,7 @@ function Manager({ periods }: { periods: Record<string, string> }) {
                         summary={item}
                         detail={details[item.id]}
                         periods={periods}
+                        now={now}
                         onAction={(listing, button) => {
                           if (button.confirm) {
                             setActionError(undefined);

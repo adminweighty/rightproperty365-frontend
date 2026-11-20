@@ -48,6 +48,7 @@ import {
   timelineText,
   type ActionButton,
 } from "@/lib/listing-manage";
+import { expiryOf, expiryView } from "@/lib/listing-expiry";
 import { pricingPath, QUOTA_REACHED, quotaDetails, quotaReachedMessage } from "@/lib/packages";
 import { isPlaceholderThumbnail, isYouTubeId, startText, thumbnailFor, watchHref, watchUrlFor } from "@/lib/youtube";
 import { LocationPicker } from "@/components/map/maps";
@@ -363,6 +364,8 @@ function Editor({ listingId, lists }: Props) {
   const [pending, setPending] = useState<ActionButton | null>(null);
   const [acting, setActing] = useState(false);
   const [actionError, setActionError] = useState<string | undefined>();
+  // When the editor opened: works out the expiry for an API build that sends no `expiry`.
+  const [openedAt] = useState(() => Date.now());
   const session = useRef<Session>({ values: null, dirty: new Set(), inFlight: false, again: false, failed: false, timer: undefined });
   const noticeRef = useRef<HTMLDivElement>(null);
 
@@ -601,7 +604,7 @@ function Editor({ listingId, lists }: Props) {
       submit: { title: "Sent for review", body: "We will email you when our review team has made a decision." },
       archive: { title: "Archived", body: "Visitors no longer see this listing." },
       relist: {
-        title: "Relisted",
+        title: updated.status === "PENDING_REVIEW" ? "Relist sent for review" : "Relisted",
         body: updated.status === "PENDING_REVIEW" ? "It is waiting for review again." : "It is a draft again: finish it and submit it.",
       },
     };
@@ -648,13 +651,17 @@ function Editor({ listingId, lists }: Props) {
     : flagged
       ? lists.propertyTypes.find((type) => type.value === values.property_type)?.hourly === true
       : null;
-  const banner = listingBanner(listing);
+  const period = expiryView(listing.status, expiryOf(listing, openedAt));
+  // An expired listing with a date gets the expiry callout instead of the general banner.
+  const banner = period.callout ? null : listingBanner(listing);
   const pendingBadge = pendingChangesBadge(listing.pending_changes);
   const buttons = listingActionButtons({
     actions: listing.actions,
     ready: listing.completeness.ready,
     publishedWithChanges: listing.status === "PUBLISHED" && listing.pending_changes !== null,
+    expired: period.expired,
   });
+  const relistButton = period.expired ? buttons.find((button) => button.action === "relist") : undefined;
   const title = values.title.trim() || listing.content.title || "Untitled listing";
   const err = (key: string) => errors[key] || undefined;
   const describedBy = (id: string, key: string, hint?: string) => fieldDescribedBy(id, { hint, error: err(key) });
@@ -700,7 +707,11 @@ function Editor({ listingId, lists }: Props) {
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <Badge tone={listingStatusTone(listing.status)}>{listingStatusLabel(listing.status, listing.status_label)}</Badge>
         {pendingBadge && <Badge tone={pendingBadge.tone}>{pendingBadge.text}</Badge>}
+        {period.badge && <Badge tone={period.badge.tone}>{period.badge.text}</Badge>}
         <span className="text-sm text-muted">Reference {listing.reference}</span>
+        {period.line && (
+          <span className={period.expired ? "text-sm font-medium text-warning" : "text-sm text-muted"}>· {period.line}</span>
+        )}
       </div>
       <h1 className="mt-2 text-3xl md:text-4xl">{title}</h1>
       {listing.public && (
@@ -714,6 +725,26 @@ function Editor({ listingId, lists }: Props) {
       )}
 
       <div className="mt-6 space-y-4">
+        {period.callout && (
+          <Alert tone="warning" title="This listing has expired">
+            {period.callout}
+            {relistButton && (
+              <span className="mt-3 block">
+                <Button
+                  variant="primary"
+                  disabled={acting || save.status === "saving"}
+                  onClick={() => {
+                    setNotice(null);
+                    setActionError(undefined);
+                    setPending(relistButton);
+                  }}
+                >
+                  {relistButton.label}
+                </Button>
+              </span>
+            )}
+          </Alert>
+        )}
         {banner && (
           <Alert tone={banner.tone} title={banner.title}>
             {banner.reason && (
@@ -1364,7 +1395,7 @@ function Editor({ listingId, lists }: Props) {
                     <li key={`${entry.at}-${index}`} className="border-l-2 border-line pl-4">
                       <p className="font-medium text-ink">{timelineText(entry)}</p>
                       <p className="text-sm text-muted">
-                        {entry.actor === "REVIEWER" ? "Our review team" : "You or your team"} · <time dateTime={entry.at}>{formatWhen(entry.at)}</time>
+                        {entry.actor === "REVIEWER" ? "Our review team" : entry.actor === "SYSTEM" ? "RightProperty365" : "You or your team"} · <time dateTime={entry.at}>{formatWhen(entry.at)}</time>
                       </p>
                       {entry.reason && <p className="mt-1 whitespace-pre-line text-sm text-ink">{entry.reason}</p>}
                     </li>

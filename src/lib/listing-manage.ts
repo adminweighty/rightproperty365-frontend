@@ -123,15 +123,19 @@ export function listingActionButtons({
   actions,
   ready,
   publishedWithChanges = false,
+  expired = false,
 }: {
   actions: readonly string[];
   /** `completeness.ready`. */
   ready: boolean;
   /** A published listing whose pending changes would be sent. */
   publishedWithChanges?: boolean;
+  /** An expired listing (API 0.45.0): Relist, when allowed, is its first and primary button. */
+  expired?: boolean;
 }): ActionButton[] {
   const has = (action: ListingAction) => actions.includes(action);
   const buttons: ActionButton[] = [];
+  if (expired && has("relist")) buttons.push({ action: "relist", label: "Relist", variant: "primary", confirm: true });
   if (has("submit")) {
     buttons.push({
       action: "submit",
@@ -141,7 +145,7 @@ export function listingActionButtons({
       disabledReason: ready ? undefined : "Complete the items under “Still needed” first.",
     });
   }
-  if (has("relist")) buttons.push({ action: "relist", label: "Relist", variant: "secondary", confirm: true });
+  if (!expired && has("relist")) buttons.push({ action: "relist", label: "Relist", variant: "secondary", confirm: true });
   if (has("archive")) buttons.push({ action: "archive", label: "Archive", variant: "secondary", confirm: true });
   if (has("delete")) buttons.push({ action: "delete", label: "Delete", variant: "danger", confirm: true });
   return buttons;
@@ -439,6 +443,8 @@ export function timelineText(entry: { action: string; review_kind: string | null
       return "Archived";
     case "RELISTED":
       return "Relisted";
+    case "EXPIRED":
+      return "Expired";
     default:
       return entry.action;
   }
