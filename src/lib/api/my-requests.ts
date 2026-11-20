@@ -1,3 +1,4 @@
+import type { RequestMessage } from "@/lib/api/agent";
 import { apiFetch } from "@/lib/api/http";
 
 /**
@@ -25,6 +26,15 @@ export type CustomerPropertyRequest = {
   created_at: string;
   /** Only on a single request. Oldest first. */
   timeline?: { event: "RECEIVED" | "STATUS_CHANGED"; status: CustomerRequestStatus; status_label: string; at: string }[];
+  /** The conversation (new in API 0.46.0). Optional for older API builds. */
+  message_count?: number;
+  last_message_at?: string | null;
+  /** The agent or seller wrote last and the request has not been opened since. */
+  unread_reply?: boolean;
+  /** The customer may write now: the other side has written and it is not closed. */
+  can_reply?: boolean;
+  /** Only on a single request. Oldest first. */
+  messages?: RequestMessage[];
 };
 
 export type CustomerPropertyRequestPage = {
@@ -45,6 +55,17 @@ export const listMyPropertyRequests = ({ status, page }: { status?: string; page
 
 export const getMyPropertyRequest = (id: string) =>
   apiFetch<{ request: CustomerPropertyRequest }>(`/v1/me/property-requests/${id}`, { cache: "no-store" });
+
+/**
+ * Answers the agent or seller (API 0.46.0). 409 `REPLY_NOT_OPEN` before they
+ * have written, `REQUEST_CLOSED` once the request is closed. Answers with the
+ * request as the customer sees it.
+ */
+export const replyOnMyPropertyRequest = (id: string, body: string) =>
+  apiFetch<{ request: CustomerPropertyRequest }>(`/v1/me/property-requests/${id}/messages`, {
+    method: "POST",
+    body: { body },
+  });
 
 /** Badge tones for the customer statuses. The badge always carries the word too. */
 export const customerStatusTones: Record<string, "info" | "primary" | "success" | "accent" | "neutral"> = {

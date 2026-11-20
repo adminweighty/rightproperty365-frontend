@@ -32,7 +32,29 @@ export type AgentPropertyRequest = {
    * organisation inbox and for a direct seller. Optional for older API builds.
    */
   assigned_to?: { user_id: string; name: string } | null;
+  /** The conversation with the customer (new in API 0.46.0). Optional for older API builds. */
+  message_count?: number;
+  last_message_at?: string | null;
+  /** The customer wrote last: the receiving side owes an answer. */
+  awaiting_reply?: boolean;
 };
+
+/**
+ * One message of a request's conversation (API 0.46.0). To the receiving side
+ * `author_name` is the author's name; to the customer it is "You", "The agent"
+ * or "The seller".
+ */
+export type RequestMessage = {
+  id: string;
+  author: "PROFESSIONAL" | "CUSTOMER";
+  author_name: string;
+  body: string;
+  created_at: string;
+  mine: boolean;
+};
+
+/** The longest message, in characters. */
+export const MAX_REQUEST_MESSAGE_LENGTH = 2000;
 
 /** An enquiry sent to a directory profile, as seen by its authorised recipient. */
 export type InboxBusinessEnquiry = {
@@ -126,6 +148,10 @@ export type ReceivedPropertyRequest = AgentPropertyRequest & {
   can_assign?: boolean;
   timeline: RequestTimelineEntry[];
   notes: RequestNote[];
+  /** The conversation with the customer, oldest first (new in API 0.46.0). */
+  messages?: RequestMessage[];
+  /** False once the request is CLOSED. */
+  can_reply?: boolean;
 };
 
 /**
@@ -159,6 +185,17 @@ export const assignAgentPropertyRequest = (id: string, userId: string | null) =>
 /** 1 to 2000 characters. Answers with the whole request, notes included. */
 export const addAgentPropertyRequestNote = (id: string, body: string) =>
   apiFetch<{ request: ReceivedPropertyRequest }>(`/v1/agent/property-requests/${id}/notes`, {
+    method: "POST",
+    body: { body },
+  });
+
+/**
+ * Writes to the customer (API 0.46.0). A first reply to a new or assigned
+ * request also moves it to Contacted. 409 `REQUEST_CLOSED` when it is closed.
+ * Answers with the whole request.
+ */
+export const replyToAgentPropertyRequest = (id: string, body: string) =>
+  apiFetch<{ request: ReceivedPropertyRequest }>(`/v1/agent/property-requests/${id}/messages`, {
     method: "POST",
     body: { body },
   });

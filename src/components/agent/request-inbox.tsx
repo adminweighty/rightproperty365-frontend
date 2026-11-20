@@ -96,6 +96,7 @@ function RequestCard({ item, typeLabels, inTeam }: { item: AgentPropertyRequest;
       <div className="flex flex-wrap items-center gap-2">
         <Badge tone="primary">{typeLabels[item.request_type] ?? item.request_type}</Badge>
         {item.stage_label && <Badge tone={stageTones[item.stage ?? ""] ?? "neutral"}>{item.stage_label}</Badge>}
+        {item.awaiting_reply && <Badge tone="accent">Awaiting your reply</Badge>}
         <span className="ml-auto text-sm text-muted">{formatWhen(item.created_at)}</span>
       </div>
       <h3 className="mt-3 font-sans text-lg font-medium tracking-normal">

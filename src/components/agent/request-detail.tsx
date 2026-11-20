@@ -7,6 +7,7 @@ import { CreateContactButton } from "@/components/agent/contacts/create-contact-
 import { stageTones } from "@/components/agent/request-inbox";
 import { RequireAuth } from "@/components/auth/require-auth";
 import { BackLink, formatWhen, LoadError, LoadingBlock } from "@/components/portal/portal-ui";
+import { Conversation } from "@/components/requests/conversation";
 import { useApi } from "@/components/portal/use-api";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +20,7 @@ import {
   assignAgentPropertyRequest,
   getAgentPropertyRequest,
   moveAgentPropertyRequest,
+  replyToAgentPropertyRequest,
   type LeadStage,
   type ReceivedPropertyRequest,
   type RequestTimelineEntry,
@@ -346,7 +348,7 @@ function Notes({ request, onChanged }: { request: ReceivedPropertyRequest; onCha
       </h2>
       <p className="mt-2 flex items-center gap-2 rounded-md bg-sunken p-3 text-sm text-ink">
         <Lock className="size-4 shrink-0 text-muted" aria-hidden="true" />
-        Only your team can see notes. The customer never does.
+        Private notes: only your team can see them. The customer never does.
       </p>
       {request.notes.length === 0 ? (
         <p className="mt-3 text-muted">No notes yet.</p>
@@ -485,6 +487,20 @@ function Detail({ id, typeLabels, contactMethodLabels }: { id: string; typeLabel
             </ul>
             <CreateContactButton requestId={request.request_id} className="mt-4 border-t border-line pt-4" />
           </Card>
+
+          {request.messages && (
+            <Card>
+              <Conversation
+                side="professional"
+                messages={request.messages}
+                canReply={request.can_reply ?? request.stage !== "CLOSED"}
+                closed={request.stage === "CLOSED"}
+                send={(body) => replyToAgentPropertyRequest(request.request_id, body)}
+                onSent={(data) => setRequest(data.request)}
+                intro="The customer reads your replies in their account and by email, without your name or contact details. A first reply moves a new request to Contacted."
+              />
+            </Card>
+          )}
 
           <Card>
             <Notes request={request} onChanged={setRequest} />

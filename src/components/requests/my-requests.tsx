@@ -11,7 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Pagination } from "@/components/ui/pagination";
-import { customerStatusTones, getMyPropertyRequest, listMyPropertyRequests } from "@/lib/api/my-requests";
+import { Conversation } from "@/components/requests/conversation";
+import { customerStatusTones, getMyPropertyRequest, listMyPropertyRequests, replyOnMyPropertyRequest } from "@/lib/api/my-requests";
 import { formatStay, guestCount } from "@/lib/nights";
 import { parseStatusFilter, statusFilterSearch } from "@/lib/request-filters";
 
@@ -23,7 +24,7 @@ const PATH = "/account/requests";
 const statusExplained: Record<string, string> = {
   RECEIVED: "The advertiser has your request and has not answered yet.",
   IN_PROGRESS: "The advertiser is working on your request.",
-  RESPONDED: "The advertiser has been in touch. Check your email and phone.",
+  RESPONDED: "The advertiser has been in touch. Check the conversation below, your email and your phone.",
   VIEWING_SCHEDULED: "A viewing has been arranged.",
   CLOSED: "This request is finished.",
 };
@@ -117,6 +118,7 @@ function List({ typeLabels }: { typeLabels: Labels }) {
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge tone={customerStatusTones[item.status] ?? "neutral"}>{item.status_label}</Badge>
                       <Badge>{typeLabels[item.request_type] ?? item.request_type}</Badge>
+                      {item.unread_reply && <Badge tone="accent">New reply</Badge>}
                       <span className="ml-auto text-sm text-muted">Sent {formatWhen(item.created_at)}</span>
                     </div>
                     <h2 className="mt-3 font-sans text-lg font-medium tracking-normal">
@@ -152,7 +154,7 @@ export function MyRequests({ requestTypeLabels }: { requestTypeLabels: Labels })
 
 function Detail({ id, typeLabels, contactMethodLabels }: { id: string; typeLabels: Labels; contactMethodLabels: Labels }) {
   const load = useCallback(() => getMyPropertyRequest(id), [id]);
-  const { state, reload } = useApi(load);
+  const { state, reload, replace } = useApi(load);
 
   if (state.status === "loading") return <LoadingBlock label="Loading your request" rows={3} />;
   if (state.status === "error") {
@@ -194,10 +196,23 @@ function Detail({ id, typeLabels, contactMethodLabels }: { id: string; typeLabel
         )}
       </h1>
       <p className="mt-2 text-muted">
-        {statusExplained[request.status]} The advertiser contacts you directly, by {method} if they can.
+        {statusExplained[request.status]} The advertiser replies here or contacts you directly, by {method} if they can.
       </p>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        {request.messages && (
+          <Card className="lg:col-span-2">
+            <Conversation
+              side="customer"
+              messages={request.messages}
+              canReply={Boolean(request.can_reply)}
+              closed={request.status === "CLOSED"}
+              send={(body) => replyOnMyPropertyRequest(request.request_id, body)}
+              onSent={(data) => replace(data)}
+              intro="Messages between you and the advertiser about this request. They are private to the two of you."
+            />
+          </Card>
+        )}
         <Card>
           <h2 className="text-xl">What you sent</h2>
           <p className="mt-1 text-sm text-muted">Sent {formatWhen(request.created_at)}</p>
