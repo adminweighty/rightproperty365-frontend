@@ -46,6 +46,7 @@ const EVENT_WORDS: Record<SubscriptionEvent["action"], string> = {
   REJECTED: "Rejected",
   EXPIRED: "Ended",
   REFUNDED: "Refunded",
+  INVOICED: "Renewal invoiced",
 };
 
 const CANCELLED_BY: Record<string, string> = { SUBSCRIBER: "the subscriber", ADMIN: "an administrator", SYSTEM: "the system" };
@@ -506,6 +507,17 @@ function Detail({ subscriptionId, user }: { subscriptionId: string; user: User }
             )}
           </Card>
         </section>
+
+        {manages && (sub.status === "ACTIVE" || sub.status === "EXPIRED") && (
+          <div className="flex flex-wrap gap-3">
+            <ButtonLink href={`/admin/invoices/new?subscription=${sub.id}`} variant="secondary">
+              Create renewal invoice
+            </ButtonLink>
+            <ButtonLink href={`/admin/invoices?tab=all&q=${encodeURIComponent(sub.subscriber.name)}`} variant="ghost">
+              Invoices of this subscriber
+            </ButtonLink>
+          </div>
+        )}
 
         {manages && cancellable && (
           <div className="flex flex-wrap gap-3">

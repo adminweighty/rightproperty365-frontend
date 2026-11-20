@@ -219,6 +219,11 @@ function Details({ user, roleLabels, organisationKindLabels }: Props & { user: U
             Subscription
           </ButtonLink>
         )}
+        {(canUseInbox(user) || hasActiveProfessionalRole(user)) && (
+          <ButtonLink href="/account/invoices" variant="secondary">
+            Invoices
+          </ButtonLink>
+        )}
         <ButtonLink href="/account/requests" variant="secondary">
           Your requests
         </ButtonLink>

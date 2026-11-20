@@ -513,6 +513,7 @@ function Workspace({ data }: { data: Dashboard }) {
     { href: "/account/saved", label: "Saved properties" },
     { href: "/account/reviews", label: "Your reviews" },
     { href: "/account/subscription", label: "Subscription" },
+    { href: "/account/invoices", label: "Invoices" },
     { href: "/account", label: "Your account and roles" },
   ] as (WorkspaceLink | false)[]).filter((link): link is WorkspaceLink => Boolean(link));
   return (

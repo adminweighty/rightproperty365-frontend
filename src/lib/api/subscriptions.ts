@@ -104,7 +104,7 @@ export type Subscription = {
 
 export type SubscriptionEvent = {
   id: string;
-  action: "REQUESTED" | "RENEWAL_REQUESTED" | "CANCELLED" | "PAYMENT_RECORDED" | "ACTIVATED" | "REJECTED" | "EXPIRED" | "REFUNDED";
+  action: "REQUESTED" | "RENEWAL_REQUESTED" | "CANCELLED" | "PAYMENT_RECORDED" | "ACTIVATED" | "REJECTED" | "EXPIRED" | "REFUNDED" | "INVOICED";
   actor_type: "SUBSCRIBER" | "ADMIN" | "SYSTEM" | "GATEWAY";
   actor_name: string;
   note: string;
