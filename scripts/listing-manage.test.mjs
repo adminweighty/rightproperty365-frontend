@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   amountForInput,
+  confirmText,
   countByStatus,
   editLinkLabel,
   fieldControlId,
@@ -193,4 +194,22 @@ test("the map pin is reviewed as one location, and its fields lead to their boxe
   assert.equal(locationPrecisionText("APPROXIMATE"), "Approximate area (about 1 km)");
   assert.equal(locationPrecisionText("EXACT"), "Exact pin");
   assert.equal(locationPrecisionText(undefined), "Exact pin");
+});
+
+test("lifecycle buttons (API 0.48.0): resume first, then the others, each asks first but resume", () => {
+  const paused = listingActionButtons({ actions: ["resume", "mark_sold", "close", "archive"], ready: true });
+  assert.deepEqual(paused.map((b) => b.action), ["resume", "mark_sold", "close", "archive"]);
+  assert.equal(paused[0].variant, "primary");
+  assert.equal(paused[0].confirm, false);
+  const live = listingActionButtons({ actions: ["pause", "mark_let", "close", "archive"], ready: true });
+  assert.deepEqual(live.map((b) => b.action), ["pause", "mark_let", "close", "archive"]);
+  assert.ok(live.every((b) => b.confirm));
+  assert.match(confirmText("pause", true).body, /keeps its place in your package/);
+  assert.match(confirmText("mark_sold", true).body, /frees a place/);
+});
+
+test("lifecycle banners and history", () => {
+  assert.equal(listingBanner({ status: "PAUSED", public: false, review: { reason: null }, pending_changes: null }).title, "This listing is paused");
+  assert.equal(listingBanner({ status: "LET", public: false, review: { reason: null }, pending_changes: null }).title, "This listing is let");
+  assert.equal(listingStatusTone("PAUSED"), "warning");
 });

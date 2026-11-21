@@ -22,6 +22,11 @@ import {
   deleteListing,
   getManagedListing,
   relistListing,
+  pauseListing,
+  resumeListing,
+  markListingSold,
+  markListingLet,
+  closeListing,
   submitListing,
   type ManagedListing,
 } from "@/lib/api/manage-listings";
@@ -298,7 +303,17 @@ function Manager({ periods }: { periods: Record<string, string> }) {
     setBusy(true);
     setActionError(undefined);
     const title = listing.content.title || listing.reference;
-    const calls = { submit: submitListing, archive: archiveListing, relist: relistListing, delete: deleteListing };
+    const calls = {
+      submit: submitListing,
+      archive: archiveListing,
+      relist: relistListing,
+      delete: deleteListing,
+      pause: pauseListing,
+      resume: resumeListing,
+      mark_sold: markListingSold,
+      mark_let: markListingLet,
+      close: closeListing,
+    };
     const result = await calls[button.action](listing.id);
     setBusy(false);
     if (!result.ok) {
@@ -314,7 +329,17 @@ function Manager({ periods }: { periods: Record<string, string> }) {
     }
     setPending(null);
     const relisted = result.data?.listing.status === "PENDING_REVIEW" ? "was relisted and sent for review" : "was relisted";
-    const done = { submit: "was sent for review", archive: "was archived", relist: relisted, delete: "was deleted" };
+    const done = {
+      submit: "was sent for review",
+      archive: "was archived",
+      relist: relisted,
+      delete: "was deleted",
+      pause: "was paused",
+      resume: result.data?.listing.status === "EXPIRED" ? "has expired meanwhile: relist it to show it again" : "is public again",
+      mark_sold: "was marked as sold",
+      mark_let: "was marked as let",
+      close: "was closed",
+    };
     const warning = result.data?.listing.quota_warning;
     setAnnouncement(`${title} ${done[button.action]}.${warning ? ` ${warning}` : ""}`);
     if (result.data) replace(result.data.listing);

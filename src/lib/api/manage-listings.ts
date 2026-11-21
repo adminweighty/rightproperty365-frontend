@@ -175,6 +175,12 @@ export const deleteListing = (id: string) => apiFetch<null>(path(id), { method: 
 export const submitListing = (id: string) => apiFetch<Envelope>(`${path(id)}/submit`, { method: "POST" });
 export const archiveListing = (id: string) => apiFetch<Envelope>(`${path(id)}/archive`, { method: "POST" });
 export const relistListing = (id: string) => apiFetch<Envelope>(`${path(id)}/relist`, { method: "POST" });
+/** The lifecycle (API 0.48.0). */
+export const pauseListing = (id: string) => apiFetch<Envelope>(`${path(id)}/pause`, { method: "POST" });
+export const resumeListing = (id: string) => apiFetch<Envelope>(`${path(id)}/resume`, { method: "POST" });
+export const markListingSold = (id: string) => apiFetch<Envelope>(`${path(id)}/mark-sold`, { method: "POST" });
+export const markListingLet = (id: string) => apiFetch<Envelope>(`${path(id)}/mark-let`, { method: "POST" });
+export const closeListing = (id: string) => apiFetch<Envelope>(`${path(id)}/close`, { method: "POST" });
 
 /** Every photo exactly once, cover first. Applies at once, also on a published listing. */
 export const orderPhotos = (id: string, photoIds: string[]) =>

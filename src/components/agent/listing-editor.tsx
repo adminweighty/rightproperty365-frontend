@@ -24,6 +24,11 @@ import {
   deleteListing,
   getManagedListing,
   relistListing,
+  pauseListing,
+  resumeListing,
+  markListingSold,
+  markListingLet,
+  closeListing,
   submitListing,
   updateListing,
   type ListingContent,
@@ -565,7 +570,17 @@ function Editor({ listingId, lists }: Props) {
       else setNotice({ tone: "danger", title: message });
       return;
     }
-    const calls = { submit: submitListing, archive: archiveListing, relist: relistListing, delete: deleteListing };
+    const calls = {
+      submit: submitListing,
+      archive: archiveListing,
+      relist: relistListing,
+      delete: deleteListing,
+      pause: pauseListing,
+      resume: resumeListing,
+      mark_sold: markListingSold,
+      mark_let: markListingLet,
+      close: closeListing,
+    };
     const result = await calls[button.action](listing.id);
     setActing(false);
     if (!result.ok) {
@@ -607,6 +622,13 @@ function Editor({ listingId, lists }: Props) {
         title: updated.status === "PENDING_REVIEW" ? "Relist sent for review" : "Relisted",
         body: updated.status === "PENDING_REVIEW" ? "It is waiting for review again." : "It is a draft again: finish it and submit it.",
       },
+      pause: { title: "Paused", body: "Visitors no longer see it. It keeps its place in your package; its 90 days keep running." },
+      resume: updated.status === "EXPIRED"
+        ? { title: "Expired meanwhile", body: "Its 90 days ended while it was paused. Relist it to show it again." }
+        : { title: "Public again", body: "Visitors see this listing again." },
+      mark_sold: { title: "Marked as sold", body: "Visitors no longer see it, and it no longer takes a place in your package." },
+      mark_let: { title: "Marked as let", body: "Visitors no longer see it, and it no longer takes a place in your package." },
+      close: { title: "Closed", body: "Visitors no longer see it, and it no longer takes a place in your package." },
     };
     const done = words[button.action];
     // Submitting and relisting are never blocked by the package; a full package is said here (API 0.37.0).

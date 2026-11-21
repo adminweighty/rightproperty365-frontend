@@ -61,7 +61,11 @@ export function listingStatusTone(status: string): Tone {
       return "info";
     case "CHANGES_REQUESTED":
     case "EXPIRED":
+    case "PAUSED":
       return "warning";
+    case "SOLD":
+    case "LET":
+      return "info";
     case "REJECTED":
       return "danger";
     default:
@@ -102,7 +106,8 @@ export function listingManagerHref(status: string = "", page = 1): string {
 
 // ---- Actions ----------------------------------------------------------------
 
-export type ListingAction = "edit" | "submit" | "archive" | "relist" | "delete";
+/** API 0.48.0 adds the lifecycle: pause, resume, mark sold or let, close. */
+export type ListingAction = "edit" | "submit" | "archive" | "relist" | "delete" | "pause" | "resume" | "mark_sold" | "mark_let" | "close";
 
 export type ActionButton = {
   action: Exclude<ListingAction, "edit">;
@@ -145,7 +150,12 @@ export function listingActionButtons({
       disabledReason: ready ? undefined : "Complete the items under “Still needed” first.",
     });
   }
+  if (has("resume")) buttons.push({ action: "resume", label: "Resume", variant: "primary", confirm: false });
   if (!expired && has("relist")) buttons.push({ action: "relist", label: "Relist", variant: "secondary", confirm: true });
+  if (has("pause")) buttons.push({ action: "pause", label: "Pause", variant: "secondary", confirm: true });
+  if (has("mark_sold")) buttons.push({ action: "mark_sold", label: "Mark as sold", variant: "secondary", confirm: true });
+  if (has("mark_let")) buttons.push({ action: "mark_let", label: "Mark as let", variant: "secondary", confirm: true });
+  if (has("close")) buttons.push({ action: "close", label: "Close", variant: "secondary", confirm: true });
   if (has("archive")) buttons.push({ action: "archive", label: "Archive", variant: "secondary", confirm: true });
   if (has("delete")) buttons.push({ action: "delete", label: "Delete", variant: "danger", confirm: true });
   return buttons;
@@ -174,6 +184,32 @@ export function confirmText(action: ActionButton["action"], wasPublic: boolean):
           : "It goes back to Draft, so you can finish it and submit it for review.",
         confirm: "Yes, relist it",
       };
+    case "pause":
+      return {
+        title: "Pause this listing?",
+        body: "Visitors stop seeing it until you resume it. It keeps its place in your package, and its 90 days keep running.",
+        confirm: "Yes, pause it",
+      };
+    case "mark_sold":
+      return {
+        title: "Mark this listing as sold?",
+        body: "Visitors no longer see it and it frees a place in your package. You can relist it later if the sale falls through.",
+        confirm: "Yes, it is sold",
+      };
+    case "mark_let":
+      return {
+        title: "Mark this listing as let?",
+        body: "Visitors no longer see it and it frees a place in your package. Relist it when the property is available again.",
+        confirm: "Yes, it is let",
+      };
+    case "close":
+      return {
+        title: "Close this listing?",
+        body: "Visitors no longer see it and it frees a place in your package. You can relist it later; it is reviewed again first.",
+        confirm: "Yes, close it",
+      };
+    case "resume":
+      return { title: "Resume this listing?", body: "Visitors see it again until its 90 days end.", confirm: "Resume" };
     case "delete":
       return {
         title: "Delete this listing?",
@@ -231,6 +267,20 @@ export function listingBanner(listing: {
         tone: "info",
         title: "This listing is archived",
         body: "Visitors do not see it. Relist it to bring it back.",
+      };
+    case "PAUSED":
+      return {
+        tone: "warning",
+        title: "This listing is paused",
+        body: "Visitors do not see it. It keeps its place in your package and its 90 days keep running. Resume it to show it again.",
+      };
+    case "SOLD":
+    case "LET":
+    case "CLOSED":
+      return {
+        tone: "info",
+        title: listing.status === "SOLD" ? "This listing is sold" : listing.status === "LET" ? "This listing is let" : "This listing is closed",
+        body: "Visitors do not see it and it no longer takes a place in your package. Relist it if the property is back on the market.",
       };
     case "PUBLISHED":
       if (!pending) {
@@ -445,6 +495,16 @@ export function timelineText(entry: { action: string; review_kind: string | null
       return "Relisted";
     case "EXPIRED":
       return "Expired";
+    case "PAUSED":
+      return "Paused";
+    case "RESUMED":
+      return "Resumed";
+    case "MARKED_SOLD":
+      return "Marked as sold";
+    case "MARKED_LET":
+      return "Marked as let";
+    case "CLOSED":
+      return "Closed";
     default:
       return entry.action;
   }
