@@ -20,6 +20,8 @@ import { buildSearchOptions } from "@/lib/search-options";
 import { LISTINGS_PAGE_SIZE, listingsCollectionJsonLd, listingsPath, parseListingsSearch } from "@/lib/seo";
 import { ApiBoundary } from "@/components/api-boundary";
 import { ViewToggle } from "@/components/listings/view-toggle";
+import { SaveSearchButton } from "@/components/saved-searches/save-search-button";
+import { queryString } from "@/lib/api/server/client";
 import { ResultsMap, type MapListing } from "@/components/map/maps";
 import { Alert } from "@/components/ui/alert";
 import type { Listing } from "@/lib/api/types";
@@ -223,6 +225,14 @@ async function Results({ searchParams }: Pick<Props, "searchParams">) {
             </li>
           </Stagger>
         </nav>
+      )}
+
+      {result.status === "ok" && (
+        <SaveSearchButton
+          heading={search.heading}
+          query={queryString({ ...search.query, page: undefined, page_size: undefined, sort: undefined, bbox: undefined, has_location: undefined }).replace(/^\?/, "")}
+          className="mt-6"
+        />
       )}
 
       {env.map && result.status === "ok" && (
