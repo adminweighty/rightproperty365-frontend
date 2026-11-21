@@ -12,10 +12,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, fieldDescribedBy, Textarea } from "@/components/ui/field";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Pagination } from "@/components/ui/pagination";
 import {
   listRoutingExceptions,
+  rerouteRoutingException,
   resolveRoutingException,
+  routingCandidates,
+  type RoutingCandidate,
   type RoutingException,
   type RoutingExceptionState,
 } from "@/lib/api/admin";
@@ -37,6 +41,120 @@ const hrefFor = (state: RoutingExceptionState, page = 1) => {
   const text = search.toString();
   return text ? `${PATH}?${text}` : PATH;
 };
+
+/**
+ * Giving one to an organisation of its country (API 0.49.0): the organisation
+ * (its inbox) or one of its owners, managers or agents, and a note.
+ */
+function SendTo({ item, onDone }: { item: RoutingException; onDone: (message: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [candidates, setCandidates] = useState<RoutingCandidate[] | null>(null);
+  const [org, setOrg] = useState("");
+  const [member, setMember] = useState("");
+  const [note, setNote] = useState("");
+  const [pending, setPending] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [failure, setFailure] = useState<{ message: string; traceId?: string } | null>(null);
+  const id = `send-${item.request_id}`;
+  const chosen = candidates?.find((c) => c.organisation_id === org);
+
+  async function openForm() {
+    setOpen(true);
+    const result = await routingCandidates(item.request_id);
+    if (result.ok) setCandidates(result.data.organisations);
+    else setFailure({ message: result.failure.message, traceId: result.failure.traceId });
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!org) {
+      setErrors({ organisation_id: "Choose the organisation." });
+      return;
+    }
+    setFailure(null);
+    setPending(true);
+    const result = await rerouteRoutingException(item.request_id, { organisation_id: org, user_id: member || null, note: note.trim() });
+    setPending(false);
+    if (result.ok) {
+      const who = member ? chosen?.members.find((m) => m.user_id === member)?.name : chosen?.name;
+      onDone(`${item.reference} was sent to ${who ?? "the organisation"}. They have been notified.`);
+      return;
+    }
+    if (result.failure.status === 409) {
+      onDone(`Another administrator already dealt with ${item.reference}. The list has been refreshed.`);
+      return;
+    }
+    if (result.failure.fields) {
+      setErrors(result.failure.fields);
+      return;
+    }
+    setFailure({ message: result.failure.message, traceId: result.failure.traceId });
+  }
+
+  if (!open) {
+    return (
+      <Button onClick={() => void openForm()}>
+        Send to an organisation<span className="sr-only">: {item.reference}</span>
+      </Button>
+    );
+  }
+  return (
+    <form onSubmit={handleSubmit} noValidate className="w-full rounded-md border border-line bg-sunken p-4">
+      <p className="font-medium text-ink">Send {item.reference} to an organisation</p>
+      <p className="mt-1 text-sm text-muted">
+        Only organisations of the request&apos;s country with an active owner, manager or estate agent are listed. They get the
+        request in their inbox and are notified; the customer is not emailed again.
+      </p>
+      {candidates === null && !failure && <p className="mt-3 text-sm text-muted">Loading the organisations…</p>}
+      {candidates && candidates.length === 0 && <p className="mt-3 text-sm text-ink">No organisation in this country can receive it.</p>}
+      {candidates && candidates.length > 0 && (
+        <>
+          <Field id={`${id}-org`} label="Organisation" error={errors.organisation_id} className="mt-3">
+            <SearchableSelect
+              id={`${id}-org`}
+              value={org}
+              onValueChange={(value) => {
+                setOrg(value);
+                setMember("");
+              }}
+              options={[
+                { value: "", label: "Choose an organisation" },
+                ...candidates.map((c) => ({ value: c.organisation_id, label: c.name, secondary: titleFromCode(c.kind) })),
+              ]}
+            />
+          </Field>
+          {chosen && (
+            <Field id={`${id}-member`} label="Person" optional hint="Leave empty to send it to the organisation's inbox." error={errors.user_id} className="mt-3">
+              <SearchableSelect
+                id={`${id}-member`}
+                value={member}
+                onValueChange={setMember}
+                options={[
+                  { value: "", label: "The organisation's inbox" },
+                  ...chosen.members.map((m) => ({ value: m.user_id, label: m.name, secondary: titleFromCode(m.role) })),
+                ]}
+              />
+            </Field>
+          )}
+          <Field id={`${id}-note`} label="Note for other administrators" optional error={errors.note} className="mt-3">
+            <Textarea id={`${id}-note`} rows={2} maxLength={2000} value={note} onChange={(event) => setNote(event.target.value)} />
+          </Field>
+        </>
+      )}
+      {failure && <Alert title={failure.message} traceId={failure.traceId} className="mt-3" />}
+      <div className="mt-3 flex flex-wrap gap-3">
+        {candidates && candidates.length > 0 && (
+          <Button type="submit" disabled={pending} aria-busy={pending}>
+            {pending ? "Sending…" : "Send"}
+          </Button>
+        )}
+        <Button variant="ghost" onClick={() => setOpen(false)}>
+          Cancel
+        </Button>
+      </div>
+    </form>
+  );
+}
 
 /** Marking one as dealt with, in place: a note for other administrators, then confirm. */
 function Resolve({ item, onDone }: { item: RoutingException; onDone: (message: string) => void }) {
@@ -234,14 +352,24 @@ function List() {
                     </div>
                     <div className="mt-4 border-t border-line pt-4">
                       {item.state === "OPEN" ? (
-                        <Resolve
-                          item={item}
-                          onDone={(text) => {
-                            setMessage(text);
-                            reload();
-                            window.setTimeout(() => announce.current?.focus(), 0);
-                          }}
-                        />
+                        <div className="flex flex-wrap items-start gap-3">
+                          <SendTo
+                            item={item}
+                            onDone={(text) => {
+                              setMessage(text);
+                              reload();
+                              window.setTimeout(() => announce.current?.focus(), 0);
+                            }}
+                          />
+                          <Resolve
+                            item={item}
+                            onDone={(text) => {
+                              setMessage(text);
+                              reload();
+                              window.setTimeout(() => announce.current?.focus(), 0);
+                            }}
+                          />
+                        </div>
                       ) : (
                         <p className="text-sm text-muted">
                           Dealt with{item.resolved_at ? ` ${formatWhen(item.resolved_at)}` : ""}.

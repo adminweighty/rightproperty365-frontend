@@ -70,6 +70,26 @@ export const listRoutingExceptions = (state: RoutingExceptionState, page: number
     cache: "no-store",
   });
 
+/** An organisation a routing exception may be given to (API 0.49.0). */
+export type RoutingCandidate = {
+  organisation_id: string;
+  name: string;
+  kind: string;
+  members: { user_id: string; name: string; role: string }[];
+};
+
+/** The organisations of the request's country that may receive it, with their owners, managers and agents. */
+export const routingCandidates = (id: string) =>
+  apiFetch<{ organisations: RoutingCandidate[] }>(`/v1/admin/routing-exceptions/${id}/candidates`, { cache: "no-store" });
+
+/**
+ * Gives a routing exception to an organisation's inbox, or to one of its
+ * members (API 0.49.0). They are notified; the request is RECEIVED. 409
+ * `ALREADY_RESOLVED` when someone dealt with it first.
+ */
+export const rerouteRoutingException = (id: string, input: { organisation_id: string; user_id: string | null; note: string }) =>
+  apiFetch<{ request: RoutingException }>(`/v1/admin/routing-exceptions/${id}/assign`, { method: "POST", body: input });
+
 /** Records that someone dealt with it. 409 `ALREADY_RESOLVED` when someone else did first. */
 export const resolveRoutingException = (id: string, note: string) =>
   apiFetch<{ request: RoutingException }>(`/v1/admin/routing-exceptions/${id}/resolve`, {
