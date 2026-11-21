@@ -272,7 +272,16 @@ async function ListingContent({ params }: Pick<Props, "params">) {
             <Badge tone="primary">{listing.deal.label}</Badge>
             <Badge>{listing.category.label}</Badge>
             <Badge>{listing.property_type.label}</Badge>
+            {listing.placement && <Badge tone="accent">{listing.placement.label}</Badge>}
           </div>
+          {/* Paid placement disclosure (API 0.53.0). */}
+          {listing.placement && (
+            <p className="mt-2 text-sm text-muted">
+              {listing.placement.kind === "SPONSORED"
+                ? "Sponsored: the advertiser paid for this placement."
+                : "Featured: the advertiser paid to show this listing first."}
+            </p>
+          )}
           <div className="mt-4 flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
             <h1 className="min-w-0 text-3xl md:text-4xl">{listing.title}</h1>
             {/* Filled in by the browser for the signed-in person; the page itself stays the same for everyone. */}

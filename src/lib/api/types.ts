@@ -139,6 +139,8 @@ export type Listing = {
   description: string;
   features: Coded[];
   featured: boolean;
+  /** The active paid placement (API 0.53.0); null when none (a listing may still be featured). */
+  placement?: { kind: "FEATURED" | "SPONSORED"; label: string } | null;
   /** In display order; the first is the cover. May be empty. */
   photos: Photo[];
   advertiser: ListingAdvertiser;

@@ -159,7 +159,7 @@ export function ListingCard({ listing, isNew, periods, stay, photoLoading, impre
         <div className="absolute left-3 right-16 top-3 flex flex-wrap gap-1.5">
           <span className={`${tag} bg-primary text-on-primary`}>{listing.deal.label}</span>
           {isNew && <span className={`${tag} bg-surface text-ink`}>New</span>}
-          {listing.featured && <span className={`${tag} sheen bg-brand-accent text-brand-deep`}>Featured</span>}
+          {listing.featured && <span className={`${tag} sheen bg-brand-accent text-brand-deep`}>{listing.placement?.label ?? "Featured"}</span>}
           {listing.has_video && (
             <span className={`${tag} inline-flex items-center gap-1 bg-surface text-ink`}>
               <Play className="size-3 fill-current" aria-hidden="true" />
