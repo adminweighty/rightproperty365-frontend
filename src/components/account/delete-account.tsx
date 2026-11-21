@@ -185,7 +185,13 @@ export function DeleteAccount() {
         <>
           <BackLink href="/account">Your account</BackLink>
           <h1 className="mt-1 text-4xl">Delete your account</h1>
-          <p className="mt-2 max-w-2xl leading-relaxed text-muted">Read this first. Deleting your account cannot be undone.</p>
+          <p className="mt-2 max-w-2xl leading-relaxed text-muted">
+            Read this first. Deleting your account cannot be undone. You may want to{" "}
+            <Link href="/account/data-export" className="font-medium text-primary-ink underline underline-offset-2">
+              download a copy of your data
+            </Link>{" "}
+            first.
+          </p>
           <Card className="mt-8">
             <Consequences />
             <Form user={user} />
