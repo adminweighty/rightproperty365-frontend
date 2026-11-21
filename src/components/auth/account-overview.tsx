@@ -227,6 +227,9 @@ function Details({ user, roleLabels, organisationKindLabels }: Props & { user: U
         <ButtonLink href="/account/requests" variant="secondary">
           Your requests
         </ButtonLink>
+        <ButtonLink href="/account/security" variant="secondary">
+          Security
+        </ButtonLink>
         <ButtonLink href="/account/appointments" variant="secondary">
           Your appointments
         </ButtonLink>
