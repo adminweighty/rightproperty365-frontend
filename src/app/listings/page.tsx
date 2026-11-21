@@ -173,6 +173,8 @@ async function Results({ searchParams }: Pick<Props, "searchParams">) {
       {/* The heading rises into place as the page paints: a transform in CSS, so it is never hidden. */}
       <div className="enter-rise">
       <h1 className="text-3xl md:text-4xl">{search.heading}</h1>
+      {/* A country's notice, set by the administrators (API 0.56.0). */}
+      {country?.notice && <p className="mt-2 rounded-md bg-info-soft px-3 py-2 text-sm text-ink">{country.notice}</p>}
       {page && (
         <p className="mt-2 text-muted" role="status">
           {propertyCount(page.total)}

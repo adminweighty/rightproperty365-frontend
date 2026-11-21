@@ -445,6 +445,10 @@ export type Country = {
   currency_code: string;
   /** IANA time zone. */
   timezone: string;
+  /** The main currency then the extra permitted ones (API 0.56.0). */
+  currencies?: string[];
+  /** A short notice set by the administrators (API 0.56.0), such as "Launching soon". */
+  notice?: string | null;
   /** Published listings. Optional: API builds before 0.15 do not send the two counts. */
   listing_count?: number;
   has_listings?: boolean;

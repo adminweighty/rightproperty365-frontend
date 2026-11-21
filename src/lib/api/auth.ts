@@ -212,6 +212,8 @@ export const SUBSCRIPTION_READ_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", 
 export const SUBSCRIPTION_MANAGE_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "FINANCE_ADMIN"];
 /** Who keeps listing packages and assigns them (API 0.37.0); a MARKET_ADMIN only for its own countries. */
 export const PACKAGE_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "PLATFORM_ADMIN", "MARKET_ADMIN"];
+/** Market administration (API 0.56.0; a MARKET_ADMIN edits its own countries, not their status). */
+export const MARKET_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "PLATFORM_ADMIN", "MARKET_ADMIN"];
 /** Featured and sponsored placements (API 0.53.0; a MARKET_ADMIN in its own markets). */
 export const PLACEMENT_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "PLATFORM_ADMIN", "FINANCE_ADMIN", "MARKET_ADMIN"];
 /** Reference data (a MARKET_ADMIN only changes the rows of its own market). */
