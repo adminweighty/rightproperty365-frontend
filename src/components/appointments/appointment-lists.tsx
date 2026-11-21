@@ -305,6 +305,10 @@ function Received() {
         <Link href="/agent/requests" className="font-medium text-primary-ink hover:underline">
           Request inbox
         </Link>
+        {" · "}
+        <Link href="/agent/availability" className="font-medium text-primary-ink hover:underline">
+          Your availability and services
+        </Link>
       </p>
 
       <form onSubmit={applyFilters} aria-label="Filter appointments" className="mt-6 grid gap-4 rounded-xl border border-line bg-surface p-4 shadow-xs sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1fr_auto] lg:items-end">

@@ -23,6 +23,8 @@ export type PropertyRequestInput = {
   message: string;
   preferred_contact_method: ContactMethod;
   preferred_slot_utc?: string;
+  /** A consultation service of the professional (API 0.51.0), with a slot. */
+  service_id?: string;
   /**
    * A request to stay (`STAY_REQUEST`, short stays only): the first night, the
    * day of leaving (`YYYY-MM-DD`, the listing's time zone) and the number of

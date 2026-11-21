@@ -1,9 +1,10 @@
 "use client";
 
 import { CircleCheck } from "lucide-react";
-import { useRef, useState, type FormEvent } from "react";
+import { useCallback, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/auth/auth-provider";
+import { SlotPicker } from "@/components/appointments/slot-picker";
 import { useStay } from "@/components/availability/stay-calendar";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -60,6 +61,7 @@ const apiFieldToControl: Record<string, string> = {
   request_type: "request_type",
   preferred_contact_method: "preferred_contact_method",
   preferred_slot_utc: "preferred_slot",
+  service_id: "preferred_slot",
   check_in: "check_in",
   check_out: "check_out",
   guests: "guests",
@@ -92,6 +94,12 @@ export function PropertyRequestForm({
   const [pending, setPending] = useState(false);
   const [failure, setFailure] = useState<ApiFailure | null>(null);
   const [receipt, setReceipt] = useState<PropertyRequestReceipt | null>(null);
+  // Offered times (API 0.51.0): null until the API answers, then whether the
+  // professional offers slots; with slots the free date-time field is hidden.
+  const [slotsOffered, setSlotsOffered] = useState<boolean | null>(null);
+  const [pickedSlot, setPickedSlot] = useState("");
+  const [serviceId, setServiceId] = useState("");
+  const onConfigured = useCallback((configured: boolean) => setSlotsOffered(configured), []);
 
   // One key per logical request: a retry of unchanged content reuses it so the
   // API cannot create a duplicate lead; any edit starts a new request.
@@ -143,8 +151,14 @@ export function PropertyRequestForm({
       message: text("message"),
       preferred_contact_method: contactMethod,
       // datetime-local is the visitor's local time; the API stores UTC.
-      preferred_slot_utc:
-        slot && slotTypes.includes(requestType) ? new Date(slot).toISOString() : undefined,
+      preferred_slot_utc: !slotTypes.includes(requestType)
+        ? undefined
+        : slotsOffered
+          ? pickedSlot || undefined
+          : slot
+            ? new Date(slot).toISOString()
+            : undefined,
+      service_id: slotsOffered && requestType === "CONSULTATION_REQUEST" && pickedSlot && serviceId ? serviceId : undefined,
       ...(asksToStay && { check_in: checkIn, check_out: checkOut, guests: Number(stay.guests) }),
       idempotency_key: idempotencyKey.current,
       // Signed-in customers send no name or email; the API uses their profile.
@@ -326,6 +340,19 @@ export function PropertyRequestForm({
       )}
 
       {slotTypes.includes(requestType) && (
+        <SlotPicker
+          key={requestType}
+          target={{ type: requestType === "CONSULTATION_REQUEST" ? "CONSULTATION" : "VIEWING", listingId }}
+          value={pickedSlot}
+          onChange={setPickedSlot}
+          serviceId={serviceId}
+          onServiceChange={setServiceId}
+          onConfigured={onConfigured}
+          error={slotsOffered ? errors.preferred_slot : undefined}
+        />
+      )}
+
+      {slotTypes.includes(requestType) && slotsOffered !== true && (
         <Field
           id="preferred_slot"
           label="Preferred date and time"

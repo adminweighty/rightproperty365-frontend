@@ -17,6 +17,7 @@ import {
 } from "@/lib/api/appointments";
 import { titleFromCode } from "@/lib/api/auth";
 import type { ApiFailure, ApiResult } from "@/lib/api/http";
+import { channelLabel } from "@/lib/appointment-availability";
 import type { CalendarSource } from "@/lib/calendar";
 
 const tones: Record<AppointmentStatus, "info" | "success" | "warning" | "neutral" | "danger"> = {
@@ -146,6 +147,11 @@ export function AppointmentCard<T extends Appointment>({
           <span className="font-normal text-muted"> · {appointment.duration_minutes} minutes</span>
         </span>
       </h3>
+      {appointment.service && (
+        <p className="mt-1 text-sm text-muted">
+          {appointment.service.name} · {channelLabel(appointment.service.channel)}
+        </p>
+      )}
 
       {appointment.proposed_start_utc && (
         <p className="mt-2 rounded-md bg-warning-soft p-3 text-sm text-ink">

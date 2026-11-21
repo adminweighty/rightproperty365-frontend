@@ -52,6 +52,8 @@ export type Appointment = {
   property_request_reference: string | null;
   cancelled_by: string | null;
   cancel_reason: string | null;
+  /** The consultation service it was booked for (API 0.51.0); `id` is null once the service is deleted. */
+  service?: { id: string | null; name: string; channel: string } | null;
   /** Only on a single appointment, never on list items. */
   timeline?: AppointmentTimelineEntry[];
 };
