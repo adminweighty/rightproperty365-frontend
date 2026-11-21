@@ -31,7 +31,7 @@ import {
   type StayProblems,
 } from "@/lib/nights";
 import { LegalLink } from "@/components/legal/legal-link";
-import { trackContactClick } from "@/lib/analytics/tracker";
+import { currentCampaign, trackContactClick } from "@/lib/analytics/tracker";
 import { PRIVACY_NOTICE_VERSION } from "@/lib/env";
 
 type Props = {
@@ -145,6 +145,7 @@ export function PropertyRequestForm({
     setPending(true);
     setFailure(null);
 
+    const campaign = currentCampaign();
     const result = await submitPropertyRequest({
       listing_id: listingId,
       request_type: requestType,
@@ -169,6 +170,8 @@ export function PropertyRequestForm({
         phone: text("phone").replace(/[\s()-]/g, "") || undefined,
       },
       consent: { privacy_version: PRIVACY_NOTICE_VERSION, accepted: data.get("consent") === "on" },
+      // Nothing under Do Not Track or Global Privacy Control (API 0.58.0).
+      ...(campaign && { campaign }),
     });
 
     setPending(false);

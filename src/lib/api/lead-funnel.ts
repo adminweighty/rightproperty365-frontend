@@ -46,6 +46,11 @@ export type LeadFunnelListingRow = LeadFunnelBreakdownFigures & {
   listing: { slug: string; title: string; reference: string } | null;
 };
 
+/** One campaign (API 0.58.0); `campaign` is null on the row of the requests that came with none. */
+export type LeadFunnelCampaignRow = LeadFunnelBreakdownFigures & {
+  campaign: { source: string; medium: string; campaign: string } | null;
+};
+
 export type LeadFunnelReport = {
   organisation_id: string | null;
   scope: LeadFunnelScope;
@@ -76,6 +81,8 @@ export type LeadFunnelReport = {
   by_agent: LeadFunnelAgentRow[];
   by_request_type: LeadFunnelTypeRow[];
   by_listing: LeadFunnelListingRow[];
+  /** The 20 campaigns with the most requests, then the requests without one (API 0.58.0; absent from older builds). */
+  by_campaign?: LeadFunnelCampaignRow[];
 };
 
 /** `GET /v1/agent/organisations/{id}/reports/lead-funnel`, or `GET /v1/me/reports/lead-funnel` for `me`. */

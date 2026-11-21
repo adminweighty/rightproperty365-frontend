@@ -25,6 +25,7 @@ import {
   type ReceivedPropertyRequest,
   type RequestTimelineEntry,
 } from "@/lib/api/agent";
+import { campaignLabel } from "@/lib/analytics/campaign";
 import { canUseInbox } from "@/lib/api/auth";
 import { getDashboard } from "@/lib/api/dashboard";
 import { listTeamMembers } from "@/lib/api/team";
@@ -440,6 +441,11 @@ function Detail({ id, typeLabels, contactMethodLabels }: { id: string; typeLabel
           " about a listing that no longer has a public page"
         )}
       </p>
+      {request.campaign && (
+        <p className="mt-1 text-sm text-muted">
+          Came from the campaign <span className="font-medium text-ink">{campaignLabel(request.campaign)}</span>
+        </p>
+      )}
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div className="space-y-8">

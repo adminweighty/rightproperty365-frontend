@@ -50,6 +50,8 @@ export type AnalyticsEvent = {
   /** The session pseudonym; filled in when the batch is sent. */
   session: string | null;
   consent: { analytics: true };
+  /** The campaign the visit came from (API 0.58.0); omitted when there is none. */
+  campaign?: { source: string; medium: string; campaign: string };
 };
 
 // ---- Do Not Track and Global Privacy Control ---------------------------------

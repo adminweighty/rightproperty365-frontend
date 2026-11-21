@@ -37,6 +37,11 @@ export type AgentPropertyRequest = {
   last_message_at?: string | null;
   /** The customer wrote last: the receiving side owes an answer. */
   awaiting_reply?: boolean;
+  /**
+   * The campaign the customer's visit came from (API 0.58.0); null when there
+   * was none or their browser asked not to be tracked. Optional for older API builds.
+   */
+  campaign?: { source: string; medium: string; campaign: string } | null;
 };
 
 /**

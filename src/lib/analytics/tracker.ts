@@ -16,6 +16,7 @@ import {
   type BrowserEventType,
   type Placement,
 } from "@/lib/analytics/core";
+import { CAMPAIGN_KEY, nextCampaign, type Campaign } from "@/lib/analytics/campaign";
 import { env } from "@/lib/env";
 
 /*
@@ -49,6 +50,35 @@ const inBrowser = () => typeof window !== "undefined" && typeof navigator !== "u
 /** True when this browser may be measured at all (Do Not Track and Global Privacy Control are off). */
 export function measurementAllowed(): boolean {
   return inBrowser() && trackingAllowed(navigator as Navigator & { globalPrivacyControl?: boolean });
+}
+
+/**
+ * The campaign of this browser session (API 0.58.0): read from the current
+ * address (a new utm_* landing replaces it) and kept in sessionStorage.
+ * Nothing is read or kept under Do Not Track or Global Privacy Control, or
+ * for an administrator session.
+ */
+export function currentCampaign(): Campaign | null {
+  if (!measurementAllowed() || audience === "admin") return null;
+  try {
+    let stored: string | null = null;
+    try {
+      stored = window.sessionStorage.getItem(CAMPAIGN_KEY);
+    } catch {
+      // Storage blocked: the campaign of this page only.
+    }
+    const campaign = nextCampaign(window.location.search, stored);
+    if (campaign) {
+      try {
+        window.sessionStorage.setItem(CAMPAIGN_KEY, JSON.stringify(campaign));
+      } catch {
+        // Storage blocked or full: nothing more to do.
+      }
+    }
+    return campaign;
+  } catch {
+    return null;
+  }
 }
 
 function randomBytes(): Uint8Array {
@@ -184,6 +214,8 @@ export function track({ type, listingId, placement, rank }: TrackInput): void {
     session: null,
     consent: { analytics: true },
   };
+  const campaign = currentCampaign();
+  if (campaign) event.campaign = campaign;
   if (queue.add(event, dedupKey(pageView, type, listingId, placement))) schedule();
 }
 

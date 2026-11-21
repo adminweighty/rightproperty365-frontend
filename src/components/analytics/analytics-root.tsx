@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { isPlacement } from "@/lib/analytics/core";
-import { currentPageView, measurementAllowed, setAudience, track } from "@/lib/analytics/tracker";
+import { currentCampaign, currentPageView, measurementAllowed, setAudience, track } from "@/lib/analytics/tracker";
 
 /** A card counts as seen when at least half of it is on screen for a whole second. */
 const VISIBLE_RATIO = 0.5;
@@ -123,6 +123,8 @@ export function AnalyticsRoot() {
 
   useEffect(() => {
     if (!measurementAllowed()) return;
+    // Keep the landing page's campaign before the address changes (API 0.58.0).
+    currentCampaign();
     return observeImpressions();
   }, []);
 

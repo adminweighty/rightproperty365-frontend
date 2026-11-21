@@ -37,6 +37,8 @@ export type PropertyRequestInput = {
   /** Omit name and email when the customer is signed in; the API uses their profile. */
   guest_contact?: { name?: string; email?: string; phone?: string };
   consent: { privacy_version: string; accepted: boolean };
+  /** The campaign the visit came from (API 0.58.0); omitted when there is none. */
+  campaign?: { source: string; medium: string; campaign: string };
 };
 
 export type PropertyRequestReceipt = {

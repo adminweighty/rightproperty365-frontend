@@ -13,6 +13,7 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, fieldDescribedBy, Input } from "@/components/ui/field";
 import { SearchableSelect, type SelectOption } from "@/components/ui/searchable-select";
+import { campaignLabel } from "@/lib/analytics/campaign";
 import { dayLong } from "@/lib/analytics/report";
 import { canUseInbox, type User } from "@/lib/api/auth";
 import { getDashboard, type Dashboard, type DashboardOrganisation } from "@/lib/api/dashboard";
@@ -640,6 +641,12 @@ function Breakdowns({ report, typeLabels, listingNames, csv }: { report: LeadFun
     name: row.listing?.title || listingNames[row.listing_id] || "Listing without a public page",
     sub: row.listing?.reference ? `Reference ${row.listing.reference}` : undefined,
   }));
+  const campaigns: Row[] = (report.by_campaign ?? []).map((row) => ({
+    ...row,
+    key: row.campaign ? `${row.campaign.source}/${row.campaign.medium}/${row.campaign.campaign}` : "none",
+    name: campaignLabel(row.campaign),
+    sub: row.campaign ? undefined : "No campaign, or the browser asked not to be tracked",
+  }));
   return (
     <section aria-labelledby="funnel-breakdowns" className="space-y-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -659,6 +666,14 @@ function Breakdowns({ report, typeLabels, listingNames, csv }: { report: LeadFun
       />
       <BreakdownTable title="By type of request" intro="Every type, including those with no requests." firstColumn="Type" rows={types} />
       <BreakdownTable title="By listing" intro="The 20 listings with the most requests." firstColumn="Listing" rows={listings} />
+      {campaigns.length > 0 && (
+        <BreakdownTable
+          title="By campaign"
+          intro="Where the customer's visit came from (utm_source · utm_medium · utm_campaign of the page they landed on). The 20 campaigns with the most requests, then the requests without one."
+          firstColumn="Campaign"
+          rows={campaigns}
+        />
+      )}
     </section>
   );
 }
