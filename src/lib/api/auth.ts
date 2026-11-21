@@ -206,6 +206,8 @@ export const USER_MANAGE_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "PLATF
 export const AUDIT_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "PLATFORM_ADMIN"];
 /** Read the malware scanning of uploads (API 0.41.0, `GET /v1/admin/file-scans`). */
 export const FILE_SCAN_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "PLATFORM_ADMIN"];
+/** Email delivery figures and suppressions (API 0.59.0). */
+export const EMAIL_DELIVERY_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "PLATFORM_ADMIN", "SUPPORT"];
 /** Read plans and subscriptions. */
 export const SUBSCRIPTION_READ_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "FINANCE_ADMIN", "PLATFORM_ADMIN", "SUPPORT"];
 /** Change plans; record payments, reject and cancel subscriptions. */
