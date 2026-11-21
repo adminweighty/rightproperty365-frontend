@@ -284,7 +284,11 @@ export type AdminListing = ManagedListing & {
   changes: { field: string; before: unknown; after: unknown }[];
   photo_changes: { added: number; alt_changed: number };
   decisions: ListingDecision[];
+  /** Duplicate and spam hints (API 0.54.0); they block nothing. */
+  flags?: ListingFlag[];
 };
+
+export type ListingFlag = { code: "POSSIBLE_DUPLICATE" | "CONTACT_IN_TEXT" | "BURST" | "SHOUTING"; text: string; other_reference?: string };
 
 export type ListingQueueItem = {
   id: string;

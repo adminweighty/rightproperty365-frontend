@@ -432,6 +432,20 @@ function Review({ listingId, lists }: Props) {
 
       {outcome && <Alert tone={outcome.tone} title={outcome.text} className="mt-6" />}
 
+      {/* Duplicate and spam hints (API 0.54.0): for the reviewer's eye only, they block nothing. */}
+      {listing.flags && listing.flags.length > 0 && (
+        <Alert tone="warning" title="Worth a closer look" className="mt-6">
+          <ul className="mt-1 list-disc pl-5">
+            {listing.flags.map((flag, i) => (
+              <li key={`${flag.code}-${i}`}>
+                {flag.text}
+                {flag.other_reference && <> (see {flag.other_reference})</>}
+              </li>
+            ))}
+          </ul>
+        </Alert>
+      )}
+
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_20rem]">
         <aside aria-label="Decision" className="lg:order-2">
           <Card className="lg:sticky lg:top-24">

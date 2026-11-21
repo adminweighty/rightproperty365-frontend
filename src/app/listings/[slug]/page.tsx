@@ -38,6 +38,7 @@ import {
 } from "@/lib/seo";
 import { ApiBoundary } from "@/components/api-boundary";
 import { ListingMap } from "@/components/map/maps";
+import { ReportListing } from "@/components/listings/report-listing";
 import { env } from "@/lib/env";
 
 type Props = PageProps<"/listings/[slug]">;
@@ -363,7 +364,11 @@ async function ListingContent({ params }: Pick<Props, "params">) {
             </Reveal>
           )}
 
-          <p className="mt-10 text-sm text-subtle">Listing reference {listing.reference}</p>
+          <div className="mt-10 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-subtle">Listing reference {listing.reference}</p>
+            {/* Anyone may report a listing (API 0.54.0); a client island. */}
+            <ReportListing slug={listing.slug} />
+          </div>
         </div>
 
         <Reveal as="aside" aria-labelledby="contact-heading">

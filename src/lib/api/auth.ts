@@ -346,3 +346,5 @@ export const REVIEW_MODERATION_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", 
 
 /** Review development projects (API 0.44.0): the listing review roles. A MARKET_ADMIN sees their own countries only. */
 export const DEVELOPMENT_REVIEW_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "PLATFORM_ADMIN", "MODERATOR", "MARKET_ADMIN"];
+/** The listing reviewers: the reported-listings queue (API 0.54.0; a MARKET_ADMIN in its own markets). */
+export const LISTING_REVIEW_ROLES: readonly PlatformRole[] = ["SUPER_ADMIN", "PLATFORM_ADMIN", "MODERATOR", "MARKET_ADMIN"];
