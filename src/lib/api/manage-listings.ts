@@ -4,6 +4,7 @@ import type { MarketUsage } from "@/lib/api/packages";
 import type { ListingAdvertiser } from "@/lib/api/types";
 import type { ListingExpiry } from "@/lib/listing-expiry";
 import { env } from "@/lib/env";
+import { fallBackAfter, photoContentType, toHex, type UploadIntentResponse } from "@/lib/upload-intent";
 
 /**
  * Browser clients for listings managed by their advertisers and reviewed by
@@ -213,8 +214,83 @@ const uploadMessages: Record<number, string> = {
  * much of a body has been sent, so this uses XMLHttpRequest for the progress
  * (0 to 1) of each file. Answers like `apiFetch`.
  */
-export const uploadListingPhoto = (id: string, file: File, onProgress: (fraction: number) => void) =>
-  uploadPhotoFile<Envelope>(`${path(id)}/photos`, file, onProgress);
+/**
+ * Uploads one listing photo through an upload intent (API 0.60.0): hashed,
+ * PUT straight to storage when the API offers it (else through the API),
+ * checked, then attached. Falls back to the classic multipart upload when the
+ * intent route or the PUT is not available; a file the API rejected is not
+ * sent again another way.
+ */
+export async function uploadListingPhoto(id: string, file: File, onProgress: (fraction: number) => void): Promise<ApiResult<Envelope>> {
+  const viaIntent = await uploadThroughIntent(file, onProgress);
+  if (viaIntent.kind === "failed") return { ok: false, failure: viaIntent.failure };
+  if (viaIntent.kind === "ready") {
+    const attached = await apiFetch<Envelope>(`${path(id)}/photos`, { method: "POST", body: { upload_intent_id: viaIntent.intentId } });
+    if (attached.ok || attached.failure.code !== "UPLOAD_INTENT_STATE") return attached;
+  }
+  return uploadPhotoFile<Envelope>(`${path(id)}/photos`, file, onProgress);
+}
+
+type IntentOutcome = { kind: "ready"; intentId: string } | { kind: "fallback" } | { kind: "failed"; failure: ApiFailure };
+
+async function uploadThroughIntent(file: File, onProgress: (fraction: number) => void): Promise<IntentOutcome> {
+  const contentType = photoContentType(file.type);
+  if (!contentType || typeof crypto === "undefined" || !crypto.subtle) return { kind: "fallback" };
+  let sha256: string;
+  try {
+    sha256 = toHex(await crypto.subtle.digest("SHA-256", await file.arrayBuffer()));
+  } catch {
+    return { kind: "fallback" };
+  }
+  const created = await apiFetch<UploadIntentResponse>("/v1/media/upload-intents", {
+    method: "POST",
+    body: { purpose: "LISTING_PHOTO", content_type: contentType, size_bytes: file.size, sha256 },
+  });
+  if (!created.ok) return fallBackAfter("create", created.failure) ? { kind: "fallback" } : { kind: "failed", failure: created.failure };
+  const { intent, upload } = created.data;
+  const throughApi = `${env.apiUrl}/v1/media/upload-intents/${intent.id}/content`;
+  let put = await putFile(upload.direct ? upload.url : `${env.apiUrl}${upload.url}`, file, upload.headers, !upload.direct, onProgress);
+  if (!put.ok && upload.direct) {
+    // Storage refused the browser (its CORS does not allow this site yet): send it through the API.
+    put = await putFile(throughApi, file, upload.headers, true, onProgress);
+  }
+  if (!put.ok) return fallBackAfter("put", put.failure) ? { kind: "fallback" } : { kind: "failed", failure: put.failure };
+  const completed = await apiFetch<UploadIntentResponse>(`/v1/media/upload-intents/${intent.id}/complete`, { method: "POST", body: {} });
+  if (!completed.ok) {
+    const failure = { ...completed.failure, message: scanErrorMessage(completed.failure) ?? completed.failure.message };
+    return fallBackAfter("complete", failure) ? { kind: "fallback" } : { kind: "failed", failure };
+  }
+  return { kind: "ready", intentId: intent.id };
+}
+
+/** PUTs the file with progress; credentials only for the API itself. */
+function putFile(
+  url: string,
+  file: File,
+  headers: Record<string, string>,
+  withCredentials: boolean,
+  onProgress: (fraction: number) => void,
+): Promise<{ ok: true } | { ok: false; failure: ApiFailure }> {
+  return new Promise((resolve) => {
+    const request = new XMLHttpRequest();
+    request.open("PUT", url);
+    request.withCredentials = withCredentials;
+    for (const [name, value] of Object.entries(headers)) request.setRequestHeader(name, value);
+    request.upload.onprogress = (event) => {
+      if (event.lengthComputable && event.total > 0) onProgress(Math.min(event.loaded / event.total, 0.95));
+    };
+    request.onerror = () =>
+      resolve({ ok: false, failure: { code: "NETWORK_ERROR", status: 0, message: "We could not upload the photo. Check your connection and try again." } });
+    request.onload = () => {
+      if (request.status >= 200 && request.status < 300) {
+        resolve({ ok: true });
+        return;
+      }
+      resolve({ ok: false, failure: { code: `HTTP_${request.status}`, status: request.status, message: uploadMessages[request.status] ?? "The photo could not be uploaded." } });
+    };
+    request.send(file);
+  });
+}
 
 /**
  * POSTs one photo file to an API path with the session cookie, reporting the
