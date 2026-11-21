@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FocusEvent, type ReactNode } from "react";
 import { HourlyBookingSection } from "@/components/agent/hourly-settings";
 import { ListingApplications } from "@/components/agent/listing-applications";
+import { ListingBranch } from "@/components/agent/listing-branch";
 import { PhotoManager } from "@/components/agent/photo-manager";
 import { ListingAnalyticsCard } from "@/components/analytics/agent-analytics";
 import { UsageMeterView } from "@/components/packages/usage-meter";
@@ -810,6 +811,14 @@ function Editor({ listingId, lists }: Props) {
                 </>
               )}
             </Card>
+
+            {listing.owner.type === "organisation" && listing.owner.organisation_id && (
+              <ListingBranch
+                organisationId={listing.owner.organisation_id}
+                listingId={listing.id}
+                branchId={listing.owner.branch_id ?? null}
+              />
+            )}
 
             {(editable || listing.actions.includes("submit")) && (
               <Card>

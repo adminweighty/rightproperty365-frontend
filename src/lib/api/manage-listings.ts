@@ -132,7 +132,13 @@ export type ManagedListing = {
   photos: ManagedPhoto[];
   photo_limit: number;
   completeness: { ready: boolean; missing: { field: string; message: string }[] };
-  owner: { type: "organisation" | "direct_owner"; organisation_id: string | null; agent_user_id: string | null };
+  owner: {
+    type: "organisation" | "direct_owner";
+    organisation_id: string | null;
+    agent_user_id: string | null;
+    /** The organisation branch the listing belongs to (API 0.57.0). */
+    branch_id?: string | null;
+  };
   advertiser: ListingAdvertiser;
   can_edit: boolean;
   actions: ("edit" | "submit" | "archive" | "relist" | "delete")[];

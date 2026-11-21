@@ -166,3 +166,30 @@ export const getInvitation = (token: string) =>
 /** Signed in with the invited address. */
 export const acceptInvitation = (token: string) =>
   apiFetch<AcceptedInvitation>(`/v1/invitations/${encodeURIComponent(token)}/accept`, { method: "POST" });
+
+/*
+ * Branches (API 0.57.0): OWNER and MANAGER create, rename and archive them,
+ * pin members to one and tie listings to one. A pinned member sees only the
+ * organisation's work with no branch or their own branch.
+ */
+export type Branch = { id: string; name: string; active: boolean; created_at: string; updated_at: string };
+
+/** `member_branches`: user id -> branch id, for the pinned members only. */
+export type BranchList = { items: Branch[]; member_branches: Record<string, string> };
+
+export const listBranches = (organisationId: string) =>
+  apiFetch<BranchList>(`${base(organisationId)}/branches`, { cache: "no-store" });
+
+export const createBranch = (organisationId: string, name: string) =>
+  apiFetch<{ branch: Branch }>(`${base(organisationId)}/branches`, { method: "POST", body: { name } });
+
+export const updateBranch = (organisationId: string, branchId: string, change: { name?: string; active?: boolean }) =>
+  apiFetch<{ branch: Branch }>(`${base(organisationId)}/branches/${branchId}`, { method: "PATCH", body: change });
+
+/** `null` unpins the member: they see the whole organisation again. */
+export const pinMemberBranch = (organisationId: string, userId: string, branchId: string | null) =>
+  apiFetch<null>(`${base(organisationId)}/members/${userId}/branch`, { method: "PUT", body: { branch_id: branchId } });
+
+/** `null` unties the listing. Its leads follow the listing. */
+export const tieListingBranch = (organisationId: string, listingId: string, branchId: string | null) =>
+  apiFetch<null>(`${base(organisationId)}/listings/${listingId}/branch`, { method: "PUT", body: { branch_id: branchId } });

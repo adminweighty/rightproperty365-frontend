@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useMemo } from "react";
 import { Activity } from "@/components/agent/team/activity";
+import { Branches } from "@/components/agent/team/branches";
 import { InviteForm, Invitations } from "@/components/agent/team/invitations";
 import { JoinRequests } from "@/components/agent/team/join-requests";
 import { Members } from "@/components/agent/team/members";
@@ -74,6 +75,8 @@ function TeamView({ organisation }: { organisation: DashboardOrganisation }) {
         onChanged={replaceMember}
         onReload={members.reload}
       />
+
+      {organisation.can_manage_team && <Branches organisationId={id} members={data.items} />}
 
       <div>
         {joinRequests.state.status === "loading" && <LoadingBlock label="Loading requests to join" rows={1} />}

@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import { CountUp } from "@/components/motion/count-up";
 import { NoAccess } from "@/components/auth/require-auth";
 import { Alert } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import type { ApiFailure } from "@/lib/api/http";
 import { cn } from "@/lib/cn";
 
@@ -35,6 +35,7 @@ export function LoadingBlock({ label, rows = 2 }: { label: string; rows?: number
 
 /** The API's message with "Try again". A 403 is the "no access" state. */
 export function LoadError({ failure, onRetry }: { failure: ApiFailure; onRetry: () => void }) {
+  if (failure.code === "BRANCH_FORBIDDEN") return <OtherBranch />;
   if (failure.status === 403) return <NoAccess />;
   return (
     <div>
@@ -42,6 +43,25 @@ export function LoadError({ failure, onRetry }: { failure: ApiFailure; onRetry: 
       <Button variant="secondary" className="mt-4" onClick={onRetry}>
         Try again
       </Button>
+    </div>
+  );
+}
+
+/**
+ * A listing, lead or ledger entry of another branch of the caller's
+ * organisation (API 0.57.0: 403 BRANCH_FORBIDDEN).
+ */
+function OtherBranch() {
+  return (
+    <div className="rounded-lg border border-dashed border-line-strong p-10 text-center">
+      <h1 className="text-2xl">This belongs to another branch</h1>
+      <p className="mx-auto mt-2 max-w-md text-muted">
+        You work in one branch of your organisation, and this is another branch&apos;s work. If you need it, ask the
+        Agency Principal or an Agency Administrator.
+      </p>
+      <ButtonLink href="/dashboard" variant="secondary" className="mt-6">
+        Back to your dashboard
+      </ButtonLink>
     </div>
   );
 }

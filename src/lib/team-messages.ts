@@ -20,6 +20,10 @@ const teamMessages: Record<string, string> = {
     "Someone has already decided this request to join (another manager or our verification team). The list has been loaded again.",
   AGENCY_NOT_VERIFIED: "Your agency must be verified before people can join it.",
   ORGANISATION_NOT_FOUND: "We could not find that organisation, or you are no longer an active member of it.",
+  BRANCH_NAME_TAKEN: "Another branch already has that name.",
+  BRANCH_NOT_FOUND: "That branch could not be found. The list has been loaded again.",
+  BRANCH_LIMIT: "An organisation can have up to 100 branches. Archive one you no longer use.",
+  BRANCH_FORBIDDEN: "This belongs to another branch of your organisation.",
   RATE_LIMITED: "That was a lot of changes at once. Please wait a minute and try again.",
 };
 
@@ -37,6 +41,7 @@ export const STALE_CODES = new Set([
   "JOIN_REQUEST_ALREADY_DECIDED",
   "LAST_OWNER",
   "ALREADY_A_MEMBER",
+  "BRANCH_NOT_FOUND",
 ]);
 
 export const JOB_TITLE_MAX = 80;
