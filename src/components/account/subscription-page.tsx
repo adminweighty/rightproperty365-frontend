@@ -39,6 +39,7 @@ import {
   subscriptionStatus,
 } from "@/lib/subscriptions";
 import { canPayOnline } from "@/lib/online-payment";
+import { currentMarketZone } from "@/lib/display-zone";
 
 type CountryOption = { value: string; label: string };
 
@@ -67,8 +68,8 @@ function StatusBadge({ subscription }: { subscription: Subscription }) {
 
 /** "16 Nov 2026 to 16 Feb 2027", or what is known. */
 function periodDates(sub: Subscription) {
-  if (sub.starts_at && sub.ends_at) return `${formatDay(sub.starts_at)} to ${formatDay(sub.ends_at)}`;
-  return `Requested ${formatDay(sub.created_at)}`;
+  if (sub.starts_at && sub.ends_at) return `${formatDay(sub.starts_at, currentMarketZone())} to ${formatDay(sub.ends_at, currentMarketZone())}`;
+  return `Requested ${formatDay(sub.created_at, currentMarketZone())}`;
 }
 
 function usageText(usage: SubscriptionUsage) {
@@ -100,7 +101,7 @@ function InvoiceDetails({ subscription, onReload }: { subscription: Subscription
           ["Invoice number", subscription.invoice_number],
           ["Amount to pay", formatAmount(subscription.amount, subscription.currency_code)],
           ["Plan", `${subscription.plan_name}, ${periodLabel(subscription.period)} (${PERIOD_LENGTH[subscription.period] ?? ""})`],
-          ["Requested", formatDay(subscription.created_at)],
+          ["Requested", formatDay(subscription.created_at, currentMarketZone())],
         ]}
       />
       {subscription.payment_instructions && (
@@ -521,7 +522,7 @@ function Subscriber({
           </div>
         )}
         {current && !entry.can_renew && !upcoming && !pending && current.renewal_opens_at && (
-          <p className="mt-4 text-sm text-muted">You can renew from {formatDay(current.renewal_opens_at)}. Nothing renews by itself.</p>
+          <p className="mt-4 text-sm text-muted">You can renew from {formatDay(current.renewal_opens_at, currentMarketZone())}. Nothing renews by itself.</p>
         )}
 
         <Plans

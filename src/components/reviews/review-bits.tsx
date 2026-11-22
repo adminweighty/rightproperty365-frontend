@@ -22,6 +22,8 @@ import {
   textCounterWords,
   type Review,
 } from "@/lib/reviews";
+import { currentViewerZone } from "@/lib/display-zone";
+import { formatInstant } from "@/lib/time-zone";
 import { ReviewStars } from "./stars";
 
 /*
@@ -29,12 +31,8 @@ import { ReviewStars } from "./stars";
  * the reply's countdown, a form in a modal dialog and the "Report" button.
  */
 
-/** "15 Nov 2026" in the viewer's time zone. */
-export const formatDate = (iso: string | null) => {
-  if (!iso) return "";
-  const at = new Date(iso);
-  return Number.isNaN(at.getTime()) ? iso : new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" }).format(at);
-};
+/** Class A (API 0.62.0): "15 Nov 2026 (Harare time)", the day in the viewer's display zone, named. */
+export const formatDate = (iso: string | null) => (iso ? formatInstant(iso, currentViewerZone(), { style: "date" }) : "");
 
 export function ReviewStatusBadge({ status, label }: { status: string; label?: string | null }) {
   return <Badge tone={reviewStatusTone(status)}>{reviewStatusLabel(status, label)}</Badge>;

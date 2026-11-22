@@ -19,6 +19,8 @@ import { getDashboard, type DashboardOrganisation } from "@/lib/api/dashboard";
 import type { ApiResult } from "@/lib/api/http";
 import { exportReport, getLedgerOptions, listCategories, type ExportReport } from "@/lib/api/ledger";
 import { contactFiltersApiQuery } from "@/lib/contacts";
+import { currentMarketZone } from "@/lib/display-zone";
+import { dayIn, formatCalendarDate } from "@/lib/time-zone";
 import {
   booksPath,
   canExportBooks,
@@ -217,18 +219,17 @@ export function BooksLink({ path, org, children, extra }: { path: string; org: s
   );
 }
 
-/** "15 November 2026" from YYYY-MM-DD, without moving it through a time zone. */
+/** Class C (API 0.62.0): "15 November 2026" from YYYY-MM-DD, never moved through a time zone. */
 export function formatDay(day: string | null | undefined): string {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day ?? "");
-  if (!match) return day ?? "";
-  const at = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
-  return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(at);
+  return day ? formatCalendarDate(day, { long: true }) : "";
 }
 
-/** Today in the person's own calendar, as YYYY-MM-DD. */
+/**
+ * Today in the market, as YYYY-MM-DD: the date the API checks "not in the
+ * future" against (API 0.61.1) — not the device's date, nor the viewer's zone.
+ */
 export function todayLocal(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  return dayIn(new Date(), currentMarketZone()) ?? new Date().toISOString().slice(0, 10);
 }
 
 // ---- Categories ---------------------------------------------------------------------------

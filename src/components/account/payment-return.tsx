@@ -22,6 +22,7 @@ import {
   shouldPoll,
 } from "@/lib/online-payment";
 import { formatDay, periodLabel, subscriptionStatus } from "@/lib/subscriptions";
+import { currentMarketZone } from "@/lib/display-zone";
 
 const BACK = "/account/subscription";
 
@@ -171,8 +172,8 @@ function Body({ subscriptionId }: { subscriptionId: string }) {
             {state === "paid" && subscription.starts_at && subscription.ends_at && (
               <p className="mt-1 text-ink">
                 {startsLater
-                  ? `It starts on ${formatDay(subscription.starts_at)}, when the current period ends, and runs to ${formatDay(subscription.ends_at)}.`
-                  : `It runs from ${formatDay(subscription.starts_at)} to ${formatDay(subscription.ends_at)}.`}
+                  ? `It starts on ${formatDay(subscription.starts_at, currentMarketZone())}, when the current period ends, and runs to ${formatDay(subscription.ends_at, currentMarketZone())}.`
+                  : `It runs from ${formatDay(subscription.starts_at, currentMarketZone())} to ${formatDay(subscription.ends_at, currentMarketZone())}.`}
               </p>
             )}
           </div>

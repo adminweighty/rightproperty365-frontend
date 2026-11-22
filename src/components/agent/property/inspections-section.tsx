@@ -68,7 +68,7 @@ export function InspectionsSection({ org, role, tenancy }: { org: string; role: 
                     </div>
                     <p className="mt-1 font-medium break-words">
                       <Link href={inspectionHref(item.id, org)} className="text-primary-ink hover:underline">
-                        {scheduledWords(item.scheduledFor)}
+                        {scheduledWords(item.scheduledFor, item.timeZone)}
                       </Link>
                     </p>
                     <p className="text-sm text-muted">

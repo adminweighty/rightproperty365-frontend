@@ -29,6 +29,8 @@ import {
   type ItemPhoto,
 } from "@/lib/inspections";
 import { fileNameFrom } from "@/lib/ledger";
+import { currentMarketZone, currentViewerZone } from "@/lib/display-zone";
+import { formatPlaceTime } from "@/lib/time-zone";
 
 /*
  * Pieces shared by the team's inspection pages (`/agent/inspections/*`, the
@@ -69,13 +71,15 @@ export function BaselineLine({ baseline }: { baseline: Baseline | null }) {
   );
 }
 
-/** "Tue 1 Dec 2026, 09:30" in the viewer's own time zone. */
-export function scheduledWords(iso: string | null): string {
+/**
+ * Class B (API 0.62.0): an inspection happens at the property, so its time is
+ * shown in the property's zone first, with the viewer's alongside when it
+ * differs: "Tue, 1 Dec 2026, 09:30 Harare time (07:30 your time)". Without a
+ * zone (an older API) the market zone stands in.
+ */
+export function scheduledWords(iso: string | null, placeZone?: string | null): string {
   if (!iso) return "No time set";
-  const at = new Date(iso);
-  return Number.isNaN(at.getTime())
-    ? iso
-    : new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(at);
+  return formatPlaceTime(iso, placeZone || currentMarketZone(), currentViewerZone());
 }
 
 const FALLBACK = normaliseInspectionOptions(null);

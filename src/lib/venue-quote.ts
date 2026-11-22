@@ -158,11 +158,12 @@ export function quoteRows(quote: Pick<VenueQuote, "currency" | "lines" | "subtot
 }
 
 /** "Valid until 14:30" for a quote that expires (on the visitor's clock, which is when they act). */
-export function expiryText(expiresAt: string | null, now: number = Date.now()): string | null {
+export function expiryText(expiresAt: string | null, now: number = Date.now(), timeZone?: string, zoneName?: string): string | null {
   if (!expiresAt) return null;
   const at = Date.parse(expiresAt);
   if (Number.isNaN(at)) return null;
   if (at <= now) return "This estimate has expired. Choose the time again for a new one.";
-  const clock = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(at));
-  return `This estimate is held for your request until ${clock} your time.`;
+  const clock = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone }).format(new Date(at));
+  // With the viewer's display zone (API 0.62.0) the zone is named: "until 14:30 Harare time".
+  return `This estimate is held for your request until ${clock} ${zoneName ?? "your time"}.`;
 }

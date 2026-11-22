@@ -50,7 +50,7 @@ export function MyInspections({ tenancy }: { tenancy: Tenancy }) {
                         </span>
                         <span className="mt-1 block font-medium break-words text-ink">
                           {inspectionTypeLabel(inspection.type, inspection.typeLabel)} inspection
-                          {inspection.completedAt ? `, completed ${formatWhen(inspection.completedAt)}` : `, ${scheduledWords(inspection.scheduledFor)}`}
+                          {inspection.completedAt ? `, completed ${formatWhen(inspection.completedAt)}` : `, ${scheduledWords(inspection.scheduledFor, inspection.timeZone)}`}
                         </span>
                         <span className="block text-sm text-muted">
                           {[inspection.inspector && `by ${inspection.inspector}`, inspection.progress && progressWords(inspection.progress.done, inspection.progress.total)]

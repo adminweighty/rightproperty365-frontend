@@ -35,6 +35,7 @@ import {
 } from "@/lib/api/auth";
 import { onboardingStatusLabels, onboardingStatusTones } from "@/lib/api/onboarding";
 import { actionMessage, formatAmount, formatDay, periodLabel, subscriptionStatus } from "@/lib/subscriptions";
+import { currentMarketZone } from "@/lib/display-zone";
 
 type Props = {
   userId: string;
@@ -445,7 +446,7 @@ function Detail({ me, userId, roleLabels, organisationKindLabels }: Props & { me
                       <span className="block text-sm text-muted">
                         {sub.subscriber_kind === "ORGANISATION" ? (sub.organisation_name ?? sub.subscriber_name) : "For themselves"} ·{" "}
                         {periodLabel(sub.period)} · {formatAmount(sub.amount, sub.currency_code)}
-                        {sub.starts_at && sub.ends_at && ` · ${formatDay(sub.starts_at)} to ${formatDay(sub.ends_at)}`}
+                        {sub.starts_at && sub.ends_at && ` · ${formatDay(sub.starts_at, currentMarketZone())} to ${formatDay(sub.ends_at, currentMarketZone())}`}
                       </span>
                     </span>
                     <Badge tone={shown.tone}>{shown.label}</Badge>

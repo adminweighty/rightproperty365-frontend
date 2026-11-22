@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { displayZoneServerSnapshot, displayZoneSnapshot, subscribeDisplayZone } from "@/lib/display-zone";
 import type { ApiFailure, ApiResult } from "@/lib/api/http";
 
 export type Loadable<T> =
@@ -18,6 +19,8 @@ type Done<T> = { load: () => Promise<ApiResult<T>>; attempt: number; result: Api
  * `replace` shows an answer the page already has (the request after a change).
  */
 export function useApi<T>(load: () => Promise<ApiResult<T>>) {
+  // Times on screen follow the viewer's display zone (API 0.62.0): re-render when it changes.
+  useSyncExternalStore(subscribeDisplayZone, displayZoneSnapshot, displayZoneServerSnapshot);
   const [attempt, setAttempt] = useState(0);
   const [done, setDone] = useState<Done<T> | null>(null);
 

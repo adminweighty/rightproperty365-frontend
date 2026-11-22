@@ -3,7 +3,7 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useMemo, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { NoAccess, RequireAuth } from "@/components/auth/require-auth";
 import { ChipNav, EmptyState } from "@/components/portal/portal-ui";
 import { useApi } from "@/components/portal/use-api";
@@ -36,7 +36,8 @@ import {
   VENUE_BOOKING_STATUSES,
   type VenueBooking,
 } from "@/lib/venue-bookings";
-import { addDaysTo, clockOf, dateText, localDateOf, visitorZone as readVisitorZone } from "@/lib/venue-time";
+import { addDaysTo, clockOf, dateText, localDateOf } from "@/lib/venue-time";
+import { useDisplayZone } from "@/components/time/use-display-zone";
 
 /*
  * Hourly venue bookings (API 0.33.0, FR-025): the customer's own under
@@ -45,8 +46,8 @@ import { addDaysTo, clockOf, dateText, localDateOf, visitorZone as readVisitorZo
  * (FR-022). Read in the browser with the session cookie.
  */
 
-const noSubscription = () => () => {};
-const useVisitorZone = () => useSyncExternalStore(noSubscription, readVisitorZone, () => null);
+/** The viewer's display zone (API 0.62.0): bookings show it next to the venue's time. */
+const useVisitorZone = () => useDisplayZone().viewer;
 
 const ACTIVE = "REQUESTED,CONFIRMED,RESCHEDULE_REQUESTED";
 const PAST = "COMPLETED,NO_SHOW,DECLINED,CANCELLED";

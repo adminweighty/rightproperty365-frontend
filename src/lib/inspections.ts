@@ -811,6 +811,8 @@ export type Inspection = {
   unit: { id: string | null; label: string; archived: boolean } | null;
   tenancy: { id: string; status: string | null; tenants: string[] } | null;
   scheduledFor: string | null;
+  /** The property market's IANA zone (API 0.62.0): scheduled times are shown in it first. Null from an older API. */
+  timeZone: string | null;
   inspector: string | null;
   template: { code: string | null; label: string } | null;
   checklist: Checklist;
@@ -899,6 +901,7 @@ export function normaliseInspection(value: unknown): Inspection | null {
         }
       : null,
     scheduledFor: str(raw.scheduled_for),
+    timeZone: str(raw.time_zone),
     inspector: personName(raw.inspector),
     template: templateLabel ? { code: str(templateRaw?.code) ?? str(raw.template), label: templateLabel } : null,
     checklist,

@@ -2,7 +2,7 @@
 
 import { Clock } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { LegalLink } from "@/components/legal/legal-link";
 import { chosenSpan, emptyChoice, QuoteTable, rateText, SlotPicker, SpanLines, useVenueAvailability, type SlotChoice } from "@/components/venues/slot-picker";
@@ -15,7 +15,9 @@ import type { VenueBooking } from "@/lib/venue-bookings";
 import { refusalReason, slotUnavailableText } from "@/lib/venue-bookings";
 import { expiryText, formatAmount, type VenueQuote } from "@/lib/venue-quote";
 import { minutesText } from "@/lib/venue-settings";
-import { visitorZone as readVisitorZone, zoneText } from "@/lib/venue-time";
+import { zoneText } from "@/lib/venue-time";
+import { useDisplayZone } from "@/components/time/use-display-zone";
+import { zoneLabel } from "@/lib/time-zone";
 
 /*
  * "Book by the hour" on a venue's listing page (API 0.33.0, BR-007): a client
@@ -45,7 +47,6 @@ function refusalText(failure: ApiFailure): string {
   return failure.message;
 }
 
-const noSubscription = () => () => {};
 
 /** The time in the address after signing in (`book_date`, `book_start`, `book_minutes`), if any. */
 function restoredChoice(): SlotChoice {
@@ -68,7 +69,8 @@ export function BookByTheHour({ listingId, slug, title }: { listingId: string; s
   /** Why the last time could not be booked; stays while the free times are read again. */
   const [slotNotice, setSlotNotice] = useState<{ text: string; traceId?: string } | null>(null);
   // The visitor's own zone is read in the browser, never on the cached page.
-  const zone = useSyncExternalStore(noSubscription, readVisitorZone, () => null);
+  // The viewer's display zone (API 0.62.0), not just the device's.
+  const zone = useDisplayZone().viewer;
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [sending, setSending] = useState(false);
   const [failure, setFailure] = useState<ApiFailure | null>(null);
@@ -259,7 +261,7 @@ export function BookByTheHour({ listingId, slug, title }: { listingId: string; s
                 <h3 className="font-sans text-lg font-semibold tracking-normal text-ink">Your estimate</h3>
                 <SpanLines start={quote.quote.start || span?.start || ""} end={quote.quote.end || span?.end || ""} timeZone={ready.availability.timeZone} visitorZone={zone} className="mt-2" />
                 <QuoteTable quote={quote.quote} className="mt-3" />
-                {expiryText(quote.quote.expiresAt, ready.at) && <p className="mt-2 text-xs text-muted">{expiryText(quote.quote.expiresAt, ready.at)}</p>}
+                {expiryText(quote.quote.expiresAt, ready.at, zone, zoneLabel(zone)) && <p className="mt-2 text-xs text-muted">{expiryText(quote.quote.expiresAt, ready.at, zone, zoneLabel(zone))}</p>}
               </div>
             )}
           </div>

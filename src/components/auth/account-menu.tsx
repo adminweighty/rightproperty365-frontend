@@ -169,6 +169,11 @@ export function AccountMenu({ professionals }: { professionals?: NavItem }) {
                   </Link>
                 </li>
                 <li>
+                  <Link href="/account/time-zone" className={itemClass} onClick={() => setOpen(false)}>
+                    Time zone
+                  </Link>
+                </li>
+                <li>
                   <Link href="/account/requests" className={itemClass} onClick={() => setOpen(false)}>
                     Your requests
                   </Link>

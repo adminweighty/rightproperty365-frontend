@@ -19,6 +19,8 @@ import {
   secondsLeft,
   type SignInChallenge,
 } from "@/lib/sign-in-code";
+import { formatInstant } from "@/lib/time-zone";
+import { currentViewerZone } from "@/lib/display-zone";
 
 type Props = {
   scope: SignInScope;
@@ -31,10 +33,8 @@ type Props = {
   onStartAgain: (message?: string) => void;
 };
 
-const timeOf = (iso: string) => {
-  const at = new Date(iso);
-  return Number.isNaN(at.getTime()) ? null : new Intl.DateTimeFormat("en-GB", { timeStyle: "short" }).format(at);
-};
+/** "14:05 Harare time": when the code stops working, in the display zone (API 0.62.0). */
+const timeOf = (iso: string) => (Number.isNaN(new Date(iso).getTime()) ? null : formatInstant(iso, currentViewerZone(), { style: "time" }));
 
 /**
  * The second step of signing in: the code we emailed. Used by the customer

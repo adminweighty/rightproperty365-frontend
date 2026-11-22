@@ -55,6 +55,8 @@ import {
   type FormField,
   type FormSection,
 } from "@/lib/questionnaires";
+import { formatInstant } from "@/lib/time-zone";
+import { currentViewerZone } from "@/lib/display-zone";
 
 /*
  * The form builder (FR-017): one draft version of an application form,
@@ -574,7 +576,8 @@ type SaveState =
 
 type Session = { draft: Draft | null; dirty: boolean; inFlight: boolean; again: boolean; timer: ReturnType<typeof setTimeout> | undefined };
 
-const timeText = (at: Date) => new Intl.DateTimeFormat("en-GB", { timeStyle: "short" }).format(at);
+/** "14:05 Harare time": when a draft was saved, in the viewer's zone (API 0.62.0). */
+const timeText = (at: Date) => formatInstant(at, currentViewerZone(), { style: "time" });
 
 function isoToDay(iso: string | null | undefined) {
   if (!iso) return "";

@@ -4,6 +4,7 @@ import { legal } from "@/lib/legal";
 import type { PendingLegalAcceptance } from "@/lib/legal-versions";
 import type { MfaChallenge } from "@/lib/admin-mfa";
 import type { SignInChallenge } from "@/lib/sign-in-code";
+import type { TimeZoneSetting } from "@/lib/time-zone";
 
 /**
  * Client for the identity endpoints of the Go API.
@@ -78,6 +79,8 @@ export type User = {
   }[];
   platform_roles: { role: PlatformRole; market_code: string | null }[];
   memberships: Membership[];
+  /** The display zone (API 0.62.0). Optional: older API builds do not send it (market time). */
+  time_zone?: TimeZoneSetting;
 };
 
 /**

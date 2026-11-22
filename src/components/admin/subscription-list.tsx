@@ -24,6 +24,7 @@ import {
 } from "@/lib/api/subscriptions";
 import { pageFrom } from "@/lib/request-filters";
 import { formatAmount, formatDay, periodLabel, subscriptionStatus } from "@/lib/subscriptions";
+import { currentMarketZone } from "@/lib/display-zone";
 
 const PATH = "/admin/subscriptions";
 
@@ -223,8 +224,8 @@ function List({ countries }: { countries: Country[] }) {
                         {sub.plan_name} · {periodLabel(sub.period)} · {formatAmount(sub.amount, sub.currency_code)} · {countryName(sub.market_code)}
                       </p>
                       <p className="text-xs text-subtle">
-                        Requested {formatDay(sub.created_at)}
-                        {sub.starts_at && sub.ends_at && ` · ${formatDay(sub.starts_at)} to ${formatDay(sub.ends_at)}`}
+                        Requested {formatDay(sub.created_at, currentMarketZone())}
+                        {sub.starts_at && sub.ends_at && ` · ${formatDay(sub.starts_at, currentMarketZone())} to ${formatDay(sub.ends_at, currentMarketZone())}`}
                       </p>
                     </div>
                     <ButtonLink href={`${PATH}/${sub.id}`} size="sm" variant={sub.status === "PENDING_PAYMENT" ? "primary" : "secondary"}>

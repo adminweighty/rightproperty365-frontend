@@ -1,5 +1,6 @@
 "use client";
 
+import { formatWhen } from "@/components/portal/portal-ui";
 import { ChevronLeft, FileText, Search } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -35,9 +36,6 @@ type State =
   | { status: "loading" }
   | { status: "error"; failure: ApiFailure }
   | { status: "ready"; page: OnboardingAdminPage };
-
-const formatWhen = (iso: string) =>
-  new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso));
 
 const emptyText: Record<OnboardingStatus, string> = {
   SUBMITTED: "No applications are waiting for review.",

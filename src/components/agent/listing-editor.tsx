@@ -55,6 +55,7 @@ import {
   type ActionButton,
 } from "@/lib/listing-manage";
 import { expiryOf, expiryView } from "@/lib/listing-expiry";
+import { currentMarketZone } from "@/lib/display-zone";
 import { pricingPath, QUOTA_REACHED, quotaDetails, quotaReachedMessage } from "@/lib/packages";
 import { isPlaceholderThumbnail, isYouTubeId, startText, thumbnailFor, watchHref, watchUrlFor } from "@/lib/youtube";
 import { LocationPicker } from "@/components/map/maps";
@@ -674,7 +675,7 @@ function Editor({ listingId, lists }: Props) {
     : flagged
       ? lists.propertyTypes.find((type) => type.value === values.property_type)?.hourly === true
       : null;
-  const period = expiryView(listing.status, expiryOf(listing, openedAt));
+  const period = expiryView(listing.status, expiryOf(listing, openedAt), currentMarketZone());
   // An expired listing with a date gets the expiry callout instead of the general banner.
   const banner = period.callout ? null : listingBanner(listing);
   const pendingBadge = pendingChangesBadge(listing.pending_changes);

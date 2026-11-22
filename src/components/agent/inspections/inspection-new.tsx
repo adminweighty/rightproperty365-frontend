@@ -170,7 +170,7 @@ function NewForm({ organisation, user }: { organisation: DashboardOrganisation; 
   ];
   const inspectorHint = "Who will carry out the inspection.";
   const zone = zoneName();
-  const timeHint = `In your own time zone${zone ? ` (${zone})` : ""}. Everyone sees it in theirs.`;
+  const timeHint = `In this device's time zone${zone ? ` (${zone})` : ""}. It is shown in the property's time zone, with each person's own time alongside when it differs.`;
   const when = localToUtc(form.date, form.time);
   const tenancyHint = "Link the tenancy so its tenant can read the report from their account once it is completed.";
   const templateHint = "The rooms and items to check. You can add or remove areas and items on the inspection.";

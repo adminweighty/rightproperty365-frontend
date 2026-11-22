@@ -196,7 +196,7 @@ function Table({ org, page, filters }: { org: string; page: InspectionPage; filt
               <tr key={item.id}>
                 <th scope="row" className={`${td} text-left font-normal`}>
                   <Link href={inspectionHref(item.id, org)} className="font-medium break-words text-primary-ink hover:underline">
-                    {scheduledWords(item.scheduledFor)}
+                    {scheduledWords(item.scheduledFor, item.timeZone)}
                   </Link>
                   {item.reference && <span className="block text-xs text-muted">{item.reference}</span>}
                 </th>

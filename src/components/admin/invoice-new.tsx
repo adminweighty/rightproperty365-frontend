@@ -14,6 +14,7 @@ import { adminCreateInvoice } from "@/lib/api/invoices";
 import { adminListSubscriptions, type SubscriptionPeriod } from "@/lib/api/subscriptions";
 import { invoiceErrorText, todayIso } from "@/lib/invoices";
 import { formatDay, periodLabel } from "@/lib/subscriptions";
+import { currentMarketZone } from "@/lib/display-zone";
 
 const UUID = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 
@@ -33,7 +34,7 @@ function useRenewable(selected: string) {
           out.push({
             value: sub.id,
             label: `${sub.subscriber.name} · ${sub.plan_name}`,
-            secondary: `${sub.invoice_number}${sub.ends_at ? `, ${sub.status === "EXPIRED" ? "ended" : "ends"} ${formatDay(sub.ends_at)}` : ""}`,
+            secondary: `${sub.invoice_number}${sub.ends_at ? `, ${sub.status === "EXPIRED" ? "ended" : "ends"} ${formatDay(sub.ends_at, currentMarketZone())}` : ""}`,
             keywords: [sub.invoice_number, sub.market_code],
           });
         }

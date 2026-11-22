@@ -21,7 +21,7 @@ import {
   type VenueBooking,
 } from "@/lib/venue-bookings";
 import { formatAmount } from "@/lib/venue-quote";
-import { formatInZone } from "@/lib/api/appointments";
+import { formatWhen } from "@/components/portal/portal-ui";
 import { durationText, venueSpanText, visitorTimeNote } from "@/lib/venue-time";
 
 /**
@@ -436,7 +436,7 @@ export function VenueBookingCard({ booking, viewer, actions, visitorZone, loadEv
                   </span>
                 </p>
                 <p className="text-muted">
-                  <time dateTime={entry.at}>{formatInZone(entry.at, booking.timeZone)}</time>
+                  <time dateTime={entry.at}>{formatWhen(entry.at)}</time>
                   {entry.start && entry.end && entry.action !== "CANCELLED" && ` · for ${venueSpanText(Date.parse(entry.start), Date.parse(entry.end), booking.timeZone)}`}
                 </p>
                 {entry.reason && <p className="whitespace-pre-line text-muted">{entry.reason}</p>}

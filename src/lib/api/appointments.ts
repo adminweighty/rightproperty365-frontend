@@ -1,4 +1,6 @@
 import { apiFetch } from "@/lib/api/http";
+import { currentViewerZone } from "@/lib/display-zone";
+import { formatPlaceTime } from "@/lib/time-zone";
 
 /**
  * Client for the appointment endpoints of the Go API (viewings and
@@ -137,19 +139,14 @@ export const getInboxSummary = () => apiFetch<InboxSummary>("/v1/inbox/summary")
 
 // ---- Times --------------------------------------------------------------------
 
-/** "Mon 16 November 2026, 10:00 (Africa/Harare time)": always in the appointment's zone, with the zone named. */
+/**
+ * Class B (API 0.62.0): an appointment happens at a place, so it is shown in
+ * the appointment's zone first, with the viewer's time alongside when it
+ * differs: "Mon, 16 Nov 2026, 10:00 Harare time (08:00 your time)". For when
+ * something happened (a timeline entry), use `formatWhen` instead.
+ */
 export function formatInZone(utc: string, timezone: string): string {
-  const text = new Intl.DateTimeFormat("en-GB", {
-    timeZone: timezone,
-    weekday: "short",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).format(new Date(utc));
-  return `${text} (${timezone} time)`;
+  return formatPlaceTime(utc, timezone, currentViewerZone());
 }
 
 /**

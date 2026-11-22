@@ -35,6 +35,7 @@ import {
   type OnboardingDetailsPatch,
   type OnboardingRequirements,
 } from "@/lib/api/onboarding";
+import { formatWhen } from "@/components/portal/portal-ui";
 
 type Props = {
   /** What this role has to provide, from GET /v1/onboarding/requirements. */
@@ -49,9 +50,6 @@ type State =
   /** The signed-in user did not choose this role. */
   | { status: "none" }
   | { status: "ready"; application: OnboardingApplication };
-
-const formatWhen = (iso: string) =>
-  new Intl.DateTimeFormat(undefined, { dateStyle: "long", timeStyle: "short" }).format(new Date(iso));
 
 /** What an approval leads to, in plain words. */
 function outcomeText(requirement: OnboardingRequirements): string {

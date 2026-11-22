@@ -47,6 +47,7 @@ import {
   type ActionButton,
 } from "@/lib/listing-manage";
 import { expiryOf, expiryView } from "@/lib/listing-expiry";
+import { currentMarketZone } from "@/lib/display-zone";
 import { photoCounter } from "@/lib/listing-photos";
 import { QUOTA_REACHED, quotaDetails, quotaReachedMessage } from "@/lib/packages";
 import { listingAnalyticsPath } from "@/components/analytics/agent-analytics";
@@ -129,7 +130,7 @@ function Row({
   const pending = pendingChangesBadge(listing?.pending_changes);
   // The full listing is the fresher read; the summary's expiry shows until it arrives.
   const expiry = listing ? expiryOf(listing, now) : (summary.expiry ?? null);
-  const period = expiryView(status, expiry);
+  const period = expiryView(status, expiry, currentMarketZone());
   const isStay = summary.category.code === SHORT_STAY;
   const place = profilePlace(summary);
   const title = (listing?.content.title || summary.title || "").trim() || "Untitled listing";

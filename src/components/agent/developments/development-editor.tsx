@@ -48,6 +48,8 @@ import {
 } from "@/lib/developments";
 import { env } from "@/lib/env";
 import { coordinateForInput, parseCoordinatePair } from "@/lib/map";
+import { formatInstant } from "@/lib/time-zone";
+import { currentViewerZone } from "@/lib/display-zone";
 
 // ---- The form's values ------------------------------------------------------------
 
@@ -297,7 +299,7 @@ function DetailsForm({
       setInitial(next);
       setValues(next);
       setSeen(result.data.development.updated_at);
-      setSaved(`Saved at ${new Intl.DateTimeFormat("en-GB", { timeStyle: "short" }).format(new Date())}.`);
+      setSaved(`Saved at ${formatInstant(new Date(), currentViewerZone(), { style: "time" })}.`);
       onSaved(result.data.development);
       return;
     }

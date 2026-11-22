@@ -34,6 +34,8 @@ import { cn } from "@/lib/cn";
 import { env } from "@/lib/env";
 import { cleanCode, formatCountdown, RESEND_WAIT_SECONDS, secondsLeft } from "@/lib/sign-in-code";
 import { isSelfFilled, ROLE_LABELS, signingMessage, stampFieldErrors } from "@/lib/signing";
+import { formatMarketDay } from "@/lib/time-zone";
+import { currentMarketZone } from "@/lib/display-zone";
 
 /** 43 URL-safe characters from the API; a little room either way, nothing else is sent to it. */
 const TOKEN = /^[A-Za-z0-9_-]{20,128}$/;
@@ -88,7 +90,8 @@ function LinkProblem({ failure, onRetry }: { failure: ApiFailure; onRetry: () =>
   );
 }
 
-const today = () => new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" }).format(new Date());
+/** The date a DATE field shows: today in the market (API 0.61.1), never shifted by the viewer's zone. */
+const today = () => formatMarketDay(new Date(), currentMarketZone());
 
 /** The order fields are visited in: page by page, top to bottom, left to right. */
 const reading = (a: AgreementField, b: AgreementField) => a.page - b.page || a.y - b.y || a.x - b.x;

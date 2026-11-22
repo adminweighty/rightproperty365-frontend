@@ -88,10 +88,12 @@ export function readMarketingPreferences(value: unknown): MarketingPreferences |
 /* ------------------------------------------------------------------ words */
 
 /** "15 Nov 2026, 14:05", in the viewer's time zone unless one is given (tests pass "UTC"). */
-export function formatChangedAt(iso: string, timeZone?: string): string {
+export function formatChangedAt(iso: string, timeZone?: string, zoneName?: string): string {
   const at = new Date(iso);
   if (Number.isNaN(at.getTime())) return iso;
-  return new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short", timeZone }).format(at);
+  const text = new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short", timeZone }).format(at);
+  // The page names the zone (API 0.62.0): "19 Nov 2026, 06:10 Harare time".
+  return zoneName ? `${text} ${zoneName}` : text;
 }
 
 /** Where a choice was made, after "from": "the website", "the mobile app". Null for a source we have no words for. */
@@ -135,9 +137,10 @@ export function contextLabel(context: string | null | undefined): string | null 
 export function lastChangedText(
   prefs: Pick<MarketingPreferences, "changed_at" | "source" | "context">,
   timeZone?: string,
+  zoneName?: string,
 ): string {
   if (!prefs.changed_at) return "You have not made a choice yet, so marketing is off.";
-  const when = formatChangedAt(prefs.changed_at, timeZone);
+  const when = formatChangedAt(prefs.changed_at, timeZone, zoneName);
   if (prefs.context === "MIGRATION") return `Last changed ${when}, carried over from your earlier choice.`;
   const from = sourceLabel(prefs.source);
   return from ? `Last changed ${when} from ${from}.` : `Last changed ${when}.`;
@@ -152,7 +155,12 @@ export const HISTORY_LIMIT = 5;
  * The last few changes, newest first, in words: "Switched on" or "Switched
  * off", the time, and "from the website, in your preferences".
  */
-export function historyLines(history: MarketingConsentRecord[], limit: number = HISTORY_LIMIT, timeZone?: string): HistoryLine[] {
+export function historyLines(
+  history: MarketingConsentRecord[],
+  limit: number = HISTORY_LIMIT,
+  timeZone?: string,
+  zoneName?: string,
+): HistoryLine[] {
   return history.slice(0, Math.max(0, limit)).map((record, index) => {
     const how = contextLabel(record.context);
     const from = record.context === "MIGRATION" ? null : sourceLabel(record.source);
@@ -161,7 +169,7 @@ export function historyLines(history: MarketingConsentRecord[], limit: number = 
     return {
       key: `${record.changed_at}-${index}`,
       title: record.marketing_opt_in ? "Switched on" : "Switched off",
-      when: formatChangedAt(record.changed_at, timeZone),
+      when: formatChangedAt(record.changed_at, timeZone, zoneName),
       dateTime: record.changed_at,
       detail: detail && detail.charAt(0).toUpperCase() + detail.slice(1),
     };

@@ -46,6 +46,8 @@ import {
   type Answers,
   type FormDefinition,
 } from "@/lib/questionnaires";
+import { formatInstant } from "@/lib/time-zone";
+import { currentViewerZone } from "@/lib/display-zone";
 
 /*
  * `/apply/<listing slug>` (API 0.32.0, FR-015, FR-019): the form attached to
@@ -137,7 +139,8 @@ function Intro({ form, listing, children }: { form: PublicApplicationForm; listi
 
 type SaveState = { status: "idle" } | { status: "pending" } | { status: "saving" } | { status: "saved"; at: Date } | { status: "failed"; failure: ApiFailure };
 
-const timeText = (at: Date) => new Intl.DateTimeFormat("en-GB", { timeStyle: "short" }).format(at);
+/** "14:05 Harare time": when a draft was saved, in the viewer's zone (API 0.62.0). */
+const timeText = (at: Date) => formatInstant(at, currentViewerZone(), { style: "time" });
 
 /** API field errors keyed `answers.<key>` or `<key>`, as question keys. */
 function fieldErrors(fields: Record<string, string> | undefined, definition: FormDefinition): Record<string, string> {

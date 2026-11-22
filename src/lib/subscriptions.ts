@@ -64,14 +64,18 @@ export function toCents(amount: string): number | null {
   return Number(whole) * 100 + Number(fraction.padEnd(2, "0"));
 }
 
-/** "16 Nov 2026": a date without a time, in the viewer's time zone. */
-export function formatDay(iso: string | null | undefined): string {
+/**
+ * "16 Nov 2026": a date without a time. A date-only value is a calendar day
+ * and never shifts. An instant (a period's start or end) is shown as its day
+ * in `timeZone` — the pages pass the market zone (API 0.62.0), so the day is
+ * the same for everyone; without one, the device's zone.
+ */
+export function formatDay(iso: string | null | undefined, timeZone?: string): string {
   if (!iso) return "";
-  // A date-only value ("2026-11-16") is a calendar day: never shift it by a time zone.
   const dayOnly = /^\d{4}-\d{2}-\d{2}$/.test(iso);
   const at = new Date(dayOnly ? `${iso}T12:00:00Z` : iso);
   if (Number.isNaN(at.getTime())) return iso;
-  return new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", ...(dayOnly ? { timeZone: "UTC" } : {}) }).format(at);
+  return new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", ...(dayOnly ? { timeZone: "UTC" } : timeZone ? { timeZone } : {}) }).format(at);
 }
 
 /** Today as YYYY-MM-DD in the viewer's time zone (for date inputs). */

@@ -257,6 +257,9 @@ function Details({ user, roleLabels, organisationKindLabels }: Props & { user: U
         <ButtonLink href="/account/notification-preferences" variant="secondary">
           Communication preferences
         </ButtonLink>
+        <ButtonLink href="/account/time-zone" variant="secondary">
+          Time zone
+        </ButtonLink>
         <ButtonLink href="/dashboard" variant="secondary">
           Dashboard
         </ButtonLink>

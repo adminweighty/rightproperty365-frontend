@@ -132,7 +132,7 @@ function Detail({ id, organisation, user }: { id: string; organisation: Dashboar
         {inspection.reference && <span className="text-sm text-muted">{inspection.reference}</span>}
       </div>
       <h1 className="mt-2 text-3xl break-words md:text-4xl">
-        {inspectionTypeLabel(inspection.type, inspection.typeLabel)} inspection, {scheduledWords(inspection.scheduledFor)}
+        {inspectionTypeLabel(inspection.type, inspection.typeLabel)} inspection, {scheduledWords(inspection.scheduledFor, inspection.timeZone)}
       </h1>
       <p className="mt-2 max-w-2xl break-words text-muted">
         {inspection.property?.id && !inspection.property.archived ? (

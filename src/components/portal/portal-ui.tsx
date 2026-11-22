@@ -9,19 +9,20 @@ import { Alert } from "@/components/ui/alert";
 import { Button, ButtonLink } from "@/components/ui/button";
 import type { ApiFailure } from "@/lib/api/http";
 import { cn } from "@/lib/cn";
+import { currentViewerZone } from "@/lib/display-zone";
+import { formatInstant } from "@/lib/time-zone";
 
 /*
  * Small pieces shared by the signed-in pages: the dashboard, the request
  * lists, the team page and the admin overview.
  */
 
-/** "15 Nov 2026, 14:05" in the viewer's time zone. */
-export const formatWhen = (iso: string) => {
-  const at = new Date(iso);
-  return Number.isNaN(at.getTime())
-    ? iso
-    : new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" }).format(at);
-};
+/**
+ * Class A (API 0.62.0): an instant — created, sent, replied, paid, signed —
+ * as "15 Nov 2026, 14:05 Harare time", in the viewer's display zone with the
+ * zone named. Never use it for a place-bound time or a calendar date.
+ */
+export const formatWhen = (iso: string) => formatInstant(iso, currentViewerZone());
 
 export function LoadingBlock({ label, rows = 2 }: { label: string; rows?: number }) {
   return (

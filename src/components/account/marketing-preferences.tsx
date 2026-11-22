@@ -9,12 +9,16 @@ import { Button } from "@/components/ui/button";
 import { getMarketingPreferences, saveMarketingPreference, type MarketingPreferences } from "@/lib/api/marketing";
 import { cn } from "@/lib/cn";
 import { canSwitchOn, historyLines, HISTORY_LIMIT, isStaleWording, lastChangedText } from "@/lib/marketing-preferences";
+import { useDisplayZone } from "@/components/time/use-display-zone";
+import { currentViewerZone } from "@/lib/display-zone";
+import { zoneLabel } from "@/lib/time-zone";
 
 type Message = { tone: "success" | "info" | "danger"; text: string; traceId?: string };
 
 /** "Switched on" / "Switched off" with when and how, newest first, in a native disclosure. */
 function History({ prefs }: { prefs: MarketingPreferences }) {
-  const lines = historyLines(prefs.history);
+  const { viewer } = useDisplayZone();
+  const lines = historyLines(prefs.history, HISTORY_LIMIT, viewer, zoneLabel(viewer));
   return (
     <details className="group mt-4 rounded-md border border-line">
       <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 font-medium text-ink [&::-webkit-details-marker]:hidden">
@@ -195,7 +199,7 @@ export function MarketingPreferencesSection() {
               switchRef={switchRef}
             />
             <p id="marketing-last-changed" className="mt-3 text-sm text-muted">
-              {lastChangedText(state.data)}
+              {lastChangedText(state.data, currentViewerZone(), zoneLabel(currentViewerZone()))}
             </p>
             {!state.data.consent_text && (
               <Button variant="secondary" className="mt-3" onClick={reload}>

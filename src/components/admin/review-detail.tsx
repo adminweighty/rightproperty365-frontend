@@ -1,5 +1,6 @@
 "use client";
 
+import { formatWhen } from "@/components/portal/portal-ui";
 import { BadgeCheck, Check, ChevronLeft, FileText, Minus } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
@@ -49,9 +50,6 @@ type State =
   | { status: "ready"; application: OnboardingAdminApplication };
 
 type Action = "approve" | "changes" | "reject";
-
-const formatWhen = (iso: string) =>
-  new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso));
 
 /** What approving this application creates, in plain words. */
 function outcomeText(

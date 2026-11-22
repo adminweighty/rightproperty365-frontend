@@ -34,6 +34,7 @@ import {
   toCents,
   todayIso,
 } from "@/lib/subscriptions";
+import { currentMarketZone } from "@/lib/display-zone";
 
 const PATH = "/admin/subscriptions";
 
@@ -403,9 +404,9 @@ function Detail({ subscriptionId, user }: { subscriptionId: string; user: User }
               </Row>
               <Row label="Requested">{formatWhen(sub.created_at)}</Row>
               {sub.activated_at && <Row label="Activated">{formatWhen(sub.activated_at)}</Row>}
-              {sub.starts_at && <Row label="Starts">{formatDay(sub.starts_at)}</Row>}
-              {sub.ends_at && <Row label="Ends">{formatDay(sub.ends_at)}</Row>}
-              {sub.renewal_opens_at && <Row label="Renewal opens">{formatDay(sub.renewal_opens_at)}</Row>}
+              {sub.starts_at && <Row label="Starts">{formatDay(sub.starts_at, currentMarketZone())}</Row>}
+              {sub.ends_at && <Row label="Ends">{formatDay(sub.ends_at, currentMarketZone())}</Row>}
+              {sub.renewal_opens_at && <Row label="Renewal opens">{formatDay(sub.renewal_opens_at, currentMarketZone())}</Row>}
               {sub.expired_at && <Row label="Ended">{formatWhen(sub.expired_at)}</Row>}
               {sub.renewal_of && (
                 <Row label="Renews">

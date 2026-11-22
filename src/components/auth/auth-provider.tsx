@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { getMe, logout, type SessionResponse, type SessionScope, type User } from "@/lib/api/auth";
 import type { PendingLegalAcceptance } from "@/lib/legal-versions";
+import { restoreDisplayZone, setDisplayZone } from "@/lib/display-zone";
 
 type AuthState =
   | { status: "loading"; user: null; scope: null; mfaEnrolmentRequired: false }
@@ -46,7 +47,15 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ status: "loading", user: null, scope: null, mfaEnrolmentRequired: false });
 
+  // The display zone (API 0.62.0) every time on the page uses: the last one
+  // known in this browser at once, then the account's.
   useEffect(() => {
+    if (state.status === "authenticated") setDisplayZone(state.user.time_zone ?? {});
+    else if (state.status === "anonymous") setDisplayZone(null);
+  }, [state]);
+
+  useEffect(() => {
+    restoreDisplayZone();
     let cancelled = false;
     getMe().then((result) => {
       if (!cancelled) setState(result.ok ? fromResponse(result.data) : anonymous);

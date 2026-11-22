@@ -4,6 +4,7 @@ import { CalendarClock, MapPin } from "lucide-react";
 import Link from "next/link";
 import { useRef, useState, type ReactNode } from "react";
 import { AddToCalendar } from "@/components/calendar/add-to-calendar";
+import { formatWhen } from "@/components/portal/portal-ui";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -326,7 +327,7 @@ export function AppointmentCard<T extends Appointment>({
                   <span className="text-muted"> by {entry.actor === viewer ? own : (actors[entry.actor] ?? "someone")}</span>
                 </p>
                 <p className="text-muted">
-                  {formatInZone(entry.at, timezone)}
+                  {formatWhen(entry.at)}
                   {entry.start_utc && entry.event !== "CANCELLED" && ` · for ${formatInZone(entry.start_utc, timezone)}`}
                 </p>
                 {entry.note && <p className="whitespace-pre-line text-muted">{entry.note}</p>}
